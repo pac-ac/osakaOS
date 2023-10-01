@@ -24,7 +24,16 @@ Desktop::~Desktop() {
 
 void Desktop::Draw(common::GraphicsContext* gc, bool mode) {
 
-	CompositeWidget::Draw(gc, mode);
+	//CompositeWidget::Draw(gc, mode);
+	//hard coded until I redo the gui stuff
+	for (uint16_t y = 0; y < 200; y++) {
+		for (uint16_t x = 0; x < 320; x++) {
+		
+			gc->PutPixel(x, y, 0x00, 0x00, 0xa8);
+		}
+	}
+
+
 
 	for (int i = 0; i < 6; i++) {
 		gc -> PutPixel(MouseX, MouseY-i, 0xff, 0xff, 0xff);

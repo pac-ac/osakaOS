@@ -50,19 +50,11 @@ void Widget::Draw(GraphicsContext* gc) {
 
 	int X = 0;
 	int Y = 0;
-	ModelToScreen(X, Y);
+	this->ModelToScreen(X, Y);
 	
 	
-	//draw rectangle
+	//draw rectangle/screen
 	gc->FillRectangle(X, Y, w, h, r, g, b);
-	/*
-	for (int32_t Yi = Y; Yi < Y+h; Yi++) {
-		for (int32_t Xi = X; Xi < X+w; Xi++) {
-	
-			gc->PutPixel(X, Y, r, g, b);
-		}
-	}
-	*/
 }                                
 
 
