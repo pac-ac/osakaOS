@@ -17,8 +17,9 @@ To compile from source do 'sudo make run' and pray for the best. The binary will
 <h2>Extra</h2>
 
 There are quite a number of glitches that I've yet to fix. 
-  
-  -Deleting a file that was not the most recently created might cause files to be listed incorrectly.
-  -Every 4th LBA won't save data correctly on it's last sector.
-  -Recent versions of QEMU have deprecated the 'pcspk' option. It might take some work to get speaker emulation working.
-  -Other stuff that I haven't found yet or are too insignificant to mention in the README.
+<ul>
+  <li>-Deleting a file that was not the most recently created might cause files to be listed incorrectly.</li>
+  <li>-Every 4th LBA won't save data correctly on it's last sector.</li>
+  <li>-Recent versions of QEMU have deprecated the 'pcspk' option. It might take some work to get speaker emulation working.</li>
+  <li>-Other stuff that I haven't found yet or are too insignificant to mention in the README.</li>
+</ul>
