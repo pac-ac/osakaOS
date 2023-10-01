@@ -15,6 +15,8 @@ You will probably need the following software packages: g++, binutils, libc6-dev
 
 <h2>Extra</h2>
 
+This project is partly based on the <a href="https://github.com/AlgorithMan-de/wyoos">WYOOS</a> tutorial series. Although many things from the tutorial have been changed or removed for various reasons.
+
 There are quite a number of glitches that I've yet to fix. 
 <ul>
   <li>Deleting a file that was not the most recently created might cause files to be listed incorrectly.</li>
@@ -23,4 +25,4 @@ There are quite a number of glitches that I've yet to fix.
   <li>Other stuff that I haven't found yet or are too insignificant to mention in the README.</li>
 </ul>
 
-Yes there are graphics. Currently they're in a very sorry state but I do have plans to develop them further.
+Yes there are graphics. Currently they're in a very sorry state but I do have plans to develop them further. There are also implementations for things like multitasking and networking but they're also underutilized currently.
