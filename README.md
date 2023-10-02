@@ -30,3 +30,6 @@ There are quite a number of glitches that I've yet to fix.
 </ul>
 
 Yes there are graphics. Currently they're in a very sorry state but I do have plans to develop them further. There are also implementations for things like multitasking and networking but they're underutilized currently.
+
+<i>Why did you make an entire OS after this character? Are you obsessed or something?</i>
+No, I just thought it would be funny.
