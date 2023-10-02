@@ -1,4 +1,6 @@
 # osakaOS v1.0
+![](cube.gif)
+
 <h2>THE operating system of all time.</h2>
 
 osakaOS is a 32 bit, singletasking, megalithic operating system that is made with a focus on unconventional/ridicoulous design choices. It uses a text-based command line to edit files using the <b>Osaka FileSystem</b> and create small programs using the <b>AyumuScript</b> scripting language. 
