@@ -15,6 +15,14 @@ To compile from source do 'sudo make run' and pray for the best. The binary will
 
 You will probably need the following software packages: g++, binutils, libc6-dev-i386, qemu-system-x86_64 grub-legacy, grub2, xorriso.
 
+
+<h2>How to get audio using PulseAudio</h2>
+
+If you're using a linux host and use pulseaudio like me then if you want to hear (some) of the beeps then add this line
+(~~~)load-module module-native-protocol-unix auth-anonymous=1 socket=/tmp/pulse-socket(~~~)
+to /etc/pulse/default.pa. Then restart pulseaudio and the settings in the makefile should work. <a href="https://stackoverflow.com/questions/59988019/emulator-pulseaudio-access-denied">(original post here)</a>
+
+
 <h2>Extra</h2>
 
 During development this project was/will receive monthly updates on my <a href="https://www.youtube.com/@dpacarana">youtube page.</a>
