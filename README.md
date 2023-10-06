@@ -19,8 +19,8 @@ You will probably need the following software packages: g++, binutils, libc6-dev
 <h2>How to get audio using PulseAudio</h2>
 
 If you're using a linux host and use pulseaudio like me then if you want to hear (some) of the beeps then add this line
-(~~~)load-module module-native-protocol-unix auth-anonymous=1 socket=/tmp/pulse-socket(~~~)
-to /etc/pulse/default.pa. Then restart pulseaudio and the settings in the makefile should work. <a href="https://stackoverflow.com/questions/59988019/emulator-pulseaudio-access-denied">(original post here)</a>
+<code>load-module module-native-protocol-unix auth-anonymous=1 socket=/tmp/pulse-socket</code>
+to <code>/etc/pulse/default.pa</code>. Then restart pulseaudio and the settings in the makefile should work. <a href="https://stackoverflow.com/questions/59988019/emulator-pulseaudio-access-denied">(original post here)</a>
 
 
 <h2>Extra</h2>
