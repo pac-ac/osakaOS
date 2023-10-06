@@ -1,5 +1,5 @@
-#sudo apt-get install g++ binutils libc6-dev-i386
-#sudo apt-get install qemu-system-x86_64 grub-legacy grub2 xorriso
+#sudo apt-get install g++ binutils libc6-dev-i386 mtools
+#sudo apt-get install qemu-system-x86_64(any qemu stuff ngl) grub-legacy grub-mkrescue grub2 xorriso
 
 
 GPPPARAMS = -m32 -Iinclude -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-leading-underscore -Wno-write-strings
@@ -77,13 +77,17 @@ run: osakaOS.iso
 		-boot menu=on \
 		-drive id=disk,file=Image.img,format=raw,if=none \
 		-device piix4-ide,id=piix4 -device ide-hd,drive=disk,bus=piix4.0 \
-		-cpu 486 -smp 1 -m 1G
-		#-audiodev pa,id=alsa1,server=/run/user/1000/pulse/native -machine pcspk-audiodev=pa1 \
-		#-device AC97,audiodev=pa1	
+		-cpu 486 -smp 1 -m 1G \
+		-vga virtio \
+		-audiodev pa,id=pa0,server=unix:/tmp/pulse-socket \
+		-machine pcspk-audiodev=pa0
 		#-soundhw pcspk
-		#mtools, grub-mkrescue, xorriso, qemu
-
-
+		
+		#only use '-soundhw' option if your qemu is 
+		#old and doesnt support '-audiodev'
+		
+		#if neither works then just remove everything 
+		#after '-vga virtio' and start without sound
 
 
 .PHONY: clean
