@@ -5,15 +5,18 @@ using namespace common;
 using namespace gui;
 
 
+void sleep(uint32_t);
+
 
 Desktop::Desktop(common::int32_t w, common::int32_t h,
-		 common::uint8_t r, common::uint8_t g, common::uint8_t b) 
-: CompositeWidget(0, 0, 0, w, h, r, g, b), 
+		 common::uint8_t color) 
+: CompositeWidget(0, 0, 0, w, h, color), 
   MouseEventHandler() {
 
 	MouseX = w / 2;
 	MouseY = h / 2;
 	
+	this->color = color;
 }
 
 
@@ -24,24 +27,14 @@ Desktop::~Desktop() {
 
 void Desktop::Draw(common::GraphicsContext* gc, bool mode) {
 
-	//CompositeWidget::Draw(gc, mode);
-	//hard coded until I redo the gui stuff
-	for (uint16_t y = 0; y < 200; y++) {
-		for (uint16_t x = 0; x < 320; x++) {
-		
-			gc->PutPixel(x, y, 0x00, 0x00, 0xa8);
-		}
-	}
-
-
-
-	for (int i = 0; i < 6; i++) {
-		gc -> PutPixel(MouseX, MouseY-i, 0xff, 0xff, 0xff);
-		
-		for (int j = 0; j < 6; j++) {
-			gc -> PutPixel(MouseX+j, MouseY-i, 0xff, 0xff, 0xff);
-		}
-	}
+	//desktop background, one big color for now
+	gc->FillRectangle(0, 0, 200, 320, this->color);
+	
+	//windows on top
+	CompositeWidget::Draw(gc, mode);
+	
+	//cursor
+	this->MouseDraw(gc, mode);
 }
 
 void Desktop::DrawNoMouse(common::GraphicsContext* gc, bool mode) {
@@ -53,22 +46,23 @@ void Desktop::DrawNoMouse(common::GraphicsContext* gc, bool mode) {
 
 void Desktop::MouseDraw(common::GraphicsContext* gc, bool mode) {
 
-	for (int i = 0; i < 6; i++) {
-		gc -> PutPixel(MouseX, MouseY-i, 0xff, 0xff, 0xff);
-		
-		for (int j = 0; j < 6; j++) {
-			gc -> PutPixel(MouseX+j, MouseY-i, 0xff, 0xff, 0xff);
-		}
-	}
-
-	if (mode) {
+	//mouse icon
+	uint16_t cursorIndex = 0;
+	uint16_t asdf = 0;
 	
-		for (int i = 0; i < 6; i++) {
-			gc -> PutPixel(oldMouseX, oldMouseY-i, 0x00, 0x00, 0x00);
-		
-			for (int j = 0; j < 6; j++) {
-				gc -> PutPixel(oldMouseX+j, oldMouseY-i, 0x00, 0x00, 0x00);
+	for (uint8_t y = 0; y < 20; y++) {
+		for (uint8_t x = 0; x < 13; x++) {
+			
+			if (this->click) {
+				if (cursorClick[cursorIndex]) {
+					gc->PutPixel(MouseX+x, MouseY+y, cursorClick[cursorIndex]);
+				}
+			} else {
+				if (cursorNormal[cursorIndex]) {
+					gc->PutPixel(MouseX+x, MouseY+y, cursorNormal[cursorIndex]);
+				}
 			}
+			cursorIndex++;
 		}
 	}
 }
@@ -77,21 +71,21 @@ void Desktop::MouseDraw(common::GraphicsContext* gc, bool mode) {
 
 void Desktop::OnMouseDown(common::uint8_t button) {
 
+	this->click = true;
 	CompositeWidget::OnMouseDown(MouseX, MouseY, button);
 }
 
 void Desktop::OnMouseUp(common::uint8_t button) {
 	
+	this->click = false;
 	CompositeWidget::OnMouseUp(MouseX, MouseY, button);
 }
 
 void Desktop::OnMouseMove(int x, int y) {
 
 
-	
 	//x /= 2;
 	//y /= 2;
-
 
 	int32_t newMouseX = MouseX + x;
 	this->oldMouseX = MouseX;

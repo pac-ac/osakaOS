@@ -6,7 +6,7 @@ using namespace os::gui;
 
 
 
-Widget::Widget(Widget* parent,  int32_t x, int32_t y,int32_t w, int32_t h, int32_t r, int32_t g, int32_t b) 
+Widget::Widget(Widget* parent,  int32_t x, int32_t y,int32_t w, int32_t h, uint8_t color) 
 : KeyboardEventHandler() {
 
 	this->parent = parent;
@@ -17,9 +17,7 @@ Widget::Widget(Widget* parent,  int32_t x, int32_t y,int32_t w, int32_t h, int32
 	this->w = w;
 	this->h = h;
 	
-	this->r = r;
-	this->g = g;
-	this->b = b;
+	this->color = color;
 	this->Focussable = true;
 }
 
@@ -54,7 +52,7 @@ void Widget::Draw(GraphicsContext* gc) {
 	
 	
 	//draw rectangle/screen
-	gc->FillRectangle(X, Y, w, h, r, g, b);
+	gc->FillRectangle(X, Y, w, h, color);
 }                                
 
 
@@ -93,15 +91,8 @@ void Widget::OnMouseMove(int32_t oldx, int32_t oldy, int32_t newx, int32_t newy)
 
 
 
-
-
-
-
-
-
-
-CompositeWidget::CompositeWidget(Widget* parent,  int32_t x, int32_t y,int32_t w, int32_t h, int32_t r, int32_t g, int32_t b) 
-: Widget(parent, x, y, w, h, r, g, b) {
+CompositeWidget::CompositeWidget(Widget* parent,  int32_t x, int32_t y,int32_t w, int32_t h, uint8_t color) 
+: Widget(parent, x, y, w, h, color) {
 
 	focussedChild = 0;
 	numChildren = 0;

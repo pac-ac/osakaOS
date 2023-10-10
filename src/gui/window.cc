@@ -7,8 +7,8 @@ using namespace os::gui;
 Window::Window(Widget* parent, 
 int32_t x, int32_t y,
 int32_t w, int32_t h,
-int32_t r, int32_t g, int32_t b) 
-: CompositeWidget(parent, x, y, w, h, r, g, b) {
+uint8_t color) 
+: CompositeWidget(parent, x, y, w, h, color) {
 
 	Dragging = false;
 
