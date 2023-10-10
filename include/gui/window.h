@@ -18,7 +18,7 @@ namespace os {
 				Window(Widget* parent, 
 					common::int32_t x, common::int32_t y,
 					common::int32_t w, common::int32_t h,
-					common::int32_t r, common::int32_t g, common::int32_t b);
+					common::uint8_t color);
 				
 				~Window();
 
