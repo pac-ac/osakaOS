@@ -10,21 +10,15 @@
 #include <drivers/vga.h>
 #include <drivers/amd_am79c973.h>
 #include <drivers/ata.h>
-
 #include <drivers/speaker.h>
 #include <drivers/pit.h>
-//#include <speaker.h>
-//#include <pit.h>
-
 #include <gui/desktop.h>
 #include <gui/window.h>
 #include <multitasking.h>
 #include <net/etherframe.h>
 #include <net/arp.h>
 #include <net/ipv4.h>
-
 #include <net/icmp.h>
-
 #include <filesys/ofs.h>
 #include <cli.h>
 #include <script.h>
