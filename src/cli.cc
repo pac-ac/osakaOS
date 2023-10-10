@@ -3,7 +3,6 @@
 #include <filesys/ofs.h>
 #include <script.h>
 #include <drivers/speaker.h>
-//#include <speaker.h>
 
 
 using namespace os;
@@ -79,13 +78,6 @@ void test(char* args, CommandLine* cli) {
 
 void delay(char* args, CommandLine* cli) {
 
-	if (args[0] == '\0') {
-		
-		sleep(1000);
-		return;
-	}
-
-
 	uint32_t repeat = numOrVar(args, cli, 0);
 	sleep(repeat);
 }
@@ -130,6 +122,12 @@ void explode(char* args, CommandLine* cli) {
 void wdisk(char* args, CommandLine* cli) {
 
 	uint32_t sector = numOrVar(args, cli, 0);
+
+	//shift string
+	for (int i = 0; args[i] != '\0'; i++) {
+		args[i] = args[i+5];
+	}
+	
 	WmDisk(sector, args);
 }
 
@@ -151,6 +149,8 @@ void files(char* args, CommandLine* cli) {
 	printf("\n");
 	printf(num);
 	printf(" files have been allocated.\n");
+	
+	cli->returnVal = fileNum;
 }
 
 
@@ -233,11 +233,7 @@ void varInt(char* args, CommandLine* cli) {
 
 	uint32_t value = numOrVar(args, cli, 1);
 	uint16_t hashVar = hash(name) % 1024;
-
-	while (cli->varTable[hashVar] != 0xffffffff) {
 	
-		hashVar++;
-	}
 	cli->varTable[hashVar] = value;	
 }
 
@@ -914,7 +910,7 @@ char* CommandLine::command(char* cmd, uint8_t length) {
 
 				printf("'");
 				printf(command);
-				printf("' is an uknown command or variable.\n");		
+				printf("' is an unknown command or variable.\n");		
 				makeBeep(60);
 
 			} else {

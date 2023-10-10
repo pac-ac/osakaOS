@@ -660,28 +660,25 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 		//print error messagse for modes
 		//and other things you want
 		void resetMode() {
+					
+			printf("\v");
 	
 			switch (this->cliMode) {
 		
 				case 1:
-					printf("\v");
 					printf("\nScript has been terminated.\n\n");
 					break;
 				case 2:
-					printf("\v");
 					printf("\nExiting piano mode...\n\n");
 					break;
 				case 3:
-					printf("\v");
 					printf("\nExiting snake mode...\n\n");
 					break;
 				case 4:
 					fileMain(0, 'c', 1);
-					printf("\v");
 					printf("\nExiting file edit mode...\n\n");
 					break;
 				case 5:
-					printf("\v");
 					printf("\nExiting space mode...\n\n");
 					break;
 				default:
@@ -696,18 +693,10 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 void sleep(uint32_t ms) {
 
 	//sleep 1 = wait 1 ms
-	//PIT* pit;
-	
-	//im not doing any more oop fuck that
-	//change pit and speaker to just be functions
-	//or pass all drivers through driver manager and
-	//modules :(
-	
 	PIT pit;
 
 	for (uint32_t i = 0; i < ms; i++) {
 		
-		//PITsetCount(1193182/1000);
 		pit.setCount(1193182/1000);
 		uint32_t start = pit.readCount();
 	
@@ -749,15 +738,15 @@ void WmDisk(uint32_t sector, char* data) {
 }
 
 
-void RmDisk(uint32_t sector, uint16_t data) {
+void RmDisk(uint32_t sector, uint16_t dataLen) {
 
 	AdvancedTechnologyAttachment ata0m(0x1F0, true);
 	
 	uint8_t bytes[512];
-	ata0m.Read28(sector, bytes, data, 0);
+	ata0m.Read28(sector, bytes, dataLen, 0);
 
 	char* foo = " ";
-	for (int i = 0; i < 512; i++) {
+	for (int i = 0; i < dataLen; i++) {
 	
 		foo[0] = bytes[i];
 		printf(foo);
@@ -793,7 +782,6 @@ uint32_t FileList() {
 			   (sectorData[1] << 16) | 
 			   (sectorData[2] << 8) | 
 			   (sectorData[3]);
-
 	
 		if (location) {
 		
@@ -812,11 +800,13 @@ uint32_t FileList() {
 			printf("\n");
 		}
 
+		/*
 		for (int j = 8; j < 40; j++) {
 		
 			fileName[j] = 0x00;
 			sectorData[j] = 0x00;
 		}
+		*/
 	}
 
 	return fileNum;
@@ -927,10 +917,9 @@ void explodeMain() {
 		speaker.NoSound();
 		
 		for (uint16_t y = 0; y < 200; y++) {
-		
 			for (uint16_t x = 0; x < 320; x++) {
 		
-				vga.PutPixelColor(x, y, color);
+				vga.PutPixel(x, y, color);
 			}
 		}
 		color++;
@@ -1001,32 +990,22 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 	printf("Initializing Hardware, Stage 1\n");
 
 
-	Desktop desktop(320, 200, 0xa8, 0x00, 0x00);
 	DriverManager drvManager;
 
 		
 	
-	//command line
+	//drivers
 	CLIKeyboardEventHandler kbhandler(gdt, taskManager);
 	KeyboardDriver keyboard(&interrupts, &kbhandler);
 	
 	drvManager.AddDriver(&keyboard);
-		
+	
+
+
+	Desktop desktop(320, 200, 0x01);
 	MouseDriver mouse(&interrupts, &desktop);
+
 	drvManager.AddDriver(&mouse);
-
-	//other drivers
-	/*
-	AdvancedTechnologyAttachment ata0m(0x1F0, true);
-	drvManager.AddDriver(&ata0m);
-
-	Speaker speaker;
-	drvManager.AddDriver(&speaker);
-
-	PIT pit;
-	drvManager.AddDriver(&pit);
-	*/
-	//end of drivers
 
 
 	PeripheralComponentInterconnectController PCIController;
@@ -1119,7 +1098,7 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 	
 		
 	//this is the command line :D
-	while (keyboard.keyHex != 0x5b) {	
+	while (keyboard.keyHex != 0x5b) { //0x5b = command/windows key	
 
 		kbhandler.cli = true;
 
@@ -1141,19 +1120,22 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 	drvManager.Replace(&keyboardDesktop, 0);
 
 	vga.SetMode(320, 200, 8);	
-	
-	Window win1(&desktop, 10, 10, 20, 20, 0x00, 0x00, 0xa8);
+
+
+	Window win1(&desktop, 10, 10, 40, 20, 0x04);
 	desktop.AddChild(&win1);
-	Window win2(&desktop, 100, 15, 30, 30, 0x00, 0xa8, 0x00);
+	
+	Window win2(&desktop, 100, 15, 30, 30, 0x19);
 	desktop.AddChild(&win2);	
 	
-	desktop.Draw(&vga, 1);
+	Window win3(&desktop, 60, 45, 80, 65, 0x32);
+	desktop.AddChild(&win3);	
 	
 
 	//this is the gui :(
 	while (keyboardDesktop.keyHex != 0x39) {
-
-		sleep(16);
+		
 		desktop.Draw(&vga, 1);
+		sleep(17);
 	}
 }

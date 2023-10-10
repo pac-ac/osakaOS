@@ -135,11 +135,12 @@ void AyumuScriptCli(char* name, CommandLine* cli) {
 
 				if (strcmp("loop ", line)) {
 
-					nestedLoop[indexLoopF] = indexLBA - (strlen(line) + 1);
+					//nestedLoop[indexLoopF] = indexLBA - (strlen(line) + 1);
 					
 					if (!inLoop) {
 						//add for every new loop command
-						indexLoopF++;
+						//indexLoopF++;
+						indexLoopF = indexLBA - (strlen(line) + 1);
 					}
 					inLoop = true;
 				}
@@ -148,9 +149,13 @@ void AyumuScriptCli(char* name, CommandLine* cli) {
 			
 					if (cli->conditionLoop) {
 						
-						indexLBA = nestedLoop[indexLoopF-(1 * (indexLoopF > 0))];
+						//indexLBA = nestedLoop[indexLoopF-(1 * (indexLoopF > 0))];
+						
+						indexF -= (indexLBA - indexLoopF);
+						indexLBA = indexLoopF;
 					} else {	
-						indexLoopF--;
+						//indexLoopF--;
+						indexLoopF = 0;
 						inLoop = false;
 					}
 				}
