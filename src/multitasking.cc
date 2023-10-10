@@ -86,7 +86,6 @@ CPUState* TaskManager::Schedule(CPUState* cpustate) {
 
 	if (++currentTask >= numTasks) {
 		
-		//currentTask %= numTasks;
 		currentTask = 0;
 	}
 
