@@ -79,7 +79,6 @@ void printfTUI(uint8_t forecolor, uint8_t backcolor,
 		
 			putchar(0xff, 0x00, 0x00, x1, y1);
 		}
-
 		x1 = resetX;
 	}
 
@@ -133,7 +132,7 @@ void printf(char* str) {
 	uint16_t attrib = 0x07;
 
 	volatile uint16_t* vidmem;
-
+	
 		
 	for (int i = 0; str[i] != '\0'; i++) {
 		
@@ -147,16 +146,12 @@ void printf(char* str) {
 				vidmem = (volatile uint16_t*)0xb8000 + (80*y+x-1);
 				*vidmem = '_' | (attrib << 8);
 				x--;
-
 				break;
-
 			case '\n':
 				*vidmem = ' ' | (attrib << 8);
 				y++;
 				x = 0;
-					
 				break;
-
 			case '\t': //$: shell interface
 					
 				if (!i) {
@@ -190,12 +185,9 @@ void printf(char* str) {
 				y = 0;
 					
 				break;
-
-				
 			default:
 				*vidmem = str[i] | (attrib << 8);
 				x++;
-					
 				break;
 		}
 	
@@ -204,7 +196,6 @@ void printf(char* str) {
 			y++;
 			x = 0;
 		}
-
 		
 		//scrolling	
 		if (y >= 25) {
@@ -232,7 +223,6 @@ void printf(char* str) {
 		}
 	}
 }
-
 
 
 
@@ -310,6 +300,7 @@ uint32_t str2int(char* args) {
 }
 
 
+
 char* int2str(uint32_t num) {
 
         uint32_t numChar = 1;
@@ -337,17 +328,14 @@ char* int2str(uint32_t num) {
                         strIndex++;
                         i--;
                 }
-
                 str[strIndex] = '\0';
                 return str;
         }
-
         char* str = " ";
         str[0] = (num + 48);
 
         return str;
 }
-
 
 
 
@@ -385,8 +373,6 @@ char* argparse(char* args, uint8_t num) {
 			valid = true;
 		}
 	}
-
-
 	return "wtf";
 }
 
@@ -403,8 +389,6 @@ uint8_t argcount(char* args) {
 
 	return i-1;
 }
-
-
 
 
 
@@ -587,7 +571,6 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 			this->pressed = false;
 		}
 
-		
 
 		void resetCmd() {
 		
@@ -615,8 +598,6 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 			
 			//example: print foreground with light gray, background with blue
 			//printTUI(0x07, 0x01, coordinates, shadows, etc)
-	
-
 
 			this->cliMode = mode;
 
@@ -648,8 +629,6 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 					break;
 			}
 		}
-
-
 
 		//print error messagse for modes
 		//and other things you want
@@ -749,6 +728,7 @@ void RmDisk(uint32_t sector, uint16_t dataLen) {
 }
 
 
+
 uint32_t FileList() {
 
 	AdvancedTechnologyAttachment ata0m(0x1F0, true);
@@ -761,7 +741,6 @@ uint32_t FileList() {
 
 		fileNum += numOfFiles[i];
 	}
-	
 
 	uint8_t sectorData[512];
 	uint8_t fileName[33];
@@ -786,23 +765,13 @@ uint32_t FileList() {
 				fileName[j] = sectorData[j+8];
 			}
 			fileName[32] = '\0';
-	
 
 			printf((char*)fileName);
 			printf("    ");
 			printf(int2str(location));
 			printf("\n");
 		}
-
-		/*
-		for (int j = 8; j < 40; j++) {
-		
-			fileName[j] = 0x00;
-			sectorData[j] = 0x00;
-		}
-		*/
 	}
-
 	return fileNum;
 }
 
@@ -850,7 +819,6 @@ void makeBeep(uint32_t freq) {
 
 
 
-
 uint16_t prng() {
 
 	PIT pit;
@@ -885,7 +853,7 @@ void forget() {
 }
 
 
-
+//this shit has no relevance to anything else lol
 void explodeMain() {
 
 	//vga
@@ -906,7 +874,6 @@ void explodeMain() {
 	
 		void* mem = memoryManager.malloc((size_t)4*1024*1024);
 	
-
 		speaker.PlaySound(1200);
 		speaker.NoSound();
 		
@@ -923,12 +890,10 @@ void explodeMain() {
 			color = 0;
 		}	
 
-
 		speaker.PlaySound(200);
 		speaker.NoSound();
 	}	
 }
-
 
 
 
@@ -952,40 +917,13 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 
 	printf("Hello :^)\n");
 
-	//test dynamic memory allocation
-
-	/*
-	uint32_t* memupper = (uint32_t*)(((size_t)multiboot_structure) + 8);
-	size_t heap = 10*1024*1024;
-	MemoryManager memoryManager(heap, (*memupper)*1024 - heap - 10*1024);
-
-	printf("heap: ");
-	printfHex((heap >> 24) & 0xff);
-	printfHex((heap >> 16) & 0xff);
-	printfHex((heap >> 8) & 0xff);
-	printfHex((heap) & 0xff);
-
-	void* allocated = memoryManager.malloc(1024);
-	printf("\nallocated: ");
-	printfHex(((size_t)allocated >> 24) & 0xff);
-	printfHex(((size_t)allocated >> 16) & 0xff);
-	printfHex(((size_t)allocated >> 8 ) & 0xff);
-	printfHex(((size_t)allocated      ) & 0xff);
-	printf("\n");
-	*/
-
-
 	GlobalDescriptorTable* gdt;
 	TaskManager* taskManager;
 	
 	InterruptManager interrupts(0x20, gdt, taskManager);
-
-
 	printf("Initializing Hardware, Stage 1\n");
 
-
 	DriverManager drvManager;
-
 		
 	
 	//drivers
@@ -993,71 +931,24 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 	KeyboardDriver keyboard(&interrupts, &kbhandler);
 	
 	drvManager.AddDriver(&keyboard);
-	
-
 
 	Desktop desktop(320, 200, 0x01);
 	MouseDriver mouse(&interrupts, &desktop);
 
 	drvManager.AddDriver(&mouse);
 
-
+	
 	PeripheralComponentInterconnectController PCIController;
 	PCIController.SelectDrivers(&drvManager, &interrupts);
 
-
 	VideoGraphicsArray vga;
+
 	
 	printf("\nInitializing Hardware, Stage 2\n");
 	drvManager.ActivateAll();
 
-
 	printf("Initializing Hardware, Stage 3\n");
-
-
-	/*
-	//network card
-	//amd_am79c973* eth0 = (amd_am79c973*)(drvManager.drivers[drvManager.numDrivers]);
-	//drvManager.numDrivers++;
-	//amd_am79c973* eth0 = (amd_am79c973*)(drvManager.drivers[2]);
-	
-		
-	uint8_t ip1 = 10, ip2 = 0, ip3 = 2, ip4 = 15;
-	uint32_t ip_be = ((uint32_t)ip4 << 24)
-			|((uint32_t)ip3 << 16)
-			|((uint32_t)ip2 << 8)
-			|(uint32_t)ip1;
-	
-	//default gateway for qemu is 10.0.2.2
-	uint8_t gip1 = 10, gip2 = 0, gip3 = 2, gip4 = 2;
-	uint32_t gip_be = ((uint32_t)gip4 << 24)
-			|((uint32_t)gip3 << 16)
-			|((uint32_t)gip2 << 8)
-			|(uint32_t)gip1;
-	
-
-	uint8_t subnet1 = 255, subnet2 = 255, subnet3 = 255, subnet4 = 0;
-	uint32_t subnet_be = ((uint32_t)subnet4 << 24)
-			|((uint32_t)subnet3 << 16)
-			|((uint32_t)subnet2 << 8)
-			|(uint32_t)subnet1;
-
-	
-	eth0->SetIPAddress(ip_be);	
-	EtherFrameProvider etherframe(eth0);
-
-	AddressResolutionProtocol arp(&etherframe);
-
-	InternetProtocolProvider ipv4(&etherframe, &arp, gip_be, subnet_be);	
-	*/	
-	
-	
 	interrupts.Activate();
-
-	
-	//arp.Resolve(gip_be);
-	//arp.BroadcastMACAddress(gip_be);
-	//ipv4.Send(gip_be, 0x01, (uint8_t*)"foobar", 6);	
 	
 	printf("\n\nEverything seems fine.\n");
 
@@ -1103,9 +994,6 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 					kbhandler.keyChar, kbhandler.ctrl, 0);
 		}
 	}
-
-
-
 
 
 
