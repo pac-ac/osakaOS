@@ -881,11 +881,11 @@ char* CommandLine::command(char* cmd, uint8_t length) {
 
 	
 	if (this->conditionIf == false && result != hash("fi")) {	
-		return "i dont care anymore lol";
+		return "i dont care anymore its 4am lol";
 	}
 	
 	if (this->conditionLoop == false && result != hash("pool")) {	
-		return "i dont care anymore lol";
+		return "i dont care anymore its 4am lol";
 	}
 
 
