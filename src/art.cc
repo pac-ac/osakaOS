@@ -2,7 +2,6 @@
 
 using namespace os;
 using namespace os::common;
-	
 
 	void Funny::printfLine(char *str, uint8_t line) {
 
@@ -19,11 +18,13 @@ using namespace os::common;
         	}
 	}
 
-
+	//render ascii cube in real time or have ugly ass 2000 line file with pre rendered 3d ascii graphics????
+	//cube does look cool though
 	void Funny::cubeAscii(uint8_t cubeCount) {
         	
 			printfLine("                                                                                ", 0);
 
+		
 		switch(cubeCount) {
 
 		case 0:
@@ -2249,30 +2250,12 @@ using namespace os::common;
 			printfLine("                                                                                ", 10);
 			printfLine("                                                                                ", 11);
 			break;
-		/*
-		default:
-			printfLine("                                                       _     _ | / _  ..$       ", 1);
-			printfLine("                                                      / \ __/_\|/ /_\ ..$       ", 2);
-			printfLine("                                                      | |(_ | ||\ | | ..$       ", 3);
-			printfLine("                                                      \_/__)| || \| | ..$       ", 4);
-			printfLine("                                                        _     ..........$       ", 5);
-			printfLine("                                                       / \ __ ..........$       ", 6);
-			printfLine("                                                       | |(_  ..........$       ", 7);
-			printfLine("                                                       \_/__) ..........$       ", 8);
-			printfLine("                                                              ..........$       ", 9);
-			printfLine("                                                                                ", 10);
-			printfLine("                                                                                ", 11);
-			break;
-			*/
-		
 		}
 
 	}
 
 
 	void Funny::osakaAscii() {
-
-		//brightest chars to darkest START@#W$9876543210?!abc;:+=-,._` END
 		
         	printfLine("                 __                                                             ", 12);
         	printfLine("    ######      /  \\                                                            ", 13);
@@ -2406,7 +2389,6 @@ using namespace os::common;
 		printfLine("                                       @##                  #####@               ", 23);
 		printfLine("                                        @###               #####@                ", 24);
 	}
-
 
 
 
