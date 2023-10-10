@@ -22,7 +22,7 @@ void makeBeep(uint32_t);
 
 void snakeTUI() {
 
-	printfTUI(0x0f, 0x00, 0, 0, 0, 0, false);
+	printfTUI(0x00, 0x00, 0, 0, 0, 0, false);
 	printfColor("(Snake mode, press ctrl+c to exit.)", 0x0f, 0x00, 0, 0);
 	printfColor("SCORE = ", 0x0f, 0x00, 40, 0);
 
@@ -72,14 +72,11 @@ void snake(char key) {
 
 	static uint8_t score = 0;
 	static bool dead = false;
-	static uint16_t speed = 150;
+	static uint16_t speed = 100;
 
 
-	if (dead) {	
-		if (key != 'r') {
-						
+	if (dead && key != 'r') {	
 			return;
-		}
 	}
 	
 
@@ -194,7 +191,7 @@ void snake(char key) {
 				
 				score = 0;
 				tail = 0;
-				speed = 150;
+				speed = 100;
 				
 				dead = false;
 				fruit = false;
@@ -255,7 +252,7 @@ void snake(char key) {
 	}
 
 
-	//spawn new fruit	
+	//spawn new fruit
 	if (!fruit) {
 
 		do {		
@@ -278,9 +275,9 @@ void snake(char key) {
 		score++;
 		fruit = false;
 	
-		if (score % 5 == 0 && speed > 25) {
+		if (score % 5 == 0 && speed > 20) {
 		
-			speed -= 5;
+			speed -= 2;
 		}
 		
 		makeBeep(1000);

@@ -20,18 +20,26 @@ void makeBeep(uint32_t);
 
 void spaceTUI() {
 
-	printfTUI(0x00, 0x09, 8, 8, 72, 17, false);
-	printfColor("SCORE = 0000", 0x0f, 0x09, 34, 0);
-
-
-	for (int i = 0; i < 8; i++) { 
+	printfTUI(0x00, 0x00, 0, 0, 79, 24, false);
 	
-		putchar('\\', 0x0f, 0x09, i, i); 
-		putchar('/', 0x0f, 0x09, 79-i, i); 
-		putchar('/', 0x0f, 0x09, i, 24-i); 
-		putchar('\\', 0x0f, 0x09, 79-i, 24-i); 
+	//health
+	printfColor("HEALTH [", 0x0f, 0x00, 4, 0);
+	
+	for (int i = 12; i < 32; i++) {
+
+		putchar(0xff, 0x04, 0x04, i, 0);
 	}
+	printfColor("]", 0x0f, 0x00, 32, 0);
 	
+	printfColor("Press space to fire.", 0x0f, 0x00, 37, 0);
+
+	//rest of ui
+	printfColor("SCORE = 0000", 0x0f, 0x00, 64, 0);
+	
+	for (int i = 0; i < 80; i++) {
+	
+		putchar(0xcd, 0x0f, 0x00, i, 1);
+	}
 }
 
 
@@ -46,96 +54,144 @@ void space(bool pressed, char key) {
 	static uint8_t x = 40;
 	static uint8_t y = 23;
 	
+	static uint8_t ax = 0;
+	static uint8_t ay = 2;
+	
+	static uint8_t cx = 0;
+	static uint8_t cy = 2;
+	
+	static uint8_t ex = 0;
+
+	static int8_t health = 100;
 	static uint16_t score = 0;
 	static uint16_t gameTicks = 0;
-
-
-	static uint8_t jumpTicks = 0;
-	static bool jump = false;
-
-	volatile uint16_t* vidmem;
 	
-	//vidmem = (volatile uint16_t*)0xb8000 + (80*y+x);
-	//replace old character
-	if (y < 17) {
-		putchar(0xff, 0x00, 0x00, x, y);
-	} else {
-		putchar(0xff, 0x09, 0x09, x, y);
-	}	
-
-
+	static bool asteroid = false;
+	static bool fire = false;
+	uint8_t i = 0;
+		
+	if (key != ' ' || !pressed) {
+		fire = false;
+	}
+	
 
 	if (pressed) {	
-	
+
+		//replace old position
+		printfColor("               ", 0x0f, 0x00, x-7, y-1);
+		printfColor("               ", 0x0f, 0x00, x-7, y  );
+		printfColor("               ", 0x0f, 0x00, x-7, y+1);
+
 		switch (key) {
 	
 			case 'a':
-				x -= 1 * (x > 9);
+				x -= 1 * (x > 10);
 				break;
 			case 'd':
-				x += 1 * (x < 71);
+				x += 1 * (x < 70);
 				break;
 			case ' ':
-				if (jumpTicks == 0) {
+				if (!fire) {
 				
-					jump = true;
+					for (i = 21; i > 2; i--) {
+					
+						putchar(' ', 0x04, 0x00, x, i+1);
+						putchar('|', 0x04, 0x00, x, i);
+						sleep(5);
+					}
+					makeBeep(1200);
+					putchar(' ', 0x04, 0x00, x, i+1);
+					
+					if (x == ax) {
+					
+						putchar('*', 0x09, 0x00, ax, ay);
+						asteroid = false;
+						score += 50;
+						makeBeep(50);
+						putchar(' ', 0x09, 0x00, ax, ay);
+					}
 				}
+				fire = true;
 				break;
 			case 'r':
 				x = 40;
 				y = 23;
+				ax = 0;
+				ay = 2;
+				ex = 0;
+				health = 100;
 				score = 0;
 				gameTicks = 0;
-				jumpTicks = 0;
-				jump = false;
+				asteroid = false;
+				fire = false;
+				spaceTUI();
 				return;
 				break;
 			default:
 				break;
 		}
 	}
-
-
-
-
-	//jumping
-	if (jump) {
 	
-		y -= 1 * (y > 10);
-		jumpTicks++;
-	} else {
+	//game over
+	if (health < 1) {
+	
+		printfColor("GAME OVER", 0x0f, 0x00, 36, 12);
+		return;
+	}
+
+	//new position
+	printfColor("   \\  ___  /   ", 0x0f, 0x00, x-7, y-1);
+	printfColor("____\\/___\\/____", 0x0f, 0x00, x-7, y  );
+	printfColor("     v   v     ", 0x01, 0x00, x-7, y+1);
+
+
+
+
+	//asteroids
+	if (ay >= 24) {
+	
+		putchar(' ', 0x06, 0x00, ax, ay);
+		asteroid = false;
+		ax = 0;
+	}
+
+	if (asteroid) {
+	
+		putchar(' ', 0x06, 0x00, ax, ay);
+		ay++;
+		putchar('o', 0x06, 0x00, ax, ay);
+	} else {	
+		ay = 2;
+		ax = 0;
 		
-		y += 1 * (y < 23);	
+		if (prng() % 10 == 0) {
+			ax = (gameTicks % 70) + 4;	
+			putchar('o', 0x06, 0x00, ax, ay);
+		}
 	}
-
-	if (jumpTicks > 30) {
+	asteroid = (ax > 2);
 	
-		jump = false;
-	}
-	if (y == 23) {
+
+	//collision with player
+	if (ay >= y-1 && ((ax > x-7) && (ax <= x+7))) {
 	
-		jumpTicks = 0;
+		ay = 24;
+		health -= 10;
+		makeBeep(100);
+		putchar(0xff, 0x00, 0x00, 12 + (health / 5), 0);
+		putchar(0xff, 0x00, 0x00, 12 + (health / 5) + 1, 0);
 	}
 
-
-
-
-
-		
-
-
-
-
-
-	//draw new character
-	if (y < 17) {
-		putchar('W', 0x0f, 0x00, x, y);
-	} else {
-		putchar('W', 0x0f, 0x09, x, y);
-	}	
 
 
 	//vidmem = (volatile uint16_t*)0xb8000 + (80*x+y);
+	gameTicks++;
+	
+	putchar((score / 1000) + 48, 0x0f, 0x00, 72, 0);
+	putchar((score / 100) + 48, 0x0f, 0x00, 73, 0);
+	putchar(((score / 10) % 10) + 48, 0x0f, 0x00, 74, 0);
+	putchar((score % 10) + 48, 0x0f, 0x00, 75, 0);
+	
 	sleep(25);
 }
 

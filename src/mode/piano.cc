@@ -304,10 +304,8 @@ void piano(bool keypress, char key) {
         }
 
         //stop sound when key not pressed
-        if (keypress == false) {
+        if (!keypress) {
 
-                //slowsleep((noteFreq * 60) / 255);             
-                //slowsleep(60);
 		sleep(1);
                 speaker.NoSound();
         }
