@@ -54,7 +54,7 @@ void Speaker::Speak(uint32_t freq) {
 	uint32_t reset = PIT2.Read();
 
 	this->PlaySound(freq);
-	sleep(10);
+	sleep(40);
 	this->NoSound();
 
 	PIT2.Write(reset);
