@@ -18,8 +18,7 @@ You will probably need the following software packages: g++, binutils, libc6-dev
 
 <h2>How to get audio using PulseAudio</h2>
 
-If you're using a linux host and use pulseaudio like me then if you want to hear (some) of the beeps then add this line
-<code>load-module module-native-protocol-unix auth-anonymous=1 socket=/tmp/pulse-socket</code>
+If you're using a linux host and use pulseaudio like me, add this line <code>load-module module-native-protocol-unix auth-anonymous=1 socket=/tmp/pulse-socket</code>
 to <code>/etc/pulse/default.pa</code>. Then restart pulseaudio and the settings in the makefile should work. <a href="https://stackoverflow.com/questions/59988019/emulator-pulseaudio-access-denied">(original post here)</a>
 
 
@@ -32,7 +31,7 @@ This project is partly based on the <a href="https://github.com/AlgorithMan-de/w
 There are quite a number of glitches that I've yet to fix. 
 <ul>
   <li>Deleting a file that was not the most recently created might cause files to be listed incorrectly.</li>
-  <li>Every 4th LBA won't save data correctly on it's last sector.</li>
+  <li>Every 4th LBA won't save/read data correctly on it's last sector.</li>
   <li>Recent versions of QEMU have deprecated the 'pcspk' option. It might take some work to get speaker emulation working.</li>
   <li>Other stuff that I haven't found yet or are too insignificant to mention in the README.</li>
 </ul>
