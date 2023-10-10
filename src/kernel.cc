@@ -950,115 +950,40 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 
 	printf("Hello :^)\n");
 
-	//test dynamic memory allocation
-
-	/*
-	uint32_t* memupper = (uint32_t*)(((size_t)multiboot_structure) + 8);
-	size_t heap = 10*1024*1024;
-	MemoryManager memoryManager(heap, (*memupper)*1024 - heap - 10*1024);
-
-	printf("heap: ");
-	printfHex((heap >> 24) & 0xff);
-	printfHex((heap >> 16) & 0xff);
-	printfHex((heap >> 8) & 0xff);
-	printfHex((heap) & 0xff);
-
-	void* allocated = memoryManager.malloc(1024);
-	printf("\nallocated: ");
-	printfHex(((size_t)allocated >> 24) & 0xff);
-	printfHex(((size_t)allocated >> 16) & 0xff);
-	printfHex(((size_t)allocated >> 8 ) & 0xff);
-	printfHex(((size_t)allocated      ) & 0xff);
-	printf("\n");
-	*/
-
 
 	GlobalDescriptorTable* gdt;
 	TaskManager* taskManager;
 	
 	InterruptManager interrupts(0x20, gdt, taskManager);
-
-
 	printf("Initializing Hardware, Stage 1\n");
 
 
 	DriverManager drvManager;
-
-		
 	
 	//drivers
 	CLIKeyboardEventHandler kbhandler(gdt, taskManager);
 	KeyboardDriver keyboard(&interrupts, &kbhandler);
 	
 	drvManager.AddDriver(&keyboard);
-	
-
 
 	Desktop desktop(320, 200, 0x01);
 	MouseDriver mouse(&interrupts, &desktop);
 
 	drvManager.AddDriver(&mouse);
 
-
 	PeripheralComponentInterconnectController PCIController;
 	PCIController.SelectDrivers(&drvManager, &interrupts);
 
-
 	VideoGraphicsArray vga;
+
 	
 	printf("\nInitializing Hardware, Stage 2\n");
 	drvManager.ActivateAll();
-
-
+	
 	printf("Initializing Hardware, Stage 3\n");
-
-
-	/*
-	//network card
-	//amd_am79c973* eth0 = (amd_am79c973*)(drvManager.drivers[drvManager.numDrivers]);
-	//drvManager.numDrivers++;
-	//amd_am79c973* eth0 = (amd_am79c973*)(drvManager.drivers[2]);
-	
-		
-	uint8_t ip1 = 10, ip2 = 0, ip3 = 2, ip4 = 15;
-	uint32_t ip_be = ((uint32_t)ip4 << 24)
-			|((uint32_t)ip3 << 16)
-			|((uint32_t)ip2 << 8)
-			|(uint32_t)ip1;
-	
-	//default gateway for qemu is 10.0.2.2
-	uint8_t gip1 = 10, gip2 = 0, gip3 = 2, gip4 = 2;
-	uint32_t gip_be = ((uint32_t)gip4 << 24)
-			|((uint32_t)gip3 << 16)
-			|((uint32_t)gip2 << 8)
-			|(uint32_t)gip1;
-	
-
-	uint8_t subnet1 = 255, subnet2 = 255, subnet3 = 255, subnet4 = 0;
-	uint32_t subnet_be = ((uint32_t)subnet4 << 24)
-			|((uint32_t)subnet3 << 16)
-			|((uint32_t)subnet2 << 8)
-			|(uint32_t)subnet1;
-
-	
-	eth0->SetIPAddress(ip_be);	
-	EtherFrameProvider etherframe(eth0);
-
-	AddressResolutionProtocol arp(&etherframe);
-
-	InternetProtocolProvider ipv4(&etherframe, &arp, gip_be, subnet_be);	
-	*/	
-	
-	
 	interrupts.Activate();
-
-	
-	//arp.Resolve(gip_be);
-	//arp.BroadcastMACAddress(gip_be);
-	//ipv4.Send(gip_be, 0x01, (uint8_t*)"foobar", 6);	
 	
 	printf("\n\nEverything seems fine.\n");
-
 
 
 	//while (1) {}
@@ -1101,9 +1026,6 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 					kbhandler.keyChar, kbhandler.ctrl, 0);
 		}
 	}
-
-
-
 
 
 
