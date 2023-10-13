@@ -193,7 +193,7 @@ void deleteFile(char* args, CommandLine* cli) {
 
 
 
-// AyumuScript
+//********************************************************AyumuScript*****************************************************************
 
 uint32_t numOrVar(char* args, CommandLine* cli, uint8_t argNum) {
 	
@@ -516,7 +516,7 @@ void exi(char* args, CommandLine* cli) {
 	}
 }
 
-
+//********************************************************END*****************************************************************
 
 
 
