@@ -46,46 +46,46 @@ No, I just thought it would be funny.
 <h2>Full Command List</h2>
 
 GENERIC
-say (string) - print out whatever arguments were passesd.
-help - list common commands and keyboard shortcuts.
-clear - clear text from screen.
+"say (string)"   - print out whatever arguments were passesd.
+"help"           - list common commands and keyboard shortcuts.
+"clear"          - clear text from screen.
 
 DRIVERS/SYSTEM
-delay (int) - use the PIT timer to delay the systme by (int) number of milliseconds.
-beep (int) - use the pc speaker to beep at (int) frequency.
-rmem (int) - read value from (int) memory address.
-wmem (int) (int) - write 2nd (int) value to 1st (int) memory address.
-rdisk (int) (int) - read from 1st (int) sector number for 2nd (int) number of bytes.
-wdisk (int) (string) - write (string) data to (int) sector.
+"delay (int)"          - use the PIT timer to delay the systme by (int) number of milliseconds.
+"beep (int)"           - use the pc speaker to beep at (int) frequency.
+"rmem (int)"           - read value from (int) memory address.
+"wmem (int) (int)"     - write 2nd (int) value to 1st (int) memory address.
+"rdisk (int) (int)"    - read from 1st (int) sector number for 2nd (int) number of bytes.
+"wdisk (int) (string)" - write (string) data to (int) sector.
 
 FILESYSTEM
-files - list all known files and number of files currently allocated.
-size (file) - print out size of (file) in bytes.
-delete (file) - deletes and removes (file) from filesystem. [partly broken]
+"files"         - list all known files and number of files currently allocated.
+"size (file)"   - print out size of (file) in bytes.
+"delete (file)" - deletes and removes (file) from filesystem. [partly broken]
 
 MISC
-osaka (int) - print out Osaka ascii art.
-dad - print out more ascii art.
-random (anything) - execute random command with given args.
-PANIC - panic car alarm, must restart the system.
-explode - make annoying beeps and grpahical freakout as the system crashes. [currently broken]
-sata (int) (string) - string should be a full command that is repeated for (int) number of times. [currently broken] 
-andagi - print out "sata andagi".
+"osaka (int)"         - print out Osaka ascii art.
+"dad"                 - print out more ascii art.
+"random (anything)"   - execute random command with given args.
+"PANIC"               - panic car alarm, must restart the system.
+"explode"             - make annoying beeps and grpahical freakout as the system crashes. [currently broken]
+"sata (int)" (string) - string should be a full command that is repeated for (int) number of times. [currently broken] 
+"andagi"              - print out "sata andagi".
 
 AYUMUSCRIPT
-int (string) (int) - define variable with name (string) and value (int).
-+ (string) (int) - add value (int) to variable (string).
-- (string) (int) - subtract value (int) from variable (string).
-* (string) (int) - multiply value (int) by variable (string).
-/ (string) (int) - divide variable (string) by value (int).
-% (string) (int) - modulus variable (string) by value (int).
-& (string) (int) - AND variable (string) by value (int).
-| (string) (int) - OR variable (string) by value (int).
-^ (string) (int) - XOR variable (string) by value (int).
-if/loop (var/int) (op) (var/int) - determine if expression is true, if so nothing changes, if not, commands won't be processed.
-fi/pool - allow command to be processed again.
-rng - produce random number and save it in return value ($R).
-// (string) - does nothing, meant for comments in AyumuScript files.
-ex (file) - executes files as a script.
+"int (string) (int)"               - define variable with name (string) and value (int).
+"+ (string) (int)"                 - add value (int) to variable (string).
+"- (string) (int)"                 - subtract value (int) from variable (string).
+"* (string) (int)"                 - multiply value (int) by variable (string).
+"/ (string) (int)"                 - divide variable (string) by value (int).
+"% (string) (int)"                 - modulus variable (string) by value (int).
+"& (string) (int)"                 - AND variable (string) by value (int).
+"| (string) (int)"                 - OR variable (string) by value (int).
+"^ (string) (int)"                 - XOR variable (string) by value (int).
+"if/loop (var/int) (op) (var/int)" - determine if expression is true, if so nothing changes, if not, commands won't be processed.
+"fi/pool"                          - allow command to be processed again.
+"rng"                              - produce random number and save it in return value ($R).
+"// (string)"                      - does nothing, meant for comments in AyumuScript files.
+"ex (file)"                        - executes files as a script.
 
 
