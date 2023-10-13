@@ -43,12 +43,6 @@ void spaceTUI() {
 }
 
 
-
-void spaceInit() {
-
-}
-
-
 void space(bool pressed, char key) {
 
 	static uint8_t x = 40;
