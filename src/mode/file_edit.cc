@@ -285,18 +285,13 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 					x++;
 
 
-					//fileSize = 1920 * (lba+1);
-
-
 					if (x >= 80) {
 					
 						x = 0;
 						y += (1 * (y < 23));
 
 						if (y >= 24) {
-						
-							//scroll file down
-							//not added yet :^/
+							//do later
 						}
 					}
 					//remove previous message
