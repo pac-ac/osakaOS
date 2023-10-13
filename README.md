@@ -15,6 +15,7 @@ To compile from source do 'sudo make run' and pray for the best. The binary will
 
 You will probably need the following software packages: g++, binutils, libc6-dev-i386, qemu-system-x86_64 grub-legacy, grub2, xorriso.
 
+If you plan on using other emulators then make sure it has piix4 ide support for storage and pc speaker support for basic audio.
 
 <h2>How to get audio using PulseAudio</h2>
 
