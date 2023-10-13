@@ -46,12 +46,12 @@ No, I just thought it would be funny.
 <h2>Full Command List</h2>
 
 <br>GENERIC</br>  
-<br>"say (string)"   - print out whatever arguments were passesd.</br> 
+<br>"say (string)"   - print out whatever arguments were passed.</br> 
 <br>"help"           - list common commands and keyboard shortcuts.</br>
 <br>"clear"          - clear text from screen.</br>
 
 <br>DRIVERS/SYSTEM</br>
-<br>"delay (int)"          - use the PIT timer to delay the systme by (int) number of milliseconds.</br>
+<br>"delay (int)"          - use the PIT timer to delay the system by (int) number of milliseconds.</br>
 <br>"beep (int)"           - use the pc speaker to beep at (int) frequency.</br>
 <br>"rmem (int)"           - read value from (int) memory address.</br>
 <br>"wmem (int) (int)"     - write 2nd (int) value to 1st (int) memory address.</br>
