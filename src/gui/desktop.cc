@@ -35,6 +35,9 @@ void Desktop::Draw(common::GraphicsContext* gc, bool mode) {
 	
 	//cursor
 	this->MouseDraw(gc, mode);
+
+	//write to video memory
+	gc->DrawToScreen();
 }
 
 void Desktop::DrawNoMouse(common::GraphicsContext* gc, bool mode) {
@@ -83,9 +86,6 @@ void Desktop::OnMouseUp(common::uint8_t button) {
 
 void Desktop::OnMouseMove(int x, int y) {
 
-
-	//x /= 2;
-	//y /= 2;
 
 	int32_t newMouseX = MouseX + x;
 	this->oldMouseX = MouseX;
