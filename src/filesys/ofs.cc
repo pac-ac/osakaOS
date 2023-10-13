@@ -9,7 +9,7 @@ using namespace os::filesystem;
 void printf(char*);
 char* int2str(uint32_t);
 
-
+//not finished yet
 
 bool os::filesystem::FileIf(uint32_t sector) {
 
