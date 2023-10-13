@@ -137,14 +137,17 @@ uint8_t* VideoGraphicsArray::GetFrameBufferSegment() {
 }
 
 
+
 void VideoGraphicsArray::PutPixel(int32_t x, int32_t y, uint8_t colorIndex) {
 
 	if (x < 0 || 320 <= x || y < 0 || 200 <= y) {
 		return;
 	}
+	
+	pixels[320*y+x] = colorIndex;
 
-	uint8_t* pixelAddress = this->FrameBufferSegment+((y<<8) + (y<<6) + x);
-	*pixelAddress = colorIndex;
+	//uint8_t* pixelAddress = this->FrameBufferSegment+((y<<8) + (y<<6) + x);
+	//*pixelAddress = colorIndex;
 }
 
 
@@ -160,3 +163,15 @@ void VideoGraphicsArray::FillRectangle(uint32_t x, uint32_t y,
 	}	
 }
 
+
+
+void VideoGraphicsArray::DrawToScreen() {
+
+	for (uint8_t y = 0; y < 200; y++) {
+		for (uint16_t x = 0; x < 320; x++) {
+
+			uint8_t* pixelAddress = this->FrameBufferSegment+((y<<8) + (y<<6) + x);
+			*pixelAddress = pixels[320*y+x];
+		}
+	}
+}
