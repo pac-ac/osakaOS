@@ -50,7 +50,6 @@ No, I just thought it would be funny.
 <br>"help"           - list common commands and keyboard shortcuts.</br>
 <br>"clear"          - clear text from screen.</br>
 
-
 <br>DRIVERS/SYSTEM</br>
 <br>"delay (int)"          - use the PIT timer to delay the systme by (int) number of milliseconds.</br>
 <br>"beep (int)"           - use the pc speaker to beep at (int) frequency.</br>
