@@ -32,76 +32,7 @@ void RawDataHandler::Send(uint8_t* buffer, uint32_t size) {
 
 void printf(char*);
 void printfHex(uint8_t);
-void sleep(uint32_t);
 char* int2str(uint32_t);
-
-
-
-
-/*
-inline char* int2str(common::uint32_t num) {
-
-
-                common::uint32_t numChar = 1;
-                common::uint8_t i = 1;
-
-
-                if (num % 10 != num) {
-
-                        while ((num / (numChar)) >= 10) {
-
-                                numChar *= 10;
-                                i++;
-                        }
-
-                        char* str = "4294967296";
-                        common::uint8_t strIndex = 0;
-
-                        while (i) {
-
-                                str[strIndex] = (char)(((num / (numChar)) % 10) + 48);
-
-                                if (numChar >= 10) {
-
-                                        numChar /= 10;
-                                }
-                                strIndex++;
-                                i--;
-                        }
-
-                        str[strIndex] = '\0';
-                        return str;
-                }
-
-                char* str = " ";
-                str[0] = (num + 48);
-
-                return str;
-}
-*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -119,13 +50,6 @@ amd_am79c973::amd_am79c973(PeripheralComponentInterconnectDeviceDescriptor
   registerAddressPort(dev->portBase + 0x12),
   resetPort(dev->portBase + 0x14),
   busControlRegisterDataPort(dev->portBase + 0x16)
-
-/*
-  registerDataPort(dev->portBase + 0x10),
-  registerAddressPort(dev->portBase + 0x14),
-  resetPort(dev->portBase + 0x18),
-  busControlRegisterDataPort(dev->portBase + 0x1c)
-*/
 {
 	this->handler = 0;
 	currentSendBuffer = 0;
@@ -189,9 +113,6 @@ amd_am79c973::amd_am79c973(PeripheralComponentInterconnectDeviceDescriptor
 	registerDataPort.Write( (uint32_t)(&initBlock) & 0xffff );
 	registerAddressPort.Write(2);
 	registerDataPort.Write(((uint32_t)(&initBlock) >> 16) & 0xffff );
-	
-	//registerAddressPort.Write(3);
-	//registerDataPort.Write(0x00);
 }
 
 
@@ -234,9 +155,6 @@ uint32_t amd_am79c973::HandleInterrupt(uint32_t esp) {
 
 	registerAddressPort.Write(0);
 	uint32_t temp = registerDataPort.Read();
-
-	//printf(int2str(temp));
-
 	
 	if ((temp & 0x8000) == 0x8000) printf(" AMD am79c973 ERROR\n"); 
 	if ((temp & 0x2000) == 0x2000) printf(" AMD am79c973 COLLISION ERROR\n"); 
@@ -251,8 +169,6 @@ uint32_t amd_am79c973::HandleInterrupt(uint32_t esp) {
 	
 	if ((temp & 0x0100) == 0x0100) printf("AMD am79c973 INIT DONE\n");
 
-
-	//sleep(1000);
 	return esp;
 }
 
