@@ -99,7 +99,7 @@ void AyumuScriptCli(char* name, CommandLine* cli) {
 	uint8_t file[1920];
 	uint8_t LBA = 0;
 
-
+	//nested loops and if statements currently not supported
 
 	char line[256];
 	//number of loops allowed (16)
