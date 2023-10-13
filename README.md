@@ -31,7 +31,7 @@ This project is partly based on the <a href="https://github.com/AlgorithMan-de/w
 There are quite a number of glitches that I've yet to fix. 
 <ul>
   <li>Deleting a file that was not the most recently created might cause files to be listed incorrectly.</li>
-  <li>Every 4th LBA won't save/read data correctly on it's last sector.</li>
+  <li>Every 4th LBA won't save/read data correctly on it's last sector. (The filesystem itself isn't finished yet.)</li>
   <li>Recent versions of QEMU have deprecated the 'pcspk' option. It might take some work to get speaker emulation working.</li>
   <li>Other stuff that I haven't found yet or are too insignificant to mention in the README.</li>
 </ul>
