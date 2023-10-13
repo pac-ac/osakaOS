@@ -231,7 +231,7 @@ uint32_t InterruptManager::DoHandleInterrupt(uint8_t interruptNumber, uint32_t e
 	
 		esp = handlers[interruptNumber]->HandleInterrupt(esp);
 	
-								   //??????? qemu ide problems
+							         //??????? qemu pata driver problems
 	} else if (interruptNumber != hardwareInterruptOffset && interruptNumber != 0x2e) {
 	//} else if (interruptNumber != hardwareInterruptOffset) {
 		
