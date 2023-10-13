@@ -45,47 +45,48 @@ No, I just thought it would be funny.
 
 <h2>Full Command List</h2>
 
-GENERIC
-"say (string)"   - print out whatever arguments were passesd.
-"help"           - list common commands and keyboard shortcuts.
-"clear"          - clear text from screen.
+<br>GENERIC</br>  
+<br>"say (string)"   - print out whatever arguments were passesd.</br> 
+<br>"help"           - list common commands and keyboard shortcuts.</br>
+<br>"clear"          - clear text from screen.</br>
 
-DRIVERS/SYSTEM
-"delay (int)"          - use the PIT timer to delay the systme by (int) number of milliseconds.
-"beep (int)"           - use the pc speaker to beep at (int) frequency.
-"rmem (int)"           - read value from (int) memory address.
-"wmem (int) (int)"     - write 2nd (int) value to 1st (int) memory address.
-"rdisk (int) (int)"    - read from 1st (int) sector number for 2nd (int) number of bytes.
-"wdisk (int) (string)" - write (string) data to (int) sector.
 
-FILESYSTEM
-"files"         - list all known files and number of files currently allocated.
-"size (file)"   - print out size of (file) in bytes.
-"delete (file)" - deletes and removes (file) from filesystem. [partly broken]
+<br>DRIVERS/SYSTEM</br>
+<br>"delay (int)"          - use the PIT timer to delay the systme by (int) number of milliseconds.</br>
+<br>"beep (int)"           - use the pc speaker to beep at (int) frequency.</br>
+<br>"rmem (int)"           - read value from (int) memory address.</br>
+<br>"wmem (int) (int)"     - write 2nd (int) value to 1st (int) memory address.</br>
+<br>"rdisk (int) (int)"    - read from 1st (int) sector number for 2nd (int) number of bytes.</br>
+<br>"wdisk (int) (string)" - write (string) data to (int) sector.</br>
 
-MISC
-"osaka (int)"         - print out Osaka ascii art.
-"dad"                 - print out more ascii art.
-"random (anything)"   - execute random command with given args.
-"PANIC"               - panic car alarm, must restart the system.
-"explode"             - make annoying beeps and grpahical freakout as the system crashes. [currently broken]
-"sata (int)" (string) - string should be a full command that is repeated for (int) number of times. [currently broken] 
-"andagi"              - print out "sata andagi".
+<br>FILESYSTEM</br>
+<br>"files"         - list all known files and number of files currently allocated.</br>
+<br>"size (file)"   - print out size of (file) in bytes.</br>
+<br>"delete (file)" - deletes and removes (file) from filesystem. [partly broken]</br>
 
-AYUMUSCRIPT
-"int (string) (int)"               - define variable with name (string) and value (int).
-"+ (string) (int)"                 - add value (int) to variable (string).
-"- (string) (int)"                 - subtract value (int) from variable (string).
-"* (string) (int)"                 - multiply value (int) by variable (string).
-"/ (string) (int)"                 - divide variable (string) by value (int).
-"% (string) (int)"                 - modulus variable (string) by value (int).
-"& (string) (int)"                 - AND variable (string) by value (int).
-"| (string) (int)"                 - OR variable (string) by value (int).
-"^ (string) (int)"                 - XOR variable (string) by value (int).
-"if/loop (var/int) (op) (var/int)" - determine if expression is true, if so nothing changes, if not, commands won't be processed.
-"fi/pool"                          - allow command to be processed again.
-"rng"                              - produce random number and save it in return value ($R).
-"// (string)"                      - does nothing, meant for comments in AyumuScript files.
-"ex (file)"                        - executes files as a script.
+<br>MISC</br>
+<br>"osaka (int)"         - print out Osaka ascii art.</br>
+<br>"dad"                 - print out more ascii art.</br>
+<br>"random (anything)"   - execute random command with given args.</br>
+<br>"PANIC"               - panic car alarm, must restart the system.</br>
+<br>"explode"             - make annoying beeps and grpahical freakout as the system crashes. [currently broken]</br>
+<br>"sata (int)" (string) - string should be a full command that is repeated for (int) number of times. [currently broken]</br>
+<br>"andagi"              - print out "sata andagi".</br>
+
+<br>AYUMUSCRIPT</br>
+<br>"int (string) (int)"               - define variable with name (string) and value (int).</br>
+<br>"+ (string) (int)"                 - add value (int) to variable (string).</br>
+<br>"- (string) (int)"                 - subtract value (int) from variable (string).</br>
+<br>"* (string) (int)"                 - multiply value (int) by variable (string).</br>
+<br>"/ (string) (int)"                 - divide variable (string) by value (int).</br>
+<br>"% (string) (int)"                 - modulus variable (string) by value (int).</br>
+<br>"& (string) (int)"                 - AND variable (string) by value (int).</br>
+<br>"| (string) (int)"                 - OR variable (string) by value (int).</br>
+<br>"^ (string) (int)"                 - XOR variable (string) by value (int).</br>
+<br>"if/loop (var/int) (op) (var/int)" - determine if expression is true, if so nothing changes, if not, commands won't be processed.</br>
+<br>"fi/pool"                          - allow command to be processed again.</br>
+<br>"rng"                              - produce random number and save it in return value ($R).</br>
+<br>"// (string)"                      - does nothing, meant for comments in AyumuScript files.</br>
+<br>"ex (file)"                        - executes files as a script.</br>
 
 
