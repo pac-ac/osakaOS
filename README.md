@@ -68,7 +68,7 @@ No, I just thought it would be funny.
 <br>"dad"                 - print out more ascii art.</br>
 <br>"random (anything)"   - execute random command with given args.</br>
 <br>"PANIC"               - panic car alarm, must restart the system.</br>
-<br>"explode"             - make annoying beeps and grpahical freakout as the system crashes. [currently broken]</br>
+<br>"explode"             - make annoying beeps and graphical freakout as the system crashes. [currently broken]</br>
 <br>"sata (int) (string)" - string should be a full command that is repeated for (int) number of times, if (int) is 0 or not provided, it will repeat the command forever. [currently broken]</br>
 <br>"andagi"              - print out "sata andagi".</br>
 
