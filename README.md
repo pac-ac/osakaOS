@@ -17,11 +17,14 @@ You will probably need the following software packages: g++, binutils, libc6-dev
 
 If you plan on using other emulators then make sure it has piix4 ide support for storage, at least 2MB of memory, and pc speaker support for basic audio. Emulation is the preferred way to run the OS as running it on real hardware requires a very old machine for the drivers to work, as well as a lack of concern for the data on the machine since the OS doesn't care to ask if you want to write over a pre-existing system partition, it will just do it. Also the OS crashes a lot (most of the time on purpose) and that would be very annoying on bare metal.
 
+<h2>Official Manual and Documentation</h2>
+
+An official user manual can be found on my personal website <i>Leechplus</i> at <a href="https://leechplus.neocities.org/projects/osakaOS/introduction">projects/osakaOS/introduction</a>.
+
 <h2>How to get audio using PulseAudio</h2>
 
 If you're using a linux host and use pulseaudio like me, add this line <code>load-module module-native-protocol-unix auth-anonymous=1 socket=/tmp/pulse-socket</code>
 to <code>/etc/pulse/default.pa</code>. Then restart pulseaudio and the settings in the makefile should work. <a href="https://stackoverflow.com/questions/59988019/emulator-pulseaudio-access-denied">(original post here)</a>
-
 
 <h2>Extra</h2>
 
