@@ -26,17 +26,22 @@ objects = obj/loader.o \
 	  obj/gui/widget.o \
 	  obj/gui/desktop.o \
 	  obj/gui/window.o \
+	  obj/gui/button.o \
+	  obj/gui/sim.o \
 	  obj/net/etherframe.o \
 	  obj/net/arp.o \
 	  obj/net/ipv4.o \
 	  obj/net/icmp.o \
 	  obj/filesys/ofs.o \
 	  obj/cli.o \
+	  obj/app.o \
 	  obj/script.o \
+	  obj/math.o \
 	  obj/mode/piano.o \
 	  obj/mode/snake.o \
 	  obj/mode/file_edit.o \
 	  obj/mode/space.o \
+	  obj/mode/bootscreen.o \
 	  obj/kernel.o
 
 obj/%.o: src/%.cc
@@ -77,11 +82,10 @@ run: osakaOS.iso
 		-boot menu=on \
 		-drive id=disk,file=Image.img,format=raw,if=none \
 		-device piix4-ide,id=piix4 -device ide-hd,drive=disk,bus=piix4.0 \
-		-cpu 486 -smp 1 -m 1G \
-		-vga virtio \
-		-audiodev pa,id=pa0,server=unix:/tmp/pulse-socket \
-		-machine pcspk-audiodev=pa0
-		#-soundhw pcspk
+		-cpu 486 -smp 1 -m 8M \
+		-vga virtio
+		#-audiodev pa,id=pa0,server=unix:/tmp/pulse-socket \
+		#-machine pcspk-audiodev=pa0
 		
 		#only use '-soundhw' option if your qemu is 
 		#old and doesnt support '-audiodev'
