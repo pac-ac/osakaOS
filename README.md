@@ -3,7 +3,7 @@
 
 <br>
 
-![](desktop.jpg =x600) 
+<img src="desktop.jpg" width=600px>
 
 <h2>Improved and Polished From 1.0.</h2>
 
