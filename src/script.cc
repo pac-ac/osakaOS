@@ -15,7 +15,7 @@ char* int2str(uint32_t);
 
 
 
-
+//exi
 //not working yet
 void AyumuScriptInput(CommandLine* cli, uint8_t* file, 
 		uint32_t size, uint32_t &indexF, 
@@ -91,23 +91,30 @@ void AyumuScriptInput(CommandLine* cli, uint8_t* file,
 
 
 
-
+//ex
 void AyumuScriptCli(char* name, CommandLine* cli) {
 
 	//get file info
-	uint32_t size = GetFileSize(name);
+	uint32_t size = GetFileSize(argparse(name, 0));
 	uint8_t file[1920];
 	uint8_t LBA = 0;
 
 	//nested loops and if statements currently not supported
 
 	char line[256];
+	
 	//number of loops allowed (16)
-	uint32_t nestedLoop[16];
+	uint16_t nestedLoop[16];
+	for (uint8_t i = 0; i < 16; i++) { nestedLoop[i] = 0; }
 
+	//file indexes
 	uint32_t indexF = 0;
 	uint16_t indexLBA = 0;
-	uint32_t indexLoopF = 0;
+	
+	//loop indexes
+	uint8_t indexLoopF = 0;
+	
+	uint32_t fileIndexLoop = 0;
 	uint16_t indexL = 0;
 	
 
@@ -120,7 +127,10 @@ void AyumuScriptCli(char* name, CommandLine* cli) {
 		if (indexF % 1920 == 0) {
 		
 			indexLBA = 0;
-			ReadLBA(name, file, LBA);
+			//not efficient using argparse
+			//but it wont work otherwise
+			//because im a hack......
+			ReadLBA(argparse(name, 0), file, LBA);
 			LBA++;
 		}
 
@@ -131,16 +141,14 @@ void AyumuScriptCli(char* name, CommandLine* cli) {
 				
 				line[indexL] = '\0';
 				indexL = 0;
-
-
+				
 				if (strcmp("loop ", line)) {
-
-					//nestedLoop[indexLoopF] = indexLBA - (strlen(line) + 1);
-					
+						
+					//add for every new loop command
 					if (!inLoop) {
-						//add for every new loop command
-						//indexLoopF++;
-						indexLoopF = indexLBA - (strlen(line) + 1);
+				
+						indexLoopF++;
+						nestedLoop[1] = indexLBA - (strlen(line) + 1);
 					}
 					inLoop = true;
 				}
@@ -149,13 +157,11 @@ void AyumuScriptCli(char* name, CommandLine* cli) {
 			
 					if (cli->conditionLoop) {
 						
-						//indexLBA = nestedLoop[indexLoopF-(1 * (indexLoopF > 0))];
+						indexF -= (indexLBA - nestedLoop[1]);
+						indexLBA = nestedLoop[1];
 						
-						indexF -= (indexLBA - indexLoopF);
-						indexLBA = indexLoopF;
 					} else {	
-						//indexLoopF--;
-						indexLoopF = 0;
+						indexLoopF--;
 						inLoop = false;
 					}
 				}

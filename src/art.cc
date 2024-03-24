@@ -3,24 +3,20 @@
 using namespace os;
 using namespace os::common;
 
-	void Funny::printfLine(char *str, uint8_t line) {
 
-        	uint16_t attrib = 0x07;
+void putcharTUI(unsigned char, unsigned char, unsigned char, uint8_t, uint8_t);
+void printfLine(const char* str, uint8_t line);
 
-        	volatile uint16_t* vidmem;
-		
 
-        	for (int i = 0; str[i] != '\0'; i++) {
+	Funny::Funny() {
+	}
 
-        		vidmem = (volatile uint16_t*)0xb8000 + (80*line+i);
-	                *vidmem = str[i] | (attrib << 8);
-
-        	}
+	Funny::~Funny() {
 	}
 
 	//render ascii cube in real time or have ugly ass 2000 line file with pre rendered 3d ascii graphics????
 	//cube does look cool though
-	void Funny::cubeAscii(uint8_t cubeCount) {
+	void Funny::cubeAscii(uint16_t cubeCount) {
         	
 			printfLine("                                                                                ", 0);
 
@@ -2257,107 +2253,107 @@ using namespace os::common;
 
 	void Funny::osakaAscii() {
 		
-        	printfLine("                 __                                                             ", 12);
-        	printfLine("    ######      /  \\                                                            ", 13);
-		printfLine("  #,,,,,v!5#       |                                                            ", 14);
-       		printfLine(" #,,,,,,,v!5#     /                                                             ", 15);
-       		printfLine(" #,,,,,,,v!5#     |                                                             ", 16);
-       		printfLine(" #,,,,,,,v!5#     .                                                             ", 17);
-       		printfLine(" #,,,,,,vv!5#                                     PRESS ANY KEY TO              ", 18);
-       		printfLine(" v#,,,,vv!5#v                                    START COMMAND LINE             ", 19);
-       		printfLine("  #,,,,vv5W#                                            ^_^                     ", 20);
-       		printfLine(" /|v#,v!5#v|\\                                                                   ", 21);
-       	        printfLine(" ||\\ vv5# /||                                                                   ", 22);
-                printfLine(" || \\___ / ||                                                                   ", 23);
-        	printfLine(" ||        ||                                                                   ", 24);
+        	printfLine("                  __   ", 12);
+        	printfLine("     ######      /  \\ ", 13);
+		printfLine("   #,,,,,v!5#       |  ", 14);
+       		printfLine("  #,,,,,,,v!5#     /   ", 15);
+       		printfLine("  #,,,,,,,v!5#     |   ", 16);
+       		printfLine("  #,,,,,,,v!5#     .   ", 17);
+       		printfLine("  #,,,,,,vv!5#                                     PRESS ANY KEY TO", 18);
+       		printfLine("  v#,,,,vv!5#v                                    START COMMAND LINE", 19);
+       		printfLine("   #,,,,vv5W#                                            ^_^", 20);
+       		printfLine("  /|v#,v!5#v|\\        ", 21);
+       	        printfLine("  ||\\ vv5# /||        ", 22);
+                printfLine("  || \\___ / ||        ", 23);
+        	printfLine("  ||        ||         ", 24);
 	}
 
 
 	void Funny::osakaFace() {
-	
-		printfLine("                 @@@@@@@@@@@@@@@@@@@                                            ", 0);
-		printfLine("             @@@@@@@@@@@@@@@@@@@@@@@@@@@                                        ", 1);
-		printfLine("          @@@@@@@@@@@@@@@@v@@@@@@@@@@@@@@@@                                     ", 2);
-		printfLine("        @@@@@@@@@@@@@@@@@v v@@@@@@@@@@@@@@@@@                                   ", 3);
-		printfLine("       @@@@@@@@@@@v@@@@@v   v@@@@@v@@@@@@@@@@@                                  ", 4);
-		printfLine("      @@@@@@@@@@@v v@@@v     v@@@v v@@@@@@@@@@@                                 ", 5);
-		printfLine("     @@@@@@@@vv@v   v@v       v@v   v@vv@@@@@@@@                                ", 6);
-		printfLine("     @@@@@@@v _v_____v         v ____v_ v@@@@@@@                                ", 7);
-		printfLine("     @@@@@@v /  *****\\         /*****  \\ v@@@@@@                                ", 8); 
-		printfLine("     @@@@@@v/  *******         *******  \\v@@@@@@                                ", 9);
-		printfLine("     @@@@@@ |  *******         *******  | @@@@@@              saka              ", 10);
-		printfLine("     @@@@@@ \\  *******         *******  / @@@@@@                                ", 11);
-		printfLine("     @@@@@@     *****           *****     @@@@@@                                ", 12);
-		printfLine("     @@@@@@                               @@@@@@                                ", 13);
-		printfLine("     @@@@@@                               @@@@@@                                ", 14);
-		printfLine("     @@@@@@@            _____            @@@@@@@                                ", 15);
-		printfLine("     v@@@@@@@@          \\___/          @@@@@@@@v                                ", 16);
-		printfLine("     v@@@@@@@@@@@@@               @@@@@@@@@@@@@v                                ", 17);
-		printfLine("      v@@@@@@@@@@@@@@@@_______@@@@@@@@@@@@@@@@v                                 ", 18);
-		printfLine("      v@@@@@@@@@@@@@@@@|     |@@@@@@@@@@@@@@@@v                                 ", 19);
-		printfLine("       v@@@@@@@@@@@@@@_|     |_@@@@@@@@@@@@@@v                                  ", 20);
-		printfLine("       v@@@@@@@@@@@@ / \\_____/ \\ @@@@@@@@@@@@v                                  ", 21);
-		printfLine("        v@@@@@@@@@@ /    \\ /    \\ @@@@@@@@@@v                                   ", 22);
-		printfLine("         v@v v@v v@|      |      |@v v@v v@v                                    ", 23);
-		printfLine("          v   v   v|      |      |v   v   v                                     ", 24);
+
+		printfLine("                 @@@@@@@@@@@@@@@@@@@", 0);
+		printfLine("             @@@@@@@@@@@@@@@@@@@@@@@@@@@", 1);
+		printfLine("          @@@@@@@@@@@@@@@@v@@@@@@@@@@@@@@@@", 2);
+		printfLine("        @@@@@@@@@@@@@@@@@v v@@@@@@@@@@@@@@@@@", 3);
+		printfLine("       @@@@@@@@@@@v@@@@@v   v@@@@@v@@@@@@@@@@@", 4);
+		printfLine("      @@@@@@@@@@@v v@@@v     v@@@v v@@@@@@@@@@@", 5);
+		printfLine("     @@@@@@@@vv@v   v@v       v@v   v@vv@@@@@@@@", 6);
+		printfLine("     @@@@@@@v _v_____v         v ____v_ v@@@@@@@", 7);
+		printfLine("     @@@@@@v /  *****\\         /*****  \\ v@@@@@@", 8); 
+		printfLine("     @@@@@@v/  *******         *******  \\v@@@@@@", 9);
+		printfLine("     @@@@@@ |  *******         *******  | @@@@@@              saka", 10);
+		printfLine("     @@@@@@ \\  *******         *******  / @@@@@@", 11);
+		printfLine("     @@@@@@     *****           *****     @@@@@@", 12);
+		printfLine("     @@@@@@                               @@@@@@", 13);
+		printfLine("     @@@@@@                               @@@@@@", 14);
+		printfLine("     @@@@@@@            _____            @@@@@@@", 15);
+		printfLine("     v@@@@@@@@          \\___/          @@@@@@@@v", 16);
+		printfLine("     v@@@@@@@@@@@@@               @@@@@@@@@@@@@v", 17);
+		printfLine("      v@@@@@@@@@@@@@@@@_______@@@@@@@@@@@@@@@@v", 18);
+		printfLine("      v@@@@@@@@@@@@@@@@|     |@@@@@@@@@@@@@@@@v", 19);
+		printfLine("       v@@@@@@@@@@@@@@_|     |_@@@@@@@@@@@@@@v", 20);
+		printfLine("       v@@@@@@@@@@@@ / \\_____/ \\ @@@@@@@@@@@@v", 21);
+		printfLine("        v@@@@@@@@@@ /    \\ /    \\ @@@@@@@@@@v", 22);
+		printfLine("         v@v v@v v@|      |      |@v v@v v@v", 23);
+		printfLine("          v   v   v|      |      |v   v   v", 24);
 	}
 	
 	void Funny::osakaHead() {
   	
-  		printfLine("                               @@@@@@@@@@@@@                                    ", 0);
-  		printfLine("                          @@@@@@@@@@@@@@@@@@@@@@@                               ", 1);
-  		printfLine("                       @@@@@@@@@@@@@@@@@@@@@@@@@@@@@                            ", 2);
-  		printfLine("                    @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                         ", 3);
-  		printfLine("                   @@@@@@@@@@@@@@@@@@v@@@@@@@@@@@@@@@@@@                        ", 4);
-  		printfLine("                 @@@@@@@@@@@@@@@@@@@v v@@@@@@@@@@@@@@@@@@@                      ", 5);
-  		printfLine("                @@@@@@@@@@@@@@@@@@@v   v@@@@@@@@@@@@@@@@@@@                     ", 6);
-  		printfLine("               @@@@@@@@@@@@@@@@@@@v     v@@@@@@@@@@@@@@@@@@@                    ", 7);
-  		printfLine("              @@@@@@@@@@@@@v v@@@v       v@@@v v@@@@@@@@@@@@@                   ", 8);
-  		printfLine("             @@@@@@@@@@@@@v___@@v_       _v@@___v@@@@@@@@@@@@@                  ", 9);
-  		printfLine("             @@@@@@@@@@@@v    @v           v@    v@@@@@@@@@@@@                  ", 10);
-  		printfLine("            @@@@@@@@@ v@v     v             v     v@v @@@@@@@@@                 ", 11);
-  		printfLine("            @@@@@@@@v  v                           v  v@@@@@@@@                 ", 12);
-  		printfLine("           @@@@@@@@v                                   v@@@@@@@@                ", 13);
-  		printfLine("           @@@@@@@@ ___~~~~~~~~~~~       ~~~~~~~~~~~___ @@@@@@@@                ", 14);
-  		printfLine("          @@@@@@@@v                                     v@@@@@@@@               ", 15);
-  		printfLine("          @@@@@@@@                                       @@@@@@@@               ", 16);
-  		printfLine("          @@@@@@@@                                       @@@@@@@@               ", 17);
-  		printfLine("         @@@@@@@@@                                       @@@@@@@@@              ", 18);
-  		printfLine("         @@@@@@@@@                                       @@@@@@@@@              ", 19);
-  		printfLine("         @@@@@@@@@_                                     _@@@@@@@@@              ", 20);
-  		printfLine("  ,,,,,,,,,,,,@@@@@\\_              _____              _/@@@@@,,,,,,,,,,,,       ", 21);
-  		printfLine(",,,           ,,_@@@@\\_            \\___/            _/@@@@_,,           ,,,     ", 22);
-  		printfLine(",,  \\   \\   \\  ,,\\=====\\_                         _/=====/,,  /   /   /  ,,     ", 23);
-  		printfLine("  ,,,,,,,,,,,,,, /       \\_______________________/       \\ ,,,,,,,,,,,,,,       ", 24);
+  		printfLine("                               @@@@@@@@@@@@@", 0);
+  		printfLine("                          @@@@@@@@@@@@@@@@@@@@@@@", 1);
+  		printfLine("                       @@@@@@@@@@@@@@@@@@@@@@@@@@@@@", 2);
+  		printfLine("                    @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@", 3);
+  		printfLine("                   @@@@@@@@@@@@@@@@@@v@@@@@@@@@@@@@@@@@@", 4);
+  		printfLine("                 @@@@@@@@@@@@@@@@@@@v v@@@@@@@@@@@@@@@@@@@", 5);
+  		printfLine("                @@@@@@@@@@@@@@@@@@@v   v@@@@@@@@@@@@@@@@@@@", 6);
+  		printfLine("               @@@@@@@@@@@@@@@@@@@v     v@@@@@@@@@@@@@@@@@@@", 7);
+  		printfLine("              @@@@@@@@@@@@@v v@@@v       v@@@v v@@@@@@@@@@@@@", 8);
+  		printfLine("             @@@@@@@@@@@@@v___@@v_       _v@@___v@@@@@@@@@@@@@", 9);
+  		printfLine("             @@@@@@@@@@@@v    @v           v@    v@@@@@@@@@@@@", 10);
+  		printfLine("            @@@@@@@@@ v@v     v             v     v@v @@@@@@@@@", 11);
+  		printfLine("            @@@@@@@@v  v                           v  v@@@@@@@@", 12);
+  		printfLine("           @@@@@@@@v                                   v@@@@@@@@", 13);
+  		printfLine("           @@@@@@@@ ___~~~~~~~~~~~       ~~~~~~~~~~~___ @@@@@@@@", 14);
+  		printfLine("          @@@@@@@@v                                     v@@@@@@@@", 15);
+  		printfLine("          @@@@@@@@                                       @@@@@@@@", 16);
+  		printfLine("          @@@@@@@@                                       @@@@@@@@", 17);
+  		printfLine("         @@@@@@@@@                                       @@@@@@@@@", 18);
+  		printfLine("         @@@@@@@@@                                       @@@@@@@@@", 19);
+  		printfLine("         @@@@@@@@@_                                     _@@@@@@@@@", 20);
+  		printfLine("  ,,,,,,,,,,,,@@@@@\\_              _____              _/@@@@@,,,,,,,,,,,,", 21);
+  		printfLine(",,,           ,,_@@@@\\_            \\___/            _/@@@@_,,           ,,,", 22);
+  		printfLine(",,  \\   \\   \\  ,,\\=====\\_                         _/=====/,,  /   /   /  ,,", 23);
+  		printfLine("  ,,,,,,,,,,,,,, /       \\_______________________/       \\ ,,,,,,,,,,,,,,", 24);
   	}
 
 	void Funny::osakaKnife() {
 	
-		printfLine("            .~@@@@@@~.                                                          ", 0);
-		printfLine("           #@@@@@@@@@@&                                                         ", 1);
-		printfLine("          $@@@@@@@@@@@@0                                                        ", 2);
-		printfLine("         /@@@@@     @@@@#                                                       ", 3);
-		printfLine("         @@@@ __   __ @@@@                                                      ", 4);
-		printfLine("        :@@@ /==   ==\\@@@                                                       ", 5);
-		printfLine("        #@@@    ___   @@@                                                       ", 6);
-		printfLine("        @@@@\\_  \\_/  @@@:                                                       ", 7);
-		printfLine("        @@@@| \\____/@@@/   \\                                                    ", 8);
-		printfLine("       /  @@|   ||\\@@/v     \\                                                   ", 9);
-		printfLine("      /\\  v@ \\_/ |/\\v        \\                                                  ", 10);
-		printfLine("     :| |  v_/|\\/ | |:        \\  line of                                         ", 11);
-		printfLine("     [| ;     |   ; |]         \\  sight                                         ", 12);
-		printfLine("      =|      |    |=           \\   |                                           ", 13);
-		printfLine("      ||      |    ||            \\  |                                           ", 14);
-		printfLine("      ||      |    ||             \\ v                                           ", 15);
-		printfLine("      || ____ | ___||              \\                                            ", 16);
-		printfLine("      {| |__| | |_|||               \\                                           ", 17);
-		printfLine("      ||\\  ___|____||___             \\                                          ", 18);
-		printfLine("      <~(=|       _____/ <---         \\                                         ", 19);
-		printfLine("       ~~~|____~~~  ~       |          \\                                        ", 20);
-		printfLine("       5[!   : :    :  master maison    \\                                       ", 21);
-		printfLine("       5[!   : :    : santoku knife 8\"   \\                                      ", 22);
-		printfLine("       5[!   : :    :  premium german                                           ", 23);
-		printfLine("       5[!   : :    :  stainless steel     ? <---- everything you hold sacred   ", 24);
+		printfLine("            .~@@@@@@~.", 0);
+		printfLine("           #@@@@@@@@@@&", 1);
+		printfLine("          $@@@@@@@@@@@@0", 2);
+		printfLine("         /@@@@@     @@@@#", 3);
+		printfLine("         @@@@ __   __ @@@@", 4);
+		printfLine("        :@@@ /==   ==\\@@@", 5);
+		printfLine("        #@@@    ___   @@@", 6);
+		printfLine("        @@@@\\_  \\_/  @@@:", 7);
+		printfLine("        @@@@| \\____/@@@/   \\", 8);
+		printfLine("       /  @@|   ||\\@@/v     \\", 9);
+		printfLine("      /\\  v@ \\_/ |/\\v        \\", 10);
+		printfLine("     :| |  v_/|\\/ | |:        \\  line of", 11);
+		printfLine("     [| ;     |   ; |]         \\  sight", 12);
+		printfLine("      =|      |    |=           \\   |", 13);
+		printfLine("      ||      |    ||            \\  |", 14);
+		printfLine("      ||      |    ||             \\ v", 15);
+		printfLine("      || ____ | ___||              \\", 16);
+		printfLine("      {| |__| | |_|||               \\", 17);
+		printfLine("      ||\\  ___|____||___             \\", 18);
+		printfLine("      <~(=|       _____/ <---         \\", 19);
+		printfLine("       ~~~|____~~~  ~       |          \\", 20);
+		printfLine("       5[!   : :    :  master maison    \\", 21);
+		printfLine("       5[!   : :    : santoku knife 8\"   \\", 22);
+		printfLine("       5[!   : :    :  premium german", 23);
+		printfLine("       5[!   : :    :  stainless steel     ? <---- everything you hold sacred", 24);
 	}
 
 

@@ -1,21 +1,21 @@
 #include <cli.h>
-#include <art.h>
-#include <filesys/ofs.h>
 #include <script.h>
-#include <drivers/speaker.h>
 
 
 using namespace os;
+using namespace os::gui;
 using namespace os::drivers;
 using namespace os::common;
 using namespace os::filesystem;
 
-//kernel.cc functions used for everything
-void putchar(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t);
-void printfTUI(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, bool);
-void printf(char*);
-void printOsaka(uint8_t);
 
+
+//kernel.cc functions used for everything
+void TUI(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, bool);
+void putcharTUI(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t);
+uint16_t setTextColor(bool set, uint16_t color = 0x07);
+void printf(char*);
+void printOsaka(uint8_t, bool);
 
 uint16_t strlen(char* args);
 uint32_t str2int(char* args);
@@ -23,23 +23,23 @@ char* int2str(uint32_t num);
 char* argparse(char*, uint8_t);
 uint8_t argcount(char*);
 
-
 void makeBeep(uint32_t freq);
 void explodeMain();
 
 uint32_t prng();
 
-void WmDisk(uint32_t, char*);
-void RmDisk(uint32_t, uint16_t);
-uint32_t FileList();
-
+void reboot();
 void sleep(uint32_t);
 
 void memWrite(uint32_t, uint32_t);
 uint32_t memRead(uint32_t);
 
+uint32_t FileList(CommandLine* cli);
 
 uint32_t numOrVar(char* args, CommandLine* cli, uint8_t argNum);
+
+void lulalu();
+
 
 
 
@@ -47,33 +47,125 @@ uint32_t numOrVar(char* args, CommandLine* cli, uint8_t argNum);
 
 uint16_t hash(char* cmd) {
 
-	uint32_t val = fnv1a(cmd);
+	uint32_t val = fnv1a(cmd) + 1;
 	return (val >> 16) ^ (val & 0xffff);
 }
 
 
-
 void say(char* args, CommandLine* cli) {
 
-	printf(args);
-	printf("\n");
+	cli->PrintCommand(args);
+	cli->PrintCommand("\n");
+}
+
+void print(char* args, CommandLine* cli) {
+
+	uint32_t charNum = numOrVar(args, cli, 0);
+	
+	if (charNum != 0) {
+	
+		char* foo = " ";
+		foo[0] = (int8_t)(charNum);
+		
+		cli->PrintCommand(foo);
+	} else {
+		cli->PrintCommand(args);
+	}
 }
 
 
+void textcolor(char* args, CommandLine* cli) {
+		
+	uint16_t newColor = (uint16_t)(str2int(args));
+	if (!newColor) { return; }
+
+	if (cli->desktop == false) {
+
+		setTextColor(true, newColor);
+	} else {
+	
+		cli->appWindow->textColor = newColor;
+	}
+}
+
+
+void muteNonErrors(char* args, CommandLine* cli) {
+
+	cli->mute ^= 1;
+}
+
+
+void rebootCMD(char* args, CommandLine* cli) {
+
+	reboot();
+}
 
 void andagi(char* args, CommandLine* cli) {
 
-	printf("sata andagi\n");
+	cli->PrintCommand("sata andagi\n");
 }
 
 
 
-void test(char* args, CommandLine* cli) {
 
-	printf(int2str(argcount(args)));
-	printf("\n");
+
+
+
+
+void newtask(char* args, CommandLine* cli) {
+
+	/*
+	Task taskA(cli->gdt, task1);
+	cli->tm->AddTask(&taskA);
+	
+	Task taskB(cli->gdt, task2);
+	cli->tm->AddTask(&taskB);
+	*/
+
+	//UNHANDLED INTERRUPT 0D WHEN TASK REACHES END OF FUNCTION
+
+	//works if put in while loop
 }
 
+
+void song(char* args, CommandLine* cli) {
+
+	if (cli->tm->numTasks == 0) {
+	
+		//Task task(cli->gdt, lulalu, "Soramimi Cake");
+		Task* task = 0;
+		task = (Task*)MemoryManager::activeMemoryManager->malloc(sizeof(Task));
+		new (task) Task(cli->gdt, lulalu, "Soramimi Cake");
+		
+		
+		cli->tm->AddTask(task);
+	} else {
+	
+		cli->tm->DeleteTask(cli->tm->currentTask);
+	}
+
+}
+
+
+
+
+void tasks(char* args, CommandLine* cli) {
+
+	if (cli->mute == false) {
+	
+		for (int i = 0; i < cli->tm->numTasks; i++) {
+		
+			cli->PrintCommand("PID: ");
+			cli->PrintCommand(int2str(i));
+			cli->PrintCommand("    ");
+			cli->PrintCommand(cli->tm->tasks[i]->taskname);
+			cli->PrintCommand("\n");
+		}
+
+	}
+
+	cli->returnVal = cli->tm->numTasks;
+}
 
 
 void delay(char* args, CommandLine* cli) {
@@ -88,12 +180,15 @@ void wmem(char* args, CommandLine* cli) {
 	uint32_t val = numOrVar(args, cli, 1);
 	
 	memWrite(mem, val);
-	
-	printf("Wrote ");
-	printf(int2str(val));	
-	printf(" to memory location ");
-	printf(int2str(mem));	
-	printf(".\n");
+
+	if (cli->mute == false) {	
+		
+		cli->PrintCommand("Wrote ");
+		cli->PrintCommand(int2str(val));	
+		cli->PrintCommand(" to memory location ");
+		cli->PrintCommand(int2str(mem));	
+		cli->PrintCommand(".\n");
+	}
 }
 
 void rmem(char* args, CommandLine* cli) {
@@ -101,13 +196,16 @@ void rmem(char* args, CommandLine* cli) {
 	uint32_t mem = numOrVar(args, cli, 0);
 	uint32_t val = memRead(mem);
 	
-	printf("Reading from ");
-	printf(int2str(mem));	
-	printf(": ");
-	printf(int2str(val));
-	printf(".\n");
-
 	cli->returnVal = val;
+	
+	if (cli->mute == false) {	
+	
+		cli->PrintCommand("Reading from ");
+		cli->PrintCommand(int2str(mem));	
+		cli->PrintCommand(": ");
+		cli->PrintCommand(int2str(val));
+		cli->PrintCommand(".\n");
+	}
 }
 
 	
@@ -119,16 +217,53 @@ void explode(char* args, CommandLine* cli) {
 }
 
 
+void offsetptr(char* args, CommandLine* cli) {
+
+	uint32_t val = str2int(args);
+	cli->offsetVal = val;
+	
+	if (cli->mute == false) {
+	
+		cli->PrintCommand("Command offset updated to ");
+		cli->PrintCommand(int2str(val));
+		cli->PrintCommand(".\n");
+	}
+}
+
+
 void wdisk(char* args, CommandLine* cli) {
 
 	uint32_t sector = numOrVar(args, cli, 0);
+	
+	if (sector < 64 && cli->mute == false) {
+	
+		cli->PrintCommand("Hopefully you're not overwriting anything important.\n");
+	}
+
 
 	//shift string
+	char* cmp = argparse(args, 0);
+	uint8_t offset = 0;
+
+	for (offset; cmp[offset] != '\0'; offset++) {} offset++;
 	for (int i = 0; args[i] != '\0'; i++) {
-		args[i] = args[i+5];
+	
+		args[i] = args[i+offset];
 	}
 	
-	WmDisk(sector, args);
+	//write data
+	//cli->ata0m->Write28(sector, (uint8_t*)args, strlen(args), cli->offsetVal);
+	cli->ata0m->Write28(sector, (uint8_t*)args, strlen(args), 0);
+	cli->ata0m->Flush();
+
+	if (cli->mute == false) {
+	
+		cli->PrintCommand("Wrote: ");
+		cli->PrintCommand(args);
+		cli->PrintCommand(" to disk sector ");
+		cli->PrintCommand(int2str(sector));
+		cli->PrintCommand(".\n");
+	}
 }
 
 
@@ -136,54 +271,97 @@ void rdisk(char* args, CommandLine* cli) {
 
 	uint32_t sector = numOrVar(args, cli, 0);
 	uint32_t size = numOrVar(args, cli, 1);
+	
+	//read data
+	uint8_t data[512];
+	cli->ata0m->Read28(sector, data, size, 0);
+	//cli->ata0m->Read28(sector, data, size, cli->offsetVal);
 
-	RmDisk(sector, size);
+	//print and empty data
+	cli->PrintCommand((char*)data);
+	cli->PrintCommand("\n");
+	
+	for (int i = 0; i < 512; i++) data[i] = 0;
 }
 
 
 void files(char* args, CommandLine* cli) {
 
-	uint32_t fileNum = FileList();
-	char* num = int2str(fileNum);
-	
-	printf("\n");
-	printf(num);
-	printf(" files have been allocated.\n");
-	
+	char name[33];
+	for (int i = 0; i < 33; i++) { name[i] = 0x00; }
+	uint32_t location = 0;
+	uint32_t fileNum = GetFileCount();
 	cli->returnVal = fileNum;
+
+	//go through each file entry and print
+	for (int i = 0; i < fileNum; i++) {
+	
+		location = GetFileName(i, name);
+		
+		if (cli->mute == false) {
+		
+			//bug with printing file names wrong (kinda fixed???)
+			cli->PrintCommand(int2str(location));
+			cli->PrintCommand("    ");
+			cli->PrintCommand(name);
+			cli->PrintCommand("\n");
+		}
+	}
+
+
+
+	//print file count	
+	char* strNum = int2str(fileNum);
+	
+	if (cli->mute == false) {
+	
+		cli->PrintCommand("\n");
+		cli->PrintCommand(strNum);
+		cli->PrintCommand(" files have been allocated.\n");
+	}
 }
 
 
 void size(char* args, CommandLine* cli) {
 		
 	uint32_t size = GetFileSize(args);
+	cli->returnVal = size;
 
-	if (size) {
 	
-		printf("'");
-		printf(args);
-		printf("' is ");
-		printf(int2str(size));
-		printf(" bytes large.\n");
-	} else {
+	if (cli->mute == false) {
 	
-		printf("How can you measure the size of something that doesn't exist?\n");
+		if (size) {
+	
+			cli->PrintCommand("'");
+			cli->PrintCommand(args);
+			cli->PrintCommand("' is ");
+			cli->PrintCommand(int2str(size));
+			cli->PrintCommand(" bytes large.\n");
+		} else {
+			cli->PrintCommand("How can you measure the size of something that doesn't exist?\n");
+		}
 	}
 
-	cli->returnVal = size;
 }
 
 
 
 void deleteFile(char* args, CommandLine* cli) {
 
-	if (DeleteFile(args)) {
+	bool deleted = DeleteFile(args);
+
+
+	if (cli->mute == false) {
 	
-		printf(args);
-		printf(" was deleted.\n");
-	} else {
-		printf(args);
-		printf(" isn't a file dumbass.\n");
+		if (deleted) {
+		
+			cli->PrintCommand("'");
+			cli->PrintCommand(args);
+			cli->PrintCommand("' was deleted.\n");
+		} else {
+			cli->PrintCommand(args);
+			cli->PrintCommand(" isn't a file dumbass.\n");
+		}
 	}
 }
 
@@ -204,9 +382,26 @@ uint32_t numOrVar(char* args, CommandLine* cli, uint8_t argNum) {
 	
 		return cli->varTable[hashVar];
 
-	} else if (name[0] == '$' && name[1] == 'R' && name[2] == '\0') {
+	} else if (name[0] == '$' && name[2] == '\0') {
 
-		return cli->returnVal;
+		//given arguments to script
+		if (name[1] <= '9' && name[1] >= '0') {
+		
+			return cli->argTable[name[1]-'0'];
+		}
+
+		//value returned from most recent command
+		if (name[1] == 'R') {
+		
+			return cli->returnVal;
+		}
+
+		return 0;
+
+	} else if (name[0] == '@' && name[2] == '\0') {
+
+		return (uint8_t)(name[1]);
+
 	} else { 
 		return str2int(name);
 	}
@@ -220,13 +415,19 @@ void varInt(char* args, CommandLine* cli) {
 
 	if ((uint8_t)(name[0] - '0') < 10) {
 	
-		printf("int error: name cannot begin with number.\n");
+		cli->PrintCommand("int error: name cannot begin with number.\n");
 		return;
 	}
 
 	if (name[0] == '$') {
 	
-		printf("int error: name cannot begin with '$'.\n");
+		cli->PrintCommand("int error: name cannot begin with '$'.\n");
+		return;
+	}
+
+	if (name[0] == '@') {
+	
+		cli->PrintCommand("int error: name cannot begin with '@'.\n");
 		return;
 	}
 
@@ -247,7 +448,7 @@ void comment(char* args, CommandLine* cli) {
 
 //conditionals
 
-bool trueOrFalse(char* op, uint32_t arg1, uint32_t arg2) {
+bool trueOrFalse(char* op, uint32_t arg1, uint32_t arg2, CommandLine* cli) {
 
 	bool result = false;	
 
@@ -281,7 +482,8 @@ bool trueOrFalse(char* op, uint32_t arg1, uint32_t arg2) {
 			break;
 
 		default:
-			printf("condition error: use correct syntx (e.g. 'if x < y')\n");
+			cli->PrintCommand("condition error: use correct syntax (e.g. 'if x < y')\n");
+			result = true;
 			break;
 	}
 	return result;
@@ -296,7 +498,7 @@ void If(char* args, CommandLine* cli) {
 	uint32_t arg2 = numOrVar(args, cli, 2);
 
 	char* op = argparse(args, 1);
-	cli->conditionIf = trueOrFalse(op, arg1, arg2);
+	cli->conditionIf = trueOrFalse(op, arg1, arg2, cli);
 }
 
 void Fi(char* args, CommandLine* cli) {
@@ -310,7 +512,7 @@ void loop(char* args, CommandLine* cli) {
 	uint32_t arg2 = numOrVar(args, cli, 2);
 
 	char* op = argparse(args, 1);
-	cli->conditionLoop = trueOrFalse(op, arg1, arg2);
+	cli->conditionLoop = trueOrFalse(op, arg1, arg2, cli);
 }
 
 void pool(char* args, CommandLine* cli) {
@@ -327,7 +529,7 @@ void pool(char* args, CommandLine* cli) {
 
 // math functions for cli
 
-uint32_t math(char* args, CommandLine* cli, uint8_t op) {
+uint32_t mathCMD(char* args, CommandLine* cli, uint8_t op) {
 
 	uint32_t result = 0;
 	uint32_t num = 0;
@@ -377,9 +579,13 @@ uint32_t math(char* args, CommandLine* cli, uint8_t op) {
 }
 
 
+
+
+//this is pretty ugly but every command must be its own function
+
 void add(char* args, CommandLine* cli) {
 
-	uint32_t sum = math(args, cli, 0);
+	uint32_t sum = mathCMD(args, cli, 0);
 
 	uint16_t hashVar = hash(argparse(args, 0)) % 1024;
 	cli->varTable[hashVar] += sum;
@@ -389,7 +595,7 @@ void add(char* args, CommandLine* cli) {
 
 void sub(char* args, CommandLine* cli) {
 
-	uint32_t dif = math(args, cli, 1);
+	uint32_t dif = mathCMD(args, cli, 1);
 
 	uint16_t hashVar = hash(argparse(args, 0)) % 1024;
 	cli->varTable[hashVar] -= dif;
@@ -399,7 +605,7 @@ void sub(char* args, CommandLine* cli) {
 
 void mul(char* args, CommandLine* cli) {
 
-	uint32_t pro = math(args, cli, 2);
+	uint32_t pro = mathCMD(args, cli, 2);
 
 	uint16_t hashVar = hash(argparse(args, 0)) % 1024;
 	cli->varTable[hashVar] *= pro;
@@ -409,27 +615,37 @@ void mul(char* args, CommandLine* cli) {
 
 void div(char* args, CommandLine* cli) {
 
-	uint32_t quo = math(args, cli, 3);
+	uint32_t quo = mathCMD(args, cli, 3);
 
 	uint16_t hashVar = hash(argparse(args, 0)) % 1024;
-	cli->varTable[hashVar] /= quo;
-	cli->returnVal = quo;
+	
+	if (quo) {
+		cli->varTable[hashVar] /= quo;
+		cli->returnVal = quo;
+	} else {
+		cli->returnVal = 0;
+	}
 }
 
 
 void mod(char* args, CommandLine* cli) {
 
-	uint32_t quo = math(args, cli, 4);
+	uint32_t quo = mathCMD(args, cli, 4);
 
 	uint16_t hashVar = hash(argparse(args, 0)) % 1024;
-	cli->varTable[hashVar] %= quo;
-	cli->returnVal = quo;
+	
+	if (quo) {
+		cli->varTable[hashVar] %= quo;
+		cli->returnVal = quo;
+	} else {
+		cli->returnVal = 0;
+	}
 }
 
 
 void bit_and(char* args, CommandLine* cli) {
 
-	uint32_t bit = math(args, cli, 5);
+	uint32_t bit = mathCMD(args, cli, 5);
 
 	uint16_t hashVar = hash(argparse(args, 0)) % 1024;
 	cli->varTable[hashVar] &= bit;
@@ -439,7 +655,7 @@ void bit_and(char* args, CommandLine* cli) {
 
 void bit_or(char* args, CommandLine* cli) {
 
-	uint32_t bit = math(args, cli, 6);
+	uint32_t bit = mathCMD(args, cli, 6);
 
 	uint16_t hashVar = hash(argparse(args, 0)) % 1024;
 	cli->varTable[hashVar] |= bit;
@@ -449,7 +665,7 @@ void bit_or(char* args, CommandLine* cli) {
 
 void bit_xor(char* args, CommandLine* cli) {
 
-	uint32_t bit = math(args, cli, 7);
+	uint32_t bit = mathCMD(args, cli, 7);
 
 	uint16_t hashVar = hash(argparse(args, 0)) % 1024;
 	cli->varTable[hashVar] ^= bit;
@@ -469,7 +685,7 @@ void tuichar(char* args, CommandLine* cli) {
 	uint8_t x = numOrVar(args, cli, 3);
 	uint8_t y = numOrVar(args, cli, 4);
 
-	putchar(charVal, fore, back, x, y);
+	putcharTUI(charVal, fore, back, x, y);
 }
 
 
@@ -486,35 +702,78 @@ void tui(char* args, CommandLine* cli) {
 	
 	bool shadow = (bool)numOrVar(args, cli, 6);
 
-	printfTUI(fore, back, x1, y1, x2, y2, shadow);
+	TUI(fore, back, x1, y1, x2, y2, shadow);
 }
+
+
+//gui
+void putpixel(char* args, CommandLine* cli) {
+	
+	uint8_t x = numOrVar(args, cli, 0);
+	uint8_t y = numOrVar(args, cli, 1);
+	uint8_t color = numOrVar(args, cli, 2);
+
+	//cli->appWindow->DrawPixel(x, y, color);
+}
+
 
 
 //execute script
 
 void ex(char* args, CommandLine* cli) {
 
-	if (FileIf(fnv1a(args))) {
-	
+	char* file = argparse(args, 0);
+	uint32_t fileSector = fnv1a(file);
+
+	if (FileIf(fileSector)) {
+
+		//parse script arguments
+		for (int i = 0; i < 10; i++) {
+		
+			cli->argTable[i] = str2int(argparse(args, i+1));
+		}
+
 		AyumuScriptCli(args, cli);
-	} else {
-		printf("Script file wasn't found.\n");
+		//AyumuScriptCli(file, cli);
+
+		//clear script arguments
+		for (int i = 0; i < 10; i++) { cli->argTable[i] = 0; }
+		
+		return;
+	}
+		
+	if (cli->mute == false) {
+	
+		cli->PrintCommand("Script file wasn't found.\n");
 	}
 }
 
 
 void exi(char* args, CommandLine* cli) {
 
+	char* file = argparse(args, 0);
 
-	if (FileIf(fnv1a(args))) {
+	if (FileIf(fnv1a(file))) {
 	
 		cli->scriptFile = args;
 		cli->cliMode = 1;
-	} else {
-		cli->cliMode = 0;
-		printf("Script file wasn't found.\n");
+		return;
+	}
+	cli->cliMode = 0;
+	
+
+	if (cli->mute == false) {
+		
+		cli->PrintCommand("Script file wasn't found.\n");
 	}
 }
+
+/*
+void alias(char* args, CommandLine* cli) {
+
+	cli->hash_add(args);
+}
+*/
 
 //********************************************************END*****************************************************************
 
@@ -528,7 +787,7 @@ void exi(char* args, CommandLine* cli) {
 
 void version(char* args, CommandLine* cli) {
 
-	printf("osakaOS v1.0\n");
+	cli->PrintCommand("osakaOS v1.1\n");
 }
 
 
@@ -540,25 +799,24 @@ void help(char* args, CommandLine* cli) {
 	char* ch = " \n";
 	ch[0] = 2;
 
-	printf("\nWelcome to osakaOS!\n");
-	printf("This is the command line interface.\n");
-	printf("Please take it easy ");
-	printf(ch);
+	cli->PrintCommand("\nWelcome to osakaOS!\n");
+	cli->PrintCommand("This is the command line interface.\n");
+	cli->PrintCommand("Please take it easy ");
+	cli->PrintCommand(ch);
 
-	printf("If you feel lost, try the following commands: \n\n");
-
-	printf("    'say (string)', 'osaka (int)', 'beep (int)',\n");
-	printf("    'files', 'delete (file)', 'ex (file)',\n");
-	printf("    'int (string) (int)', '+ (string) (int)',\n");
-	printf("    'rdisk (int) (int)', 'wdisk (int) (string)'\n");
-	printf("    'rmem (int)', 'wmem (int) (int)'\n\n");
+	cli->PrintCommand("If you feel lost, try the following commands: \n\n");
+	cli->PrintCommand("    'say (string)', 'osaka (int)', 'beep (int)',\n");
+	cli->PrintCommand("    'files', 'delete (file)', 'ex (file)',\n");
+	cli->PrintCommand("    'int (string) (int)', '+ (string) (int)',\n");
+	cli->PrintCommand("    'rdisk (int) (int)', 'wdisk (int) (string)'\n");
+	cli->PrintCommand("    'rmem (int)', 'wmem (int) (int)'\n\n");
 	
-	printf("Or use these keyboard shortcuts: \n\n");
+	cli->PrintCommand("Or use these keyboard shortcuts: \n\n");
 	
-	printf("    ctrl+e - file edit mode (ctrl-w to write file)\n");
-	printf("    ctrl+p - piano mode (press keys to play notes)\n");
-	printf("    ctrl+s - snake mode (wasd to play snake game)\n");
-	printf("    ctrl+c - exit mode (return back to cli)\n");
+	cli->PrintCommand("    ctrl+e - file edit mode (ctrl-w to write file)\n");
+	cli->PrintCommand("    ctrl+p - piano mode (press keys to play notes)\n");
+	cli->PrintCommand("    ctrl+s - snake mode (wasd to play snake game)\n");
+	cli->PrintCommand("    ctrl+c - exit mode (return back to cli)\n");
 }
 
 
@@ -569,7 +827,7 @@ void beep(char* args, CommandLine* cli) {
 	
 	if (freq < 1) {
 	
-		printf("No valid frequency was passed.\n");
+		cli->PrintCommand("No valid frequency was passed.\n");
 		return;
 	}
 
@@ -605,8 +863,8 @@ void rng(char* args, CommandLine* cli) {
 			break;
 	}	
 	
-	printf(int2str(prngNum));
-	printf("\n");
+	cli->PrintCommand(int2str(prngNum));
+	cli->PrintCommand("\n");
 	
 	cli->returnVal = prngNum;
 }
@@ -616,24 +874,27 @@ void PANIC(char* args, CommandLine* cli) {
 
 	Speaker speaker;
 
-	while (1) {
-	
-		for (int i = 0; i < 4; i++) {
+	if (cli->desktop == false) {
 		
-			printf("___   ___   _______   ___     _____         ___     ___   _______    _    \n");
-			printf("| |   | |   | ____|   | |     |    \\        |  \\   /  |   | ____|   | |   \n");
-			printf("| |___| |   | |____   | |     | ___/        |   \\ /   |   | |____   | |   \n");
-			printf("| _____ |   | ____|   | |     | |           | |  v  | |   | ____|   |_|   \n");
-			printf("| |   | |   | |____   | |___  | |           | |\\   /| |   | |____    _    \n");
-			printf("|_|   |_|   |_____|   |____|  |_|           |_| \\ / |_|   |_____|   |_|   \n");
+		while (1) {
+			for (int i = 0; i < 4; i++) {
+		
+				cli->PrintCommand("___   ___   _______   ___     _____         ___     ___   _______    _    \n");
+				cli->PrintCommand("| |   | |   | ____|   | |     |    \\        |  \\   /  |   | ____|   | |   \n");
+				cli->PrintCommand("| |___| |   | |____   | |     | ___/        |   \\ /   |   | |____   | |   \n");
+				cli->PrintCommand("| _____ |   | ____|   | |     | |           | |  v  | |   | ____|   |_|   \n");
+				cli->PrintCommand("| |   | |   | |____   | |___  | |           | |\\   /| |   | |____    _    \n");
+				cli->PrintCommand("|_|   |_|   |_____|   |____|  |_|           |_| \\ / |_|   |_____|   |_|   \n");
+			}
+			speaker.PlaySound(1100);
+			sleep(700);
+		
+			cli->PrintCommand("\v");
+			speaker.NoSound();
+			sleep(700);
 		}
-		speaker.PlaySound(1100);
-		sleep(700);
-		
-
-		printf("\v");
-		speaker.NoSound();
-		sleep(700);
+	} else {
+		cli->appWindow->Print("This command is only available in text mode.\n");
 	}
 }	
 
@@ -641,10 +902,22 @@ void PANIC(char* args, CommandLine* cli) {
 void sata(char* args, CommandLine* cli) {
 
 	uint32_t loop = numOrVar(args, cli, 0);
-	str2int(args);
-	uint8_t length = strlen(args);
 	
+	
+	//shift string
+	char* cmp = argparse(args, 0);
+	uint8_t offset = 0;
 
+	for (offset; cmp[offset] != '\0'; offset++) {} offset++;
+	for (int i = 0; args[i] != '\0'; i++) {
+	
+		args[i] = args[i+offset];
+	}
+	
+	uint8_t length = strlen(args);
+
+	
+	//execute commands
 	for (uint32_t i = 0; i < loop; i++) {
 	
 		cli->command(args, length);
@@ -660,35 +933,55 @@ void sata(char* args, CommandLine* cli) {
 
 void clear(char* args, CommandLine* cli) {
 	
-	printf("\v");
+	cli->PrintCommand("\v");
 }
 
 
 void osaka(char* args, CommandLine* cli) {
 
-	uint32_t value = numOrVar(args, cli, 0);
-	printOsaka(value);
+	if (cli->desktop == false) {
+
+		uint32_t value = numOrVar(args, cli, 0);
+		printOsaka(value, 0);
+	} else {
+		cli->appWindow->Print("This command is only available in text mode.\n");
+	}
 }
 
 
 void dad(char* args, CommandLine* cli) {
 
-	Funny cat;
+	if (cli->desktop == false) {
 
-	printf("\v");
-	cat.cat();
+		Funny cat;
+
+		printf("\v");
+		cat.cat();
 	
-	sleep(3000);
+		sleep(3000);
 	
-	printf("\v");
-	cat.god();
+		printf("\v");
+		cat.god();
+	} else {
+		cli->appWindow->Print("This command is only available in text mode.\n");
+	}
 }
 
 
 
 
 
+CommandLine::CommandLine(GlobalDescriptorTable* gdt, 
+			TaskManager* tm, 
+			AdvancedTechnologyAttachment* ata0m) {
 
+	this->gdt = gdt;
+	this->tm = tm;
+	this->ata0m = ata0m;
+}
+
+CommandLine::~CommandLine() {
+}
 
 
 //not working yet
@@ -737,13 +1030,6 @@ void CommandLine::script(bool pressed, char key, bool ctrl) {
 
 
 
-void CommandLine::getTM(GlobalDescriptorTable* gdt, TaskManager* tm) {
-
-	this->cli_gdt = gdt;
-	this->cli_tm = tm;
-}
-
-
 
 void CommandLine::hash_add(char* cmd, void func(char*, CommandLine* cli)) {
 
@@ -772,30 +1058,38 @@ void CommandLine::hash_cli_init() {
 		if (i < 1024) {
 		
 			this->varTable[i] = 0xffffffff;
+		
+			if (i < 10) {
+			
+				this->argTable[i] = 0;
+			}
 		}
 	}
-
 
 	this->varTable[hash("$")] = 0x00;	
 	this->varTable[hash("$CTRL")] = 0x00;	
 	this->varTable[hash("$PRESS")] = 0x00;	
 
-
 	this->conditionIf = true;
 	this->conditionLoop = true;
-
 
 	//compute and add functions 
 	//to hash table on boot
 	this->hash_add("say", say);
+	this->hash_add("print", print);
+	this->hash_add("textcolor", textcolor);
 	this->hash_add("help", help);
 	this->hash_add("clear", clear);
+	this->hash_add("tasks", tasks);
+	this->hash_add("reboot", rebootCMD);
+	this->hash_add("mute", muteNonErrors);
 	this->hash_add("delay", delay);
 	this->hash_add("random", random);
 	this->hash_add("rng", rng);
 	this->hash_add("osaka", osaka);
 	this->hash_add("dad", dad);
 	this->hash_add("beep", beep);
+	this->hash_add("song", song);
 	this->hash_add("PANIC", PANIC);
 	this->hash_add("explode", explode);
 	this->hash_add("wmem", wmem);
@@ -805,13 +1099,12 @@ void CommandLine::hash_cli_init() {
 	this->hash_add("files", files);
 	this->hash_add("size", size);
 	this->hash_add("delete", deleteFile);
-	this->hash_add("test", test);
 	this->hash_add("andagi", andagi);
 	this->hash_add("version", version);
-		
+	this->hash_add("newtask", newtask);
 
 
-	//special commands
+	//special commands for scripting
 	this->hash_add("ex", ex);
 	this->hash_add("exi", exi);
 	
@@ -833,15 +1126,46 @@ void CommandLine::hash_cli_init() {
 	this->hash_add("&", bit_and);
 	this->hash_add("|", bit_or);
 	this->hash_add("^", bit_xor);
+
+	this->hash_add("offset", offsetptr);
 	
 	this->hash_add("tuichar", tuichar);
 	this->hash_add("tui", tui);
 	
 	this->hash_add("sata", sata);
-	//this->hash_add("task", task);
+
+
+	//init script on boot
+	if (FileIf(fnv1a("wakeup"))) {
 	
+		this->command("ex wakeup", strlen("ex wakeup"));
+	}
 }
 
+
+//cli for desktop
+void CommandLine::PrintCommand(char* str) {
+
+	if (desktop) {
+		this->appWindow->Print(str);
+	} else {
+		printf(str);
+	}
+}
+
+
+void CommandLine::OnKeyDown(char ch, Widget* widget) {
+}
+
+void CommandLine::OnKeyUp(char ch, Widget* widget) {
+}
+
+void CommandLine::OnMouseDown(int32_t x, int32_t y, uint8_t button, Widget* widget) {
+}
+
+
+void CommandLine::ComputeAppState(GraphicsContext* gc, Widget* widget) {
+}
 
 
 char* CommandLine::command(char* cmd, uint8_t length) {
@@ -870,15 +1194,10 @@ char* CommandLine::command(char* cmd, uint8_t length) {
 			arguments[i - (cmdLength + 1)] = cmd[i];
 		}
 	}
-	
-
-
 	command[cmdLength] = '\0';
 	arguments[argLength-1] = '\0';
 
-
 	uint16_t result = hash(command);
-
 	
 	if (this->conditionIf == false && result != hash("fi")) {	
 		return "i dont care anymore its 4am lol";
@@ -888,39 +1207,35 @@ char* CommandLine::command(char* cmd, uint8_t length) {
 		return "i dont care anymore its 4am lol";
 	}
 
-
-
 	if (this->cmdTable[result] != nullptr)  {	
 
 		(*cmdTable[result])(arguments, this); //execute function from array
 		arguments[0] = '\0';
 	
 	} else {			
-
 		//variable
 		if (this->varTable[result % 1024] != 0xffffffff) {
 			
-			printf(int2str(this->varTable[result % 1024]));
-			printf("\n");
-		
+			if (mute == false) {
+			
+				PrintCommand(int2str(this->varTable[result % 1024]));
+				PrintCommand("\n");
+			}
 		//unknown command		
 		} else {
-
 			if (length < 0xff) {
 
-				printf("'");
-				printf(command);
-				printf("' is an unknown command or variable.\n");		
+				PrintCommand("'");
+				PrintCommand(command);
+				PrintCommand("' is an unknown command or variable.\n");		
 				makeBeep(60);
 
 			} else {
-	
-				printf("No command needs to be this long.\n");		
+				PrintCommand("No command needs to be this long.\n");		
 				makeBeep(1);
 			}
 		}
 	}
-
 	return cmd;
 }
 
