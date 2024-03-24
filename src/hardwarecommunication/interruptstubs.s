@@ -11,8 +11,8 @@
 
 
 .macro HandleException num
-.global _ZN2os21hardwarecommunication16InterruptManager16HandleException\num\()Ev
-_ZN2os21hardwarecommunication16InterruptManager16HandleException\num\()Ev:
+.global _ZN2os21hardwarecommunication16InterruptManager19HandleException\num\()Ev
+_ZN2os21hardwarecommunication16InterruptManager19HandleException\num\()Ev:
 	movb $\num, (interruptnumber)
 	jmp int_bottom
 .endm
@@ -50,6 +50,7 @@ HandleException 0x12
 HandleException 0x13
 
 
+
 HandleInterruptRequest 0x00
 HandleInterruptRequest 0x01
 HandleInterruptRequest 0x02
@@ -66,8 +67,6 @@ HandleInterruptRequest 0x0C
 HandleInterruptRequest 0x0D
 HandleInterruptRequest 0x0E
 HandleInterruptRequest 0x0F
-
-
 HandleInterruptRequest 0x31
 
 HandleInterruptRequest 0x80
@@ -117,6 +116,7 @@ int_bottom:
 
 	add $4, %esp
 
+.global _ZN2os21hardwarecommunication16InterruptManager15InterruptIgnoreEv
 _ZN2os21hardwarecommunication16InterruptManager22IgnoreInterruptRequestEv:
 
 	iret

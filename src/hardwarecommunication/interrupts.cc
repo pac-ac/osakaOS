@@ -93,7 +93,7 @@ InterruptManager::InterruptManager(uint16_t hardwareInterruptOffset, GlobalDescr
 	SetInterruptDescriptorTableEntry(0, CodeSegment, &IgnoreInterruptRequest, 0, IDT_INTERRUPT_GATE);
 	handlers[0] = 0;
 
-	/*
+	
 	SetInterruptDescriptorTableEntry(0x00, CodeSegment, &HandleException0x00, 0, IDT_INTERRUPT_GATE);
 	SetInterruptDescriptorTableEntry(0x01, CodeSegment, &HandleException0x01, 0, IDT_INTERRUPT_GATE);
 	SetInterruptDescriptorTableEntry(0x02, CodeSegment, &HandleException0x02, 0, IDT_INTERRUPT_GATE);
@@ -114,7 +114,8 @@ InterruptManager::InterruptManager(uint16_t hardwareInterruptOffset, GlobalDescr
 	SetInterruptDescriptorTableEntry(0x11, CodeSegment, &HandleException0x11, 0, IDT_INTERRUPT_GATE);
 	SetInterruptDescriptorTableEntry(0x12, CodeSegment, &HandleException0x12, 0, IDT_INTERRUPT_GATE);
 	SetInterruptDescriptorTableEntry(0x13, CodeSegment, &HandleException0x13, 0, IDT_INTERRUPT_GATE);
-	*/
+
+
 
 	SetInterruptDescriptorTableEntry(hardwareInterruptOffset+0x00, CodeSegment, &HandleInterruptRequest0x00, 0, IDT_INTERRUPT_GATE);
 	SetInterruptDescriptorTableEntry(hardwareInterruptOffset+0x01, CodeSegment, &HandleInterruptRequest0x01, 0, IDT_INTERRUPT_GATE);
@@ -213,17 +214,19 @@ uint32_t InterruptManager::handleInterrupt(uint8_t interruptNumber, uint32_t esp
 
 uint32_t InterruptManager::DoHandleInterrupt(uint8_t interruptNumber, uint32_t esp) {
 	
-	
+
+
+	/*	
 	//'forget' feature
 	this->interruptCount++;
 
-	if (this->interruptCount == 0 && (prng() % 15) == 0) {
-	//if (this->interruptCount == 0) {
+	if (this->interruptCount == 0 && (prng() % 196) == 0) {
 	
 		printf("\nuhhhhh.........\n");
 		sleep(5000);
 		forget();
 	}
+	*/
 
 
 
@@ -234,14 +237,16 @@ uint32_t InterruptManager::DoHandleInterrupt(uint8_t interruptNumber, uint32_t e
 							         //??????? qemu pata driver problems
 	} else if (interruptNumber != hardwareInterruptOffset && interruptNumber != 0x2e) {
 	//} else if (interruptNumber != hardwareInterruptOffset) {
+	
 		
 		printf("UNHANDLED INTERRUPT ");
 		printfHex(interruptNumber);
 		printf(" probably not important lol\n");
-	}
+	}	
 
 
 	if (interruptNumber == hardwareInterruptOffset) {
+		
 		esp = (uint32_t)taskManager->Schedule((CPUState*)esp);
 	}
 
@@ -255,6 +260,7 @@ uint32_t InterruptManager::DoHandleInterrupt(uint8_t interruptNumber, uint32_t e
 			picSlaveCommand.Write(0x20);
 		}
 	}
+	
 	return esp;
 }
 
