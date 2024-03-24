@@ -1,8 +1,9 @@
 #ifndef __OS__MULTITASKING_H
 #define __OS__MULTITASKING_H
 
-#include <common/types.h>
 #include <gdt.h>
+#include <memorymanagement.h>
+#include <common/types.h>
 
 
 namespace os {
@@ -41,12 +42,16 @@ namespace os {
 	class Task {
 
 		friend class TaskManager;
+		
 		//private:
 		public:
 			common::uint8_t stack[4096]; // 4 KB
 			CPUState* cpustate;
+		
+			char* taskname;
 		public:
-			Task(GlobalDescriptorTable *gdt, void entrypoint());
+			//Task(GlobalDescriptorTable *gdt, void (*entrypoint)(TaskManager*));
+			Task(GlobalDescriptorTable *gdt, void entrypoint(), char* name);
 			~Task();
 
 	};
@@ -55,17 +60,21 @@ namespace os {
 		
 		//private:
 		public:
+			GlobalDescriptorTable* gdt;
+
 			Task* tasks[256];
 			int numTasks;
 			int currentTask;
 
 		public:
-			TaskManager();
+			TaskManager(GlobalDescriptorTable* gdt);
 			~TaskManager();
 
 			bool AddTask(Task* task);
-			void ReplaceTask(Task* task, common::uint8_t index);
-			
+			bool DeleteTask(common::uint32_t taskNum);
+
+			void EndTask();
+
 			CPUState* Schedule(CPUState* cpustate);
 	};
 }
