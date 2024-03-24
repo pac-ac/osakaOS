@@ -1,6 +1,9 @@
 # osakaOS v1.1
 ![](cube.gif)
-![](desktop.jpg)
+
+<br>
+
+![](desktop.jpg=600x) 
 
 <h2>Improved and Polished From 1.0.</h2>
 
