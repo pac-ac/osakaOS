@@ -45,7 +45,7 @@ namespace os {
 
 
 				InterruptHandler* handlers[256];	
-				TaskManager *taskManager;
+				TaskManager* taskManager;
 
 				struct GateDescriptor {
 		
@@ -130,10 +130,13 @@ namespace os {
 
 
 				static os::common::uint32_t handleInterrupt(os::common::uint8_t interruptNumber, os::common::uint32_t esp);
-			
-				os::common::uint16_t interruptCount;
-				//os::common::uint8_t countCheck;
+	
 				os::common::uint32_t DoHandleInterrupt(os::common::uint8_t interruptNumber, os::common::uint32_t esp);
+
+
+				os::common::uint16_t interruptCount;
+				bool boot = false;
+
 
 				Port8BitSlow picMasterCommand;
 				Port8BitSlow picMasterData;
