@@ -8,9 +8,9 @@ using namespace os::drivers;
 using namespace os::filesystem;
 
 void printf(char*);
-void putchar(unsigned char, unsigned char, unsigned char, uint8_t, uint8_t);
-void printfTUI(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, bool);
-void printfColor(char*, uint8_t, uint8_t, uint8_t, uint8_t);
+void putcharTUI(unsigned char, unsigned char, unsigned char, uint8_t, uint8_t);
+void TUI(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, bool);
+void printfTUI(char*, uint8_t, uint8_t, uint8_t, uint8_t);
 
 char* int2str(uint32_t);
 void sleep(uint32_t);
@@ -19,21 +19,22 @@ void sleep(uint32_t);
 
 void fileTUI() {
  
-	printfTUI(0x07, 0x01, 10, 5, 70, 19, true);
-	printfColor("osakaOS File Editor :)", 0x00, 0x07, 29, 7);
-	printfColor("Search file name up to 32 characters.", 0x00, 0x07, 22, 8);
-        printfColor("Enter file name: ", 0x00, 0x07, 12, 11);
-	printfColor("0123456789abcdef0123456789abcdef", 0x00, 0x00, 29, 11);
+	TUI(0x07, 0x01, 10, 5, 70, 19, true);
+	printfTUI("osakaOS File Editor :)", 0x00, 0x07, 29, 7);
+	printfTUI("Search file name up to 32 characters.", 0x00, 0x07, 22, 8);
+        printfTUI("Enter file name: ", 0x00, 0x07, 12, 11);
+	printfTUI("0123456789abcdef0123456789abcdef", 0x00, 0x00, 29, 11);
 }
 
 
 
 void file(bool pressed, char key, bool ctrl, bool reset) {
 
-
 	AdvancedTechnologyAttachment ata0m(0x1F0, true);
 	static char fileName[32];
 	static bool search = true;
+	
+	static bool start = false;
 
 
 	//search things		
@@ -51,9 +52,12 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 	static uint32_t fileSize = 1920;
 	static uint8_t lba = 0;
 
+	static uint8_t copyLine[80];
+
 
 	if (reset) {
 	
+		start = false;
 		search = true;
 		index = 0;
 		clusterNum = 0;
@@ -77,10 +81,14 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 		lba = 0;
 	}
 
-
-
 	
 	if (pressed) {
+
+		if (!start) {
+		
+			start = true;
+			return;
+		}
 
 		//FILE SEARCH
 		if (search) {
@@ -101,8 +109,8 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 			
 					if (index == 0) {
 				
-						printfColor("0123456789abcdef0123456789abcdef", 0x07, 0x07, 12, 14);
-						printfColor("Must enter valid file name.", 0x00, 0x07, 12, 14);
+						printfTUI("0123456789abcdef0123456789abcdef", 0x07, 0x07, 12, 14);
+						printfTUI("Must enter valid file name.", 0x00, 0x07, 12, 14);
 						return;
 					} else {
 						//allocating new file 
@@ -119,10 +127,10 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 						}	
 						searchStr[0] = '\0';	
 						search = false;	
-						printfTUI(0x0f, 0x01, 0, 23, 79, 24, false);
-						printfColor(fileName, 0x0f, 0x01, 0, 24);	
-						printfColor("LBA:", 0x0f, 0x01, 72, 24);	
-						printfColor(int2str(lba), 0x0f, 0x01, 76, 24);	
+						TUI(0x0f, 0x01, 0, 23, 79, 24, false);
+						printfTUI(fileName, 0x0f, 0x01, 0, 24);	
+						printfTUI("LBA:", 0x0f, 0x01, 72, 24);	
+						printfTUI(int2str(lba), 0x0f, 0x01, 76, 24);	
 
 
 						//read file if it already exists
@@ -132,7 +140,7 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 						for (int y = 0; y < 24; y++) {
 							for (int x = 0; x < 80; x++) {
 							
-								putchar(file[80*y+x], 0x0f, 0x00, x, y);
+								putcharTUI(file[80*y+x], 0x0f, 0x00, x, y);
 							}
 						}
 						return;
@@ -152,17 +160,18 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 
 			char* displayStr = searchStr;
 			displayStr[index] = '_';
-			printfColor(displayStr, 0xff, 0x00, 29, 11);
-		
-		
+			printfTUI(displayStr, 0xff, 0x00, 29, 11);
+	
 		//FILE EDITOR	
 		} else {
-	
 			volatile uint16_t* vidmem = (volatile uint16_t*)0xb8000 + (80*y+x);
-
 
 			//ctrl-key shortcuts
 			if (ctrl) {	
+				
+				//remove previous message		
+				printfTUI("0123456789abcdef0123456789abcdef", 0x01, 0x01, 33, 24);
+				
 				switch (key) {
 				
 					//save file to disk
@@ -170,22 +179,50 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 						if (FileIf(fnv1a(fileName))) {
 
 							WriteLBA(fileName, file, lba);
-							printfColor("File has been saved.", 0x0f, 0x01, 33, 24);
+							printfTUI("File has been saved.", 0x0f, 0x01, 33, 24);
 						} else {
 				
 							NewFile(fileName, file, (lba + 1) * 1920);
-							printfColor("File was created.", 0x0f, 0x01, 33, 24);
+							printfTUI("File was created.", 0x0f, 0x01, 33, 24);
 						}
 						return;	
 						break;
 					
 					//next lba
 					case '\xff':
-						lba += (1 * (lba < 255));	
+						lba += (1 * (lba < 127));	
 						break;
 					//previous lba
 					case '\xfc':
 						lba -= (1 * (lba > 0));
+						break;
+					//copy line
+					case 'Y':
+						for (uint8_t i = 0; i < 80; i++) {
+						
+							copyLine[i] = file[80*y+i];
+						}
+						printfTUI("Copied line to clipboard.", 0x0f, 0x01, 33, 24);
+						break;
+					//paste line
+					case 'P':
+						for (uint8_t i = 0; i < 80; i++) {
+						
+							file[80*y+i] = copyLine[i];
+							putcharTUI(file[80*y+i], 0x0f, 0x00, i, y);
+						}
+						printfTUI("Pasted line from clipboard.", 0x0f, 0x01, 33, 24);
+						y += (1 * (y < 23));
+						break;
+					//delete line
+					case 'D':
+						for (uint8_t i = 0; i < 80; i++) {
+						
+							file[80*y+i] = 0x00;
+							putcharTUI(0x00, 0x0f, 0x00, i, y);
+						}
+						printfTUI("Deleted line.", 0x0f, 0x01, 33, 24);
+						y += (1 * (y < 23));
 						break;
 					default:
 						break;
@@ -194,27 +231,20 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 				if (key == '\xff' || key == '\xfc') {
 				
 					ReadLBA(fileName, file, lba);
+					
 					for (int y = 0; y < 24; y++) {
 						for (int x = 0; x < 80; x++) {	
-							putchar(file[80*y+x], 0x0f, 0x00, x, y);
+							putcharTUI(file[80*y+x], 0x0f, 0x00, x, y);
 						}
 					}
-					printfColor("   ", 0x01, 0x01, 76, 24);
-					printfColor(int2str(lba), 0x0f, 0x01, 76, 24);
+					printfTUI("   ", 0x01, 0x01, 76, 24);
+					printfTUI(int2str(lba), 0x0f, 0x01, 76, 24);
 				}	
-				
 				return;
 			}
-
-
-
-
-			
 			//unhighlight old char	
 			vidmem = (volatile uint16_t*)0xb8000 + (80*y+x);
 			*vidmem = ((*vidmem & 0x0f) | (*vidmem & 0xf0)) | 0xf00;
-
-
 
 			//typing
 			switch (key) {
@@ -236,14 +266,12 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 					x += (1 * (x < 80));
 					break;
 				case '\b':
-					
 					file[(80*y+x) - 1] = 0x00;
 					
 					x -= (1 * (x > 0));
 
 					vidmem = (volatile uint16_t*)0xb8000 + (80*y+x);
 					*vidmem = 0x00;
-
 					break;
 				case '\n':
 					if (y < 24) { y++; x = 0; }
@@ -280,10 +308,9 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 					break;
 				default:
 					
-					putchar(key, 0xff, 0x00, x, y);
+					putcharTUI(key, 0xff, 0x00, x, y);
 					file[80*y+x] = key;
 					x++;
-
 
 					if (x >= 80) {
 					
@@ -294,8 +321,6 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 							//do later
 						}
 					}
-					//remove previous message
-					printfColor("0123456789abcdef0123456789abcdef", 0x01, 0x01, 33, 24);
 					break;
 			}
 			//highlight new char
@@ -304,7 +329,6 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 		}
 	}
 }
-
 
 
 void fileMain(bool pressed, char key, bool ctrl) {

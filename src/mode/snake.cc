@@ -5,9 +5,9 @@ using namespace os::common;
 using namespace os::drivers;
 
 
-void printfTUI(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, bool);
-void printfColor(char*, uint8_t, uint8_t, uint8_t, uint8_t);
-void putchar(unsigned char, unsigned char, 
+void TUI(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, bool);
+void printfTUI(char*, uint8_t, uint8_t, uint8_t, uint8_t);
+void putcharTUI(unsigned char, unsigned char, 
 		unsigned char, uint8_t, uint8_t);
 
 void sleep(uint32_t);
@@ -22,13 +22,13 @@ void makeBeep(uint32_t);
 
 void snakeTUI() {
 
-	printfTUI(0x00, 0x00, 0, 0, 0, 0, false);
-	printfColor("(Snake mode, press ctrl+c to exit.)", 0x0f, 0x00, 0, 0);
-	printfColor("SCORE = ", 0x0f, 0x00, 40, 0);
+	TUI(0x00, 0x00, 0, 0, 0, 0, false);
+	printfTUI("(Snake mode, press ctrl+c to exit.)", 0x0f, 0x00, 0, 0);
+	printfTUI("SCORE = ", 0x0f, 0x00, 40, 0);
 
 	for (int i = 0; i < 80; i++) {
 	
-		putchar(0xcd, 0x0f, 0x00, i, 1);
+		putcharTUI(0xcd, 0x0f, 0x00, i, 1);
 	}
 }
 
@@ -37,13 +37,13 @@ void snakeTUI() {
 void snakeInit() {
 
 	//tail
-	putchar(0xff, 0x06, 0x06, 40, 9);
+	putcharTUI(0xff, 0x06, 0x06, 40, 9);
 	
-	putchar(0xff, 0x0a, 0x0a, 40, 10);
-	putchar(0xff, 0x0a, 0x0a, 40, 11);
+	putcharTUI(0xff, 0x0a, 0x0a, 40, 10);
+	putcharTUI(0xff, 0x0a, 0x0a, 40, 11);
 	
 	//head
-	putchar(0xff, 0x02, 0x02, 40, 12);
+	putcharTUI(0xff, 0x02, 0x02, 40, 12);
 }
 
 
@@ -85,7 +85,7 @@ void snake(char key) {
 	if (score <= tail) {
 
 		//remove snake body from previous tail
-		putchar(0xff, 0x00, 0x00, tailX, tailY);
+		putcharTUI(0xff, 0x00, 0x00, tailX, tailY);
 	
 
 							   //some light green char in vidmem i guess
@@ -138,7 +138,7 @@ void snake(char key) {
 		tailX += (find == findR);
 
 		//print snake tail
-		putchar(0xff, 0x06, 0x06, tailX, tailY);
+		putcharTUI(0xff, 0x06, 0x06, tailX, tailY);
 	}
 	
 	tail = score;
@@ -146,7 +146,7 @@ void snake(char key) {
 
 
 	//print snake body
-	putchar(bodyChar, bodyFore, 0x0a, x, y);
+	putcharTUI(bodyChar, bodyFore, 0x0a, x, y);
 	
 
 	if (lastChar != key) {
@@ -227,17 +227,17 @@ void snake(char key) {
 
 		dead = true;
 			
-		printfTUI(0x04, 0x04, 0, 0, 0, 0, false);
-		printfColor("-GAME OVER-", 0x0f, 0x04, 35, 10);	
+		TUI(0x04, 0x04, 0, 0, 0, 0, false);
+		printfTUI("-GAME OVER-", 0x0f, 0x04, 35, 10);	
 		
-		printfColor("Score was ", 0x0f, 0x04, 34, 12);	
+		printfTUI("Score was ", 0x0f, 0x04, 34, 12);	
 		char* foo = "   ";
 		foo[0] = (score / 100) + 48;
 		foo[1] = ((score / 10) % 10) + 48;
 		foo[2] = (score % 10) + 48;
-		printfColor(foo, 0x0f, 0x04, 44, 12);	
+		printfTUI(foo, 0x0f, 0x04, 44, 12);	
 		
-		printfColor("Press 'r' to restart.", 0x0f, 0x04, 30, 13);	
+		printfTUI("Press 'r' to restart.", 0x0f, 0x04, 30, 13);	
 		
 		makeBeep(294);
 		sleep(300);
@@ -263,7 +263,7 @@ void snake(char key) {
 		
 		} while (*vidmem != 0x00ff);
 
-		putchar(0xff, 0x04, 0x04, fruitX, fruitY);
+		putcharTUI(0xff, 0x04, 0x04, fruitX, fruitY);
 	}
 
 	fruit = true;	
@@ -285,7 +285,7 @@ void snake(char key) {
 
 
 	//print snake head
-	putchar(0xff, 0x02, 0x02, x, y);
+	putcharTUI(0xff, 0x02, 0x02, x, y);
 	bodyChar++;
 	
 	if (bodyChar == 0xff) {
@@ -299,9 +299,9 @@ void snake(char key) {
 
 
 	//print score
-	putchar((score / 100) + 48, 0x0f, 0x00, 48, 0);
-	putchar(((score / 10) % 10) + 48, 0x0f, 0x00, 49, 0);
-	putchar((score % 10) + 48, 0x0f, 0x00, 50, 0);
+	putcharTUI((score / 100) + 48, 0x0f, 0x00, 48, 0);
+	putcharTUI(((score / 10) % 10) + 48, 0x0f, 0x00, 49, 0);
+	putcharTUI((score % 10) + 48, 0x0f, 0x00, 50, 0);
 
 
 	sleep(speed);
