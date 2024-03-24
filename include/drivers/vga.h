@@ -5,6 +5,8 @@
 #include <hardwarecommunication/port.h>
 #include <hardwarecommunication/interrupts.h>
 #include <drivers/driver.h>
+#include <gui/font.h>
+#include <math.h>
 
 
 
@@ -48,11 +50,40 @@ namespace os {
 				
 
 				virtual void PutPixel(common::int32_t x, common::int32_t y, common::uint8_t colorIndex);
+				virtual void PutPixelRaw(common::int32_t x, common::int32_t y, common::uint8_t colorIndex);
 
+				virtual void PutText(char* str, common::int32_t x, common::int32_t y, common::uint8_t color);
+
+				virtual void FillBufferFull(common::int32_t x, common::int32_t y,
+								common::int32_t w, common::int32_t h,
+								common::uint8_t* buf);
 				
-				virtual void FillRectangle(common::uint32_t x, common::uint32_t y, 
-							   common::uint32_t w, common::uint32_t h, 
+				virtual void FillBuffer(common::uint16_t x, common::uint16_t y,
+							common::uint16_t w, common::uint16_t h,
+							common::uint8_t* buf);
+				
+				virtual void FillRectangle(common::int32_t x, common::int32_t y, 
+							   common::int32_t w, common::int32_t h, 
 							   common::uint8_t color);
+				
+				virtual void DrawRectangle(common::int32_t x, common::int32_t y, 
+							   common::int32_t w, common::int32_t h, 
+							   common::uint8_t color);
+				
+				virtual void DrawLineLow(common::int32_t x0, common::int32_t y0, 
+							common::int32_t x1, common::int32_t y1, 
+							common::uint8_t color);
+				
+				virtual void DrawLineHigh(common::int32_t x0, common::int32_t y0, 
+							common::int32_t x1, common::int32_t y1, 
+							common::uint8_t color);
+				
+				virtual void DrawLine(common::int32_t x0, common::int32_t y0, 
+							common::int32_t x1, common::int32_t y1, 
+							common::uint8_t color);
+				
+				virtual void FillPolygon(common::uint16_t x[], common::uint16_t y[], 
+							 common::uint8_t edgeNum, common::uint8_t color);
 				
 				void DrawToScreen();
 		};	

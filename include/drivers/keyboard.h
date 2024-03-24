@@ -15,13 +15,19 @@ namespace os {
 		
 			//protected:
 			public:
+				common::uint8_t keyValue;
+
 				bool ctrl;
 				bool alt;
 				bool shift;
 				bool caps;
+
+				bool f1;
 				
 				bool cli;
 
+					
+				os::common::uint8_t numCode;
 			public:
 				KeyboardEventHandler();
 
@@ -44,12 +50,8 @@ namespace os {
 				os::hardwarecommunication::Port8Bit commandport;
 
 				KeyboardEventHandler* handler;
-
 			public:
-			
-				os::common::uint8_t keyHex = 0xff;
-
-				KeyboardDriver(os::hardwarecommunication::InterruptManager* manager, KeyboardEventHandler *handler);
+				KeyboardDriver(os::hardwarecommunication::InterruptManager* manager, KeyboardEventHandler* handler);
 				~KeyboardDriver();
 		
 				virtual os::common::uint32_t HandleInterrupt(os::common::uint32_t esp);
