@@ -28,19 +28,13 @@ to <code>/etc/pulse/default.pa</code>. Then restart pulseaudio and the settings 
 
 <h2>Extra</h2>
 
-During development this project was/will receive monthly updates on my <a href="https://www.youtube.com/@dpacarana">youtube page.</a>
+This project will receive monthly updates on my <a href="https://www.youtube.com/@dpacarana">youtube page.</a>
 
 This project is partly based on the <a href="https://github.com/AlgorithMan-de/wyoos">WYOOS</a> tutorial series. Although many things from the tutorial have been changed or removed for various reasons.
 
-There are quite a number of glitches that I've yet to fix. 
-<ul>
-  <li>Deleting a file that was not the most recently created might cause files to be listed incorrectly.</li>
-  <li>Every 4th LBA won't save/read data correctly on it's last sector. (The filesystem itself isn't finished yet.)</li>
-  <li>Recent versions of QEMU have deprecated the 'pcspk' option. It might take some work to get speaker emulation working.</li>
-  <li>Other stuff that I haven't found yet or are too insignificant to mention in the README.</li>
-</ul>
+1.1 features many bug fixes and added features from 1.0 but it is still not perfect. Let me know if you discover any bugs you want me to fix for the next release.
 
-Yes there are graphics. Currently they're in a very sorry state but I do have plans to develop them further. There are also implementations for things like multitasking and networking but they're underutilized currently.
+And there are graphics. Currently they're in a very sorry state but I do have plans to develop them further. There are also implementations for things like multitasking and networking but they're underutilized currently.
 
 <i>Why did you make an entire OS after this character? Are you obsessed or something?</i>
 No, I just thought it would be funny.
