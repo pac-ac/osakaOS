@@ -15,7 +15,7 @@ To compile from source do 'sudo make run' and pray for the best. The binary will
 
 You will probably need the following software packages: g++, binutils, libc6-dev-i386, qemu-system-x86_64 grub-legacy, grub2, xorriso.
 
-If you plan on using other emulators then make sure it has piix4 ide support for storage, at least 2MB of memory, and pc speaker support for basic audio. Emulation is the preferred way to run the OS as running it on real hardware requires a very old machine for the drivers to work, as well as a lack of concern for the data on the machine since the OS doesn't care to ask if you want to write over a pre-existing system partition, it will just do it. Also the OS crashes a lot (most of the time on purpose) and that would be very annoying on bare metal.
+If you plan on using other emulators then make sure it has piix4 ide support for storage, about 8MB of memory, and pc speaker support for basic audio. Emulation is the preferred way to run the OS as running it on real hardware requires a very old machine for the drivers to work, as well as a lack of concern for the data on the machine since the OS doesn't care to ask if you want to write over a pre-existing system partition, it will just do it. Also the OS crashes a lot (most of the time on purpose) and that would be very annoying on bare metal.
 
 <h2>Official Manual and Documentation</h2>
 
@@ -58,15 +58,15 @@ No, I just thought it would be funny.
 <br>FILESYSTEM</br>
 <br>"files"         - list all known files and number of files currently allocated.</br>
 <br>"size (file)"   - print out size of (file) in bytes.</br>
-<br>"delete (file)" - deletes and removes (file) from filesystem. [partly broken]</br>
+<br>"delete (file)" - deletes and removes (file) from filesystem.</br>
 
 <br>MISC</br>
 <br>"osaka (int)"         - print out Osaka ascii art.</br>
 <br>"dad"                 - print out more ascii art.</br>
 <br>"random (anything)"   - execute random command with given args.</br>
 <br>"PANIC"               - panic car alarm, must restart the system.</br>
-<br>"explode"             - make annoying beeps and graphical freakout as the system crashes. [currently broken]</br>
-<br>"sata (int) (string)" - string should be a full command that is repeated for (int) number of times, if (int) is 0 or not provided, it will repeat the command forever. [currently broken]</br>
+<br>"explode"             - make annoying beeps and graphical freakout as the system crashes.</br>
+<br>"sata (int) (string)" - string should be a full command that is repeated for (int) number of times, if (int) is 0 or not provided, it will repeat the command forever.</br>
 <br>"andagi"              - print out "sata andagi".</br>
 
 <br>AYUMUSCRIPT</br>
