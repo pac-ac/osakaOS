@@ -41,7 +41,9 @@ uint32_t os::filesystem::fnv1a(char* str) {
 
 
 	//hash within sectors available on disk
-	return (hash % 2048) + 1024;
+	//hahahahahahahahahahahahahaha
+	//return (hash % 2048) + 1024;
+	return (hash % 4096) + 1024;
 }
 
 
@@ -67,6 +69,7 @@ uint32_t os::filesystem::GetFileSize(char* name) {
 
 
 
+
 uint32_t os::filesystem::AddTable(char* name) {
 
 	AdvancedTechnologyAttachment ata0m(0x1F0, true);
@@ -74,7 +77,7 @@ uint32_t os::filesystem::AddTable(char* name) {
 	//+1 file added to system
 	uint32_t fileNum = 0;
 	uint8_t numOfFiles[512];
-	ata0m.Read28(512, numOfFiles, 512, 0);
+	ata0m.Read28(tableStartSector, numOfFiles, 512, 0);
 
 	int i = 0;
 	while (i < 512) {
@@ -88,25 +91,21 @@ uint32_t os::filesystem::AddTable(char* name) {
 		}	
 		i++;
 	}
-	ata0m.Write28(512, numOfFiles, 512, 0);
+	ata0m.Write28(tableStartSector, numOfFiles, 512, 0);
 	ata0m.Flush();
 	
 	fileNum++;
 	
-	
 	uint8_t sectorData[4];
 	uint32_t location = fnv1a(name);
-	
-	if (fileNum) {
-		
-		sectorData[0] = (location & 0xffffffff)   >> 24;
-		sectorData[1] = (location & 0xffffff)     >> 16; 
-		sectorData[2] = (location & 0xffff)       >> 8; 
-		sectorData[3] = (location & 0xff); 
 
-		ata0m.Write28(512+fileNum, sectorData, 4, 0);
-		ata0m.Flush();
-	}
+	sectorData[0] = (location & 0xffffffff)   >> 24;
+	sectorData[1] = (location & 0xffffff)     >> 16; 
+	sectorData[2] = (location & 0xffff)       >> 8; 
+	sectorData[3] = (location & 0xff); 
+
+	ata0m.Write28(fileStartSector+fileNum-1, sectorData, 4, 0);
+	ata0m.Flush();
 
 	return fileNum;
 }
@@ -121,7 +120,7 @@ uint32_t os::filesystem::RemoveTable(char* name) {
 	//1 file removed from system
 	uint32_t fileNum = 0;
 	uint8_t numOfFiles[512];
-	ata0m.Read28(512, numOfFiles, 512, 0);
+	ata0m.Read28(tableStartSector, numOfFiles, 512, 0);
 
 	int i = 0;
 	while (i < 512) {
@@ -135,14 +134,30 @@ uint32_t os::filesystem::RemoveTable(char* name) {
 		}	
 		i++;
 	}
-	ata0m.Write28(512, numOfFiles, 512, 0);
+	ata0m.Write28(tableStartSector, numOfFiles, 512, 0);
 	ata0m.Flush();
 	
-	//fileNum--;
-	
+	fileNum--;
 	
 	uint8_t sectorData[4];
 	uint32_t location = fnv1a(name);
+	bool newest = false;
+	
+	//check if removing newest file or not
+	ata0m.Read28(fileStartSector+fileNum, sectorData, 4, 0);
+	
+	uint32_t newLocation = (sectorData[0] << 24) | 
+		      (sectorData[1] << 16) | 
+		      (sectorData[2] << 8) | 
+		      (sectorData[3]);
+		
+	
+	if (location == newLocation) {
+		
+		newest = true;
+	}
+	
+	
 	
 	uint8_t nullData[4];
 	for (i = 0; i < 4; i++) { nullData[0] = 0x00; }
@@ -151,11 +166,11 @@ uint32_t os::filesystem::RemoveTable(char* name) {
 		
 		uint32_t findLocation = 0;
 		uint32_t replace = 0;
-		int j;
+		int j = 0;
 
-		for (j = 0; j < fileNum; j++) {
+		for (j; j < fileNum; j++) {
 		
-			ata0m.Read28(513+j, sectorData, 4, 0);
+			ata0m.Read28(fileStartSector+j, sectorData, 4, 0);
 			
 			findLocation = (sectorData[0] << 24) |
 				       (sectorData[1] << 16) | 
@@ -164,41 +179,83 @@ uint32_t os::filesystem::RemoveTable(char* name) {
 		
 			if (location == findLocation) {
 			
-				//ata0m.Write28(513+j, nullptr, 4, 0);
-				ata0m.Write28(513+j, nullData, 4, 0);
+				ata0m.Write28(fileStartSector+j, nullData, 4, 0);
 				ata0m.Flush();
 			
 				replace = j;
 				j = fileNum;
 			}
 		}
-
-		ata0m.Read28(513+fileNum, sectorData, 4, 0);
+		ata0m.Read28(fileStartSector+fileNum, sectorData, 4, 0);
 
 		//get rid of newest
-		//ata0m.Write28(513+fileNum, nullptr, 4, 0);
-		ata0m.Write28(513+fileNum, nullData, 4, 0);
+		ata0m.Write28(fileStartSector+fileNum, nullData, 4, 0);
 		ata0m.Flush();
 
 		//put it where the removed was
-		ata0m.Write28(513+replace, sectorData, 4, 0);
-		ata0m.Flush();
+		if (!newest) {
+			
+			ata0m.Write28(fileStartSector+replace, sectorData, 4, 0);
+			ata0m.Flush();
+		}
+	} else {
+		//get rid of only file entry	
+		//ata0m.Write28(fileStartSector, nullData, 4, 0);
 	}
 	
 	return 0;
 }
 
 
+uint32_t os::filesystem::GetFileCount() {
+
+	AdvancedTechnologyAttachment ata0m(0x1F0, true);
+	uint8_t numOfFiles[512];
+	uint32_t fileNum = 0;
+	
+	ata0m.Read28(tableStartSector, numOfFiles, 512, 0);
+
+	for (int i = 0; i < 512; i++) {
+	
+		fileNum += numOfFiles[i];
+	}
+	
+	return fileNum;
+}
 
 
 
 
 
+uint32_t os::filesystem::GetFileName(uint16_t fileNum, char fileName[33]) {
 
+	AdvancedTechnologyAttachment ata0m(0x1F0, true);
+	uint8_t sectorData[512];
+	uint32_t location = 0;
+		
+	ata0m.Read28(fileStartSector+fileNum, sectorData, 4, 0);
+	
+	location = (sectorData[0] << 24) | 
+		   (sectorData[1] << 16) | 
+		   (sectorData[2] << 8) | 
+		   (sectorData[3]);
+	
+	if (location) {
+		
+		ata0m.Read28(location, sectorData, 40, 0);
+		
+		int i = 0;
+		for (i; sectorData[i+8] != 0x00 || i < 32; i++) {
+		//for (i; i < 32; i++) {
 
- 
+			fileName[i] = sectorData[i+8];
+			
+		}
+		fileName[i] = '\0';
+	}
 
-
+	return location;
+}
 
 
 
@@ -216,6 +273,7 @@ bool os::filesystem::NewFile(char* name, uint8_t* file, uint32_t size) {
 		return false;
 	}
 
+	//OFS FILE STRUCTURE BELOW
 	
 	//first 8 bytes for file nums and size
 	uint8_t sectorData[512];
@@ -238,6 +296,10 @@ bool os::filesystem::NewFile(char* name, uint8_t* file, uint32_t size) {
 		sectorData[i+8] = (uint8_t)name[i];
 	}
 
+	//byte 40 to 72 for tag string
+
+
+	//END OF OFS FILE STRUCTURE
 
 
 	//first sector is reserved for file metadata	
@@ -353,7 +415,7 @@ bool os::filesystem::WriteLBA(char* name, uint8_t* file, uint32_t lba) {
 
 	for (uint16_t i = 0; i < sectorNum; i++) {
 
-		if (i == (sectorNum - 1)) {
+		if (i == (sectorNum - 1) && (lba % 4 != 3)) {
 		
 			//read higher data	
 			ata0m.Read28(startSector+i, sectorData, 512, 0);
@@ -462,10 +524,8 @@ bool os::filesystem::ReadLBA(char* name, uint8_t* file, uint32_t lba) {
 			break;
 		case 2:
 			sectorNum++;
-			//startSector++;
 			break;
 		case 3:
-			//startSector++;
 			break;
 	}
 
@@ -477,7 +537,8 @@ bool os::filesystem::ReadLBA(char* name, uint8_t* file, uint32_t lba) {
 	
 	for (uint16_t i = 0; i < sectorNum; i++) {
 		
-		if (i == (sectorNum - 1)) {
+		//if (i == (sectorNum - 1) && (lba % 4) != 3) {
+		if (i == (sectorNum - 1) && (lba % 4) != 3) {
 		
 			upperOffset = size % 512;
 		}
