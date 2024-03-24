@@ -9,14 +9,23 @@ void sleep(uint32_t);
 
 
 Desktop::Desktop(common::int32_t w, common::int32_t h,
-		 common::uint8_t color) 
-: CompositeWidget(0, 0, 0, w, h, color), 
+		 common::uint8_t color,
+		 common::GraphicsContext* gc,
+		 GlobalDescriptorTable* gdt,
+		 TaskManager* taskManager,
+		 Simulator* osaka)
+: CompositeWidget(0, 0, 0, w, h, "desktop", color, false), 
   MouseEventHandler() {
 
 	MouseX = w / 2;
 	MouseY = h / 2;
 	
 	this->color = color;
+
+	this->gc = gc;
+	this->taskManager = taskManager;
+	this->gdt = gdt;
+	this->osaka = osaka;
 }
 
 
@@ -25,45 +34,88 @@ Desktop::~Desktop() {
 
 
 
-void Desktop::Draw(common::GraphicsContext* gc, bool mode) {
+bool Desktop::AddTaskGUI(Task* task) {
+	
+	return this->taskManager->AddTask(task);
+}
 
-	//desktop background, one big color for now
-	gc->FillRectangle(0, 0, 200, 320, this->color);
+
+
+void Desktop::Draw(common::GraphicsContext* gc) {
 	
-	//windows on top
-	CompositeWidget::Draw(gc, mode);
+	if (this->keyValue == 0x5b) {
+
+		this->sim ^= 1;
+		this->windowOffset ^= 100;
+		this->OnMouseUp(0);
+		this->keyValue = 0;
+	}
+
+	uint8_t index = 0;
 	
+	if (this->sim == false) {
+
+	
+		for (int y = 0; y < 200; y++) {
+			for (int x = 0; x < 320; x++) {
+			
+				index = defaultbg[320*y+x];
+				gc->PutPixel(x, y, rrrgggbb_to_ega[index]);
+			}
+		}
+
+		//windows on top
+		CompositeWidget::Draw(gc);
+	} else {
+		this->osaka->DrawRoom(gc);
+	}
+		
 	//cursor
-	this->MouseDraw(gc, mode);
-
+	this->MouseDraw(gc);
+		
 	//write to video memory
 	gc->DrawToScreen();
 }
 
-void Desktop::DrawNoMouse(common::GraphicsContext* gc, bool mode) {
 
-	CompositeWidget::Draw(gc, mode);
+void Desktop::DrawNoMouse(common::GraphicsContext* gc) {
+
+	CompositeWidget::Draw(gc);
 }
 
 
 
-void Desktop::MouseDraw(common::GraphicsContext* gc, bool mode) {
+void Desktop::MouseDraw(common::GraphicsContext* gc) {
+	
 
 	//mouse icon
 	uint16_t cursorIndex = 0;
-	uint16_t asdf = 0;
+	uint8_t* cursorArt = nullptr;
+
+
+	uint8_t mouseW = 13;
+	uint8_t mouseH = 20;
+
+
+	if (this->sim == false) {
+
+		if (click) { cursorArt = cursorClickLeft; } 
+		else { cursorArt = cursorNormal; }
+	} else {
 	
-	for (uint8_t y = 0; y < 20; y++) {
-		for (uint8_t x = 0; x < 13; x++) {
+		cursorArt = cursorClassic;
+		mouseW = 7;
+		mouseH = 7;
+	}
+	
+
+	
+	for (uint8_t y = 0; y < mouseH; y++) {
+		for (uint8_t x = 0; x < mouseW; x++) {
 			
-			if (this->click) {
-				if (cursorClick[cursorIndex]) {
-					gc->PutPixel(MouseX+x, MouseY+y, cursorClick[cursorIndex]);
-				}
-			} else {
-				if (cursorNormal[cursorIndex]) {
-					gc->PutPixel(MouseX+x, MouseY+y, cursorNormal[cursorIndex]);
-				}
+			if (cursorArt[cursorIndex]) {
+			
+				gc->PutPixel(MouseX+x, MouseY+y, cursorArt[cursorIndex]);
 			}
 			cursorIndex++;
 		}
@@ -119,3 +171,14 @@ void Desktop::OnMouseMove(int x, int y) {
 	
 }
 
+
+void Desktop::OnKeyDown(char str) {
+
+	CompositeWidget::OnKeyDown(str);
+}
+
+
+void Desktop::OnKeyUp(char str) {
+		
+	CompositeWidget::OnKeyUp(str);
+}
