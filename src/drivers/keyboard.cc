@@ -7,10 +7,14 @@ using namespace os::drivers;
 using namespace os::hardwarecommunication;
 
 
+
+
 KeyboardEventHandler::KeyboardEventHandler() {
+
+	numCode = 0;
 }
 
-void KeyboardEventHandler::OnKeyDown(char) {
+void KeyboardEventHandler::OnKeyDown(char ch) {
 }
 
 void KeyboardEventHandler::OnKeyUp() {
@@ -18,7 +22,6 @@ void KeyboardEventHandler::OnKeyUp() {
 
 void KeyboardEventHandler::resetMode() {
 }
-
 
 void KeyboardEventHandler::modeSet(uint8_t) {
 }
@@ -70,7 +73,7 @@ void printfHex(uint8_t);
 uint32_t KeyboardDriver::HandleInterrupt(uint32_t esp) {
 
 	uint8_t key = dataport.Read();
-	this->keyHex = key;
+	this->handler->keyValue = key;
 
 	if (handler == 0) {
 
@@ -253,7 +256,6 @@ uint32_t KeyboardDriver::HandleInterrupt(uint32_t esp) {
 			break;
 		//handler->caps lock
 		case 0x3a:
-			//handler->caps ^= 1;
 			handler->caps = handler->caps ^ 1;
 			break;
 		//windows key
@@ -271,11 +273,9 @@ uint32_t KeyboardDriver::HandleInterrupt(uint32_t esp) {
 
 		//right control
 		case 0x1d:
-			//handler->ctrl = true;
 			handler->ctrl = true;
 			break;
 		case 0x9d:
-			//handler->ctrl = false;
 			handler->ctrl = false;
 			break;
 		
@@ -286,16 +286,21 @@ uint32_t KeyboardDriver::HandleInterrupt(uint32_t esp) {
 		
 		//alt keys
 		case 0x38:
-			//alt = true;
 			handler->alt = true;
 			break;
 		case 0xb8:
-			//alt = true;
-			handler->alt = true;
+			handler->alt = false;
 			break;
 		case 0xe0:
-			//alt = false;
 			handler->alt = false;
+			break;
+
+		//f# keys
+		case 0x3b:
+			handler->f1 = true;
+			break;
+		case 0xbb:
+			handler->f1 = false;
 			break;
 
 		//left arrow
@@ -329,10 +334,8 @@ uint32_t KeyboardDriver::HandleInterrupt(uint32_t esp) {
 			handler->shift = false;
 			break;
 		default:
-			/*		
-			printf("KEYBOARD ");
-			printfHex(key);
-			*/
+			//printf("KEYBOARD ");
+			//printfHex(key);
 			handler->OnKeyUp();
 			break;
 	}
