@@ -1,11 +1,10 @@
 # osakaOS v1.1
 ![](cube.gif)
 
-<br>
+<h2>Improved and Polished From 1.0.</h2>
 
 <img src="desktop.jpg" width=600px>
-
-<h2>Improved and Polished From 1.0.</h2>
+<br>
 
 osakaOS is a 32 bit, singletasking, megalithic operating system that is made with a focus on unconventional/ridiculous design choices. It uses a text-based command line to edit files using the <b>Osaka FileSystem</b> and create small programs using the <b>AyumuScript</b> scripting language. 
 
