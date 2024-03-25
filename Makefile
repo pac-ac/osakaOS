@@ -83,9 +83,9 @@ run: osakaOS.iso
 		-drive id=disk,file=Image.img,format=raw,if=none \
 		-device piix4-ide,id=piix4 -device ide-hd,drive=disk,bus=piix4.0 \
 		-cpu 486 -smp 1 -m 8M \
+		-audiodev pa,id=pa0,server=unix:/tmp/pulse-socket \
+		-machine pcspk-audiodev=pa0 \
 		-vga virtio
-		#-audiodev pa,id=pa0,server=unix:/tmp/pulse-socket \
-		#-machine pcspk-audiodev=pa0
 		
 		#only use '-soundhw' option if your qemu is 
 		#old and doesnt support '-audiodev'
