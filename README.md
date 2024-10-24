@@ -1,10 +1,7 @@
-# osakaOS v1.1
+# osakaOS v1.0
 ![](cube.gif)
 
-<h2>Improved and Polished From 1.0.</h2>
-
-<img src="desktop.jpg" width=600px>
-<br>
+<h2>THE operating system of all time.</h2>
 
 osakaOS is a 32 bit, singletasking, megalithic operating system that is made with a focus on unconventional/ridiculous design choices. It uses a text-based command line to edit files using the <b>Osaka FileSystem</b> and create small programs using the <b>AyumuScript</b> scripting language. 
 
@@ -18,26 +15,29 @@ To compile from source do 'sudo make run' and pray for the best. The binary will
 
 You will probably need the following software packages: g++, binutils, libc6-dev-i386, qemu-system-x86_64 grub-legacy, grub2, xorriso.
 
-If you plan on using other emulators then make sure it has piix4 ide support for storage, about 8MB of memory, and pc speaker support for basic audio. Emulation is the preferred way to run the OS as running it on real hardware requires a very old machine for the drivers to work, as well as a lack of concern for the data on the machine since the OS doesn't care to ask if you want to write over a pre-existing system partition, it will just do it. Also the OS crashes a lot (most of the time on purpose) and that would be very annoying on bare metal.
-
-<h2>Official Manual and Documentation</h2>
-
-An official user manual can be found on my personal website <i>Leechplus</i> at <a href="https://leechplus.neocities.org/projects/osakaOS/introduction">projects/osakaOS/introduction</a>.
+If you plan on using other emulators then make sure it has piix4 ide support for storage, at least 2MB of memory, and pc speaker support for basic audio. Emulation is the preferred way to run the OS as running it on real hardware requires a very old machine for the drivers to work, as well as a lack of concern for the data on the machine since the OS doesn't care to ask if you want to write over a pre-existing system partition, it will just do it. Also the OS crashes a lot (most of the time on purpose) and that would be very annoying on bare metal.
 
 <h2>How to get audio using PulseAudio</h2>
 
 If you're using a linux host and use pulseaudio like me, add this line <code>load-module module-native-protocol-unix auth-anonymous=1 socket=/tmp/pulse-socket</code>
 to <code>/etc/pulse/default.pa</code>. Then restart pulseaudio and the settings in the makefile should work. <a href="https://stackoverflow.com/questions/59988019/emulator-pulseaudio-access-denied">(original post here)</a>
 
+
 <h2>Extra</h2>
 
-This project will receive monthly updates on my <a href="https://www.youtube.com/@dpacarana">youtube page.</a>
+During development this project was/will receive monthly updates on my <a href="https://www.youtube.com/@dpacarana">youtube page.</a>
 
 This project is partly based on the <a href="https://github.com/AlgorithMan-de/wyoos">WYOOS</a> tutorial series. Although many things from the tutorial have been changed or removed for various reasons.
 
-1.1 features many bug fixes and added features from 1.0 but it is still not perfect. Let me know if you discover any bugs you want me to fix for the next release.
+There are quite a number of glitches that I've yet to fix. 
+<ul>
+  <li>Deleting a file that was not the most recently created might cause files to be listed incorrectly.</li>
+  <li>Every 4th LBA won't save/read data correctly on it's last sector. (The filesystem itself isn't finished yet.)</li>
+  <li>Recent versions of QEMU have deprecated the 'pcspk' option. It might take some work to get speaker emulation working.</li>
+  <li>Other stuff that I haven't found yet or are too insignificant to mention in the README.</li>
+</ul>
 
-And there are graphics. Currently they're in a very sorry state but I do have plans to develop them further. There are also implementations for things like multitasking and networking but they're underutilized currently.
+Yes there are graphics. Currently they're in a very sorry state but I do have plans to develop them further. There are also implementations for things like multitasking and networking but they're underutilized currently.
 
 <i>Why did you make an entire OS after this character? Are you obsessed or something?</i>
 No, I just thought it would be funny.
@@ -61,15 +61,15 @@ No, I just thought it would be funny.
 <br>FILESYSTEM</br>
 <br>"files"         - list all known files and number of files currently allocated.</br>
 <br>"size (file)"   - print out size of (file) in bytes.</br>
-<br>"delete (file)" - deletes and removes (file) from filesystem.</br>
+<br>"delete (file)" - deletes and removes (file) from filesystem. [partly broken]</br>
 
 <br>MISC</br>
 <br>"osaka (int)"         - print out Osaka ascii art.</br>
 <br>"dad"                 - print out more ascii art.</br>
 <br>"random (anything)"   - execute random command with given args.</br>
 <br>"PANIC"               - panic car alarm, must restart the system.</br>
-<br>"explode"             - make annoying beeps and graphical freakout as the system crashes.</br>
-<br>"sata (int) (string)" - string should be a full command that is repeated for (int) number of times, if (int) is 0 or not provided, it will repeat the command forever.</br>
+<br>"explode"             - make annoying beeps and graphical freakout as the system crashes. [currently broken]</br>
+<br>"sata (int) (string)" - string should be a full command that is repeated for (int) number of times, if (int) is 0 or not provided, it will repeat the command forever. [currently broken]</br>
 <br>"andagi"              - print out "sata andagi".</br>
 
 <br>AYUMUSCRIPT</br>

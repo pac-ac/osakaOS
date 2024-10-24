@@ -15,19 +15,24 @@ objects = obj/loader.o \
 	  obj/hardwarecommunication/interruptstubs.o \
 	  obj/hardwarecommunication/interrupts.o \
 	  obj/multitasking.o \
-	  obj/drivers/amd_am79c973.o \
 	  obj/hardwarecommunication/pci.o \
 	  obj/drivers/keyboard.o \
 	  obj/drivers/mouse.o \
 	  obj/drivers/vga.o \
 	  obj/drivers/ata.o \
+	  obj/drivers/amd_am79c973.o \
 	  obj/drivers/pit.o \
+	  obj/drivers/cmos.o \
 	  obj/drivers/speaker.o \
 	  obj/gui/widget.o \
 	  obj/gui/desktop.o \
 	  obj/gui/window.o \
 	  obj/gui/button.o \
 	  obj/gui/sim.o \
+	  obj/gui/raycasting.o \
+	  obj/gui/games/platformer.o \
+	  obj/gui/games/shooter.o \
+	  obj/net/network.o \
 	  obj/net/etherframe.o \
 	  obj/net/arp.o \
 	  obj/net/ipv4.o \
@@ -35,6 +40,9 @@ objects = obj/loader.o \
 	  obj/filesys/ofs.o \
 	  obj/cli.o \
 	  obj/app.o \
+	  obj/app/paint.o \
+	  obj/app/file_edit.o \
+	  obj/app/file_browse.o \
 	  obj/script.o \
 	  obj/math.o \
 	  obj/mode/piano.o \
@@ -83,9 +91,10 @@ run: osakaOS.iso
 		-drive id=disk,file=Image.img,format=raw,if=none \
 		-device piix4-ide,id=piix4 -device ide-hd,drive=disk,bus=piix4.0 \
 		-cpu 486 -smp 1 -m 8M \
-		-audiodev pa,id=pa0,server=unix:/tmp/pulse-socket \
-		-machine pcspk-audiodev=pa0 \
+		-net nic,model=pcnet \
 		-vga virtio
+		#-audiodev pa,id=pa0,server=unix:/tmp/pulse-socket \
+		#-machine pcspk-audiodev=pa0
 		
 		#only use '-soundhw' option if your qemu is 
 		#old and doesnt support '-audiodev'
