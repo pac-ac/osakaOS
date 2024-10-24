@@ -15,10 +15,11 @@ PeripheralComponentInterconnectDeviceDescriptor::~PeripheralComponentInterconnec
 }
 
 
-PeripheralComponentInterconnectController::PeripheralComponentInterconnectController() 
+PeripheralComponentInterconnectController::PeripheralComponentInterconnectController(MemoryManager* memoryManager) 
 : dataport(0xcfc),
   commandport(0xcf8) {
 
+	  this->memoryManager = memoryManager;
 }
 
 
@@ -42,9 +43,7 @@ uint32_t PeripheralComponentInterconnectController::Read(uint16_t bus, uint16_t 
 	commandport.Write(id);
 	uint32_t result = dataport.Read();
 	
-	return result >> (8* (registeroffset % 4));
-
-
+	return result >> (8*(registeroffset % 4));
 }
 
 
@@ -61,7 +60,6 @@ void PeripheralComponentInterconnectController::Write(uint16_t bus, uint16_t dev
 
 	commandport.Write(id);
 	dataport.Write(value);
-
 }
 
 
@@ -85,10 +83,10 @@ void PeripheralComponentInterconnectController::SelectDrivers(DriverManager* dri
 			
 			for (int function = 0; function < numFunctions; function++) {
 		
-				PeripheralComponentInterconnectDeviceDescriptor *dev =
-				GetDeviceDescriptor(bus, device, function);
+				PeripheralComponentInterconnectDeviceDescriptor dev = GetDeviceDescriptor(bus, device, function);
+				this->PCIdev = &dev;
 
-				if (dev->vendor_id == 0x0000 || dev->vendor_id == 0xffff) {
+				if (dev.vendor_id == 0x0000 || dev.vendor_id == 0xffff) {
 					
 					continue;
 				}	
@@ -99,19 +97,17 @@ void PeripheralComponentInterconnectController::SelectDrivers(DriverManager* dri
 
 					if (bar.address && (bar.type == InputOutput)) {
 					
-						dev->portBase = (uint32_t)bar.address;
+						dev.portBase = (uint32_t)bar.address;
 					}
 				}
 				
 
-				Driver* driver = GetDriver(dev, interrupts);
+				Driver* driver = this->GetDriver(dev, interrupts);
 					
 				if (driver != 0) {
 					
 					driverManager->AddDriver(driver);
 				}
-
-				
 					
 				printf("PCI BUS ");		
 				printfHex(bus & 0xff);		
@@ -122,15 +118,13 @@ void PeripheralComponentInterconnectController::SelectDrivers(DriverManager* dri
 				printf(", FUNCTION ");		
 				printfHex(function & 0xff);		
 				
-				
-				
 				printf(" = VENDOR ");		
-				printfHex((dev->vendor_id & 0xff00) >> 8);		
-				printfHex(dev->vendor_id & 0xff);		
+				printfHex((dev.vendor_id & 0xff00) >> 8);		
+				printfHex(dev.vendor_id & 0xff);		
 				
 				printf(", DEVICE");		
-				printfHex((dev->device_id & 0xff00) >> 8);		
-				printfHex(dev->device_id & 0xff);		
+				printfHex((dev.device_id & 0xff00) >> 8);		
+				printfHex(dev.device_id & 0xff);		
 				printf("\n");
 				
 			}
@@ -185,26 +179,29 @@ BaseAddressRegister PeripheralComponentInterconnectController::GetBaseAddressReg
 
 
 
-Driver* PeripheralComponentInterconnectController::GetDriver(PeripheralComponentInterconnectDeviceDescriptor* dev, InterruptManager* interrupts) {
+Driver* PeripheralComponentInterconnectController::GetDriver(PeripheralComponentInterconnectDeviceDescriptor dev, InterruptManager* interrupts) {
 
 	Driver *driver = 0;
 
 
-	switch (dev->vendor_id) {
+	switch (dev.vendor_id) {
 	
 		case 0x1022: //AMD
 			
-			switch (dev->device_id) {
+			switch (dev.device_id) {
 				
 				case 0x2000: //am79c973
+					
 					printf("AMD am79c973 ");
-					driver = (amd_am79c973*)MemoryManager::activeMemoryManager->malloc(sizeof(amd_am79c973));
-					
+					driver = (amd_am79c973*)this->memoryManager->malloc(sizeof(amd_am79c973));
+					//amd_am79c973 eth0(&dev, interrupts);
+					//driver = &eth0;
+
 					if (driver != 0) {
-					
-						new (driver) amd_am79c973(dev, interrupts);
+						new (driver) amd_am79c973(&dev, interrupts);
+						printf("created.\n");
 					} else {
-						printf("Init amd_am79c973 failed.");
+						printf("Init amd_am79c973 failed.\n");
 					}
 					return driver;	
 					
@@ -221,10 +218,10 @@ Driver* PeripheralComponentInterconnectController::GetDriver(PeripheralComponent
 			break;
 	}
 
-	switch (dev->class_id) {
+	switch (dev.class_id) {
 
 		case 0x03: //graphics
-			switch (dev->subclass_id) {
+			switch (dev.subclass_id) {
 			
 				case 0x00: //VGA
 					printf("VGA ");
@@ -232,7 +229,7 @@ Driver* PeripheralComponentInterconnectController::GetDriver(PeripheralComponent
 			}
 			break;
 		case 0x04: //audio
-			switch (dev->subclass_id) {
+			switch (dev.subclass_id) {
 			
 				case 0x01:
 					printf("AC97 ");
@@ -241,7 +238,7 @@ Driver* PeripheralComponentInterconnectController::GetDriver(PeripheralComponent
 			break;
 
 		case 0x08: //base system peripheral
-			switch (dev->subclass_id) {
+			switch (dev.subclass_id) {
 			
 				case 0x00:
 					printf("PIC ");
@@ -256,10 +253,13 @@ Driver* PeripheralComponentInterconnectController::GetDriver(PeripheralComponent
 			break;
 
 		case 0x0b: //cpu
-			switch (dev->subclass_id) {
+			switch (dev.subclass_id) {
 			
 				case 0x00:
 					printf("386 ");
+					break;
+				case 0x01:
+					printf("486 ");
 					break;
 				case 0x02:
 					printf("Pentium ");
@@ -279,34 +279,32 @@ Driver* PeripheralComponentInterconnectController::GetDriver(PeripheralComponent
 			}
 			break;
 	}
-
-	//return driver;
-	return 0;
+	return driver;
 }
 
 
 
 
 
-PeripheralComponentInterconnectDeviceDescriptor* PeripheralComponentInterconnectController::
+PeripheralComponentInterconnectDeviceDescriptor PeripheralComponentInterconnectController::
 GetDeviceDescriptor(uint16_t bus, uint16_t device, uint16_t function) {
 
-	PeripheralComponentInterconnectDeviceDescriptor *result;
+	PeripheralComponentInterconnectDeviceDescriptor result;
 	
 
-	result->bus = bus;
-	result->device = device;
-	result->function = function;
+	result.bus = bus;
+	result.device = device;
+	result.function = function;
 
-	result->vendor_id = Read(bus, device, function, 0x00);
-	result->device_id = Read(bus, device, function, 0x02);
+	result.vendor_id = Read(bus, device, function, 0x00);
+	result.device_id = Read(bus, device, function, 0x02);
 
-	result->class_id = Read(bus, device, function, 0x0b);
-	result->subclass_id = Read(bus, device, function, 0x0a);
-	result->interface_id = Read(bus, device, function, 0x09);
+	result.class_id = Read(bus, device, function, 0x0b);
+	result.subclass_id = Read(bus, device, function, 0x0a);
+	result.interface_id = Read(bus, device, function, 0x09);
 	
-	result->revision = Read(bus, device, function, 0x08);
-	result->interrupt = Read(bus, device, function, 0x3c);
+	result.revision = Read(bus, device, function, 0x08);
+	result.interrupt = Read(bus, device, function, 0x3c);
 
 
 	return result;

@@ -214,22 +214,6 @@ uint32_t InterruptManager::handleInterrupt(uint8_t interruptNumber, uint32_t esp
 
 uint32_t InterruptManager::DoHandleInterrupt(uint8_t interruptNumber, uint32_t esp) {
 	
-
-
-	/*	
-	//'forget' feature
-	this->interruptCount++;
-
-	if (this->interruptCount == 0 && (prng() % 196) == 0) {
-	
-		printf("\nuhhhhh.........\n");
-		sleep(5000);
-		forget();
-	}
-	*/
-
-
-
 	if (handlers[interruptNumber] != 0) {
 	
 		esp = handlers[interruptNumber]->HandleInterrupt(esp);
@@ -247,7 +231,9 @@ uint32_t InterruptManager::DoHandleInterrupt(uint8_t interruptNumber, uint32_t e
 
 	if (interruptNumber == hardwareInterruptOffset) {
 		
+		asm volatile("cli");
 		esp = (uint32_t)taskManager->Schedule((CPUState*)esp);
+		asm volatile("sti");
 	}
 
 
