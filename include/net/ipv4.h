@@ -30,7 +30,7 @@ namespace os {
 			common::uint32_t srcIP;
 			common::uint32_t dstIP;
 
-		} __attribute((packed));	
+		} __attribute__((packed));	
 
 
 		class InternetProtocolProvider;
@@ -71,17 +71,10 @@ namespace os {
 						         AddressResolutionProtocol* arp, 
 							 common::uint32_t gatewayIP, 
 							 common::uint32_t subnetMask);
-				
 				~InternetProtocolProvider();
 
-
-
 				bool OnEtherFrameReceived(common::uint8_t* etherframePayload, common::uint32_t size);
-
-
 				void Send(common::uint32_t dstIP_BE, common::uint8_t protocol, common::uint8_t* buffer, common::uint32_t size);
-
-
 				static common::uint16_t Checksum(common::uint16_t* data, common::uint32_t lengthInBytes);
 		};
 
