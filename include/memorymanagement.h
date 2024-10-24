@@ -7,17 +7,13 @@
 
 namespace os {
 
-
 	struct MemoryChunk {
 
 		MemoryChunk* next;
 		MemoryChunk* prev;
 		bool allocated;
 		common::size_t size;
-
 	};
-
-
 
 	class MemoryManager {
 	

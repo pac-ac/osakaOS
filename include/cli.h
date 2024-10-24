@@ -3,10 +3,15 @@
 
 
 #include <common/types.h>
+#include <hardwarecommunication/port.h>
 #include <drivers/speaker.h>
 #include <drivers/ata.h>
+#include <drivers/cmos.h>
 #include <filesys/ofs.h>
+#include <gui/window.h>
+#include <net/network.h>
 #include <multitasking.h>
+#include <memorymanagement.h>
 #include <gdt.h>
 #include <art.h>
 #include <app.h>
@@ -18,40 +23,62 @@ namespace os {
 
 		//private:
 		public:
-			//command things
+			//input and other things
 			common::uint8_t index = 0;
 			char input[256];
 			char lastCmd[256];
 			common::uint8_t keyChar = 0;
-			
-			//hash tables and script stuff
-			void (*cmdTable[65536])(char*, CommandLine*);	
+			bool init = false;
+
+			//hash table for all commands
+			//(table for all command lines)
+			static void (*cmdTable[65536])(char*, CommandLine*);
+			static bool WakeupInit;
+
+			//script data	
+			char scriptName[32];
+			bool scriptKillSwitch = false;
 			common::uint32_t varTable[1024];
 			common::uint32_t argTable[10];
-			bool conditionIf;
-			bool conditionLoop;
+			bool conditionIf = true;
+			bool conditionLoop = true;
 			common::uint32_t returnVal = 0;
 			common::uint32_t offsetVal = 0;
+		
+			//input
+			common::int32_t MouseX = 0;
+			common::int32_t MouseY = 0;
+			char Key = ' ';
 
-			common::uint16_t cmdList[65536];
+			//other things
 			common::uint16_t cmdIndex = 0;;
-
-			bool mute = false;
-			
-			char* scriptFile;
 			common::uint16_t cliMode = 0;
+			bool mute = false;
+
+
+			//gui stuff
+			bool gui = true;
+			bool targetWindow = false;
+			gui::CompositeWidget* appWindow = nullptr;
+			gui::CompositeWidget* userWindow = nullptr;
+
 
 			//drivers and hardware
-			bool desktop = false;
-			gui::Widget* appWindow;
-			
 			GlobalDescriptorTable* gdt;
 			TaskManager* tm;
-			drivers::AdvancedTechnologyAttachment* ata0m;
+			Task* userTask = nullptr;
+			MemoryManager* mm;
+			drivers::DriverManager* drvManager;
+			filesystem::FileSystem* filesystem;
+			drivers::CMOS* cmos = 0;
+			net::Network* network = 0;
 		public:
 			CommandLine(GlobalDescriptorTable* gdt, 
 					TaskManager* tm, 
-					drivers::AdvancedTechnologyAttachment* ata0m);
+					MemoryManager* mm,
+					filesystem::FileSystem* filesystem,
+					drivers::CMOS* cmos,
+					drivers::DriverManager* drvManager);
 			~CommandLine();
 
 			char* commandStr;
@@ -60,16 +87,21 @@ namespace os {
 			void hash_add(char* cmd, void func(char*, CommandLine*));
 			void hash_cli_init();
 
-			void script(bool pressed, char key, bool ctrl);
-
-			void PrintCommand(char* str);
-
-			void ComputeAppState(common::GraphicsContext* gc, gui::Widget* widget);
-	
-			void OnKeyDown(char ch, gui::Widget* widget);
-			void OnKeyUp(char ch, gui::Widget* widget);
 			
-			void OnMouseDown(common::int32_t x, common::int32_t y, common::uint8_t button, gui::Widget* widget);
+			void ScriptMouseDown();
+			void ScriptKeyDown();
+		
+
+			void PrintCommand(char* str, common::uint16_t color = 0);
+
+			void ComputeAppState(common::GraphicsContext* gc, gui::CompositeWidget* widget);
+			void CreateTaskForScript(char* fileName);
+			void DeleteTaskForScript(common::uint8_t taskNum);
+	
+			void OnKeyDown(char ch, gui::CompositeWidget* widget);
+			void OnKeyUp(char ch, gui::CompositeWidget* widget);
+			
+			void OnMouseDown(common::int32_t x, common::int32_t y, common::uint8_t button, gui::CompositeWidget* widget);
 	};
 }
 
