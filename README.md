@@ -7,6 +7,8 @@ osakaOS is a 32 bit, (optionally) multitasking, megalithic operating system that
 
 Multitasking kernel programs, file allocation, graphical window manipulation, a paint GUI program, and much more :)
 
+![](desktop.png)
+
 <h2>How to run/compile</h2>
 
 Included is a pre-compiled bootable iso image that you can use in any normal virtualization software.
@@ -34,6 +36,7 @@ For the next major update I plan on further building the network stack and imple
 <i>Why did you make an entire OS after this character? Are you obsessed or something?</i>
 No, I just thought it would be funny.
 
+![](room.png)
 
 <h2>Important Command List</h2>
 
