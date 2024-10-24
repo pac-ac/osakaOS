@@ -1,7 +1,7 @@
 #ifndef __OS__DRIVERS__ATA_H
 #define __OS__DRIVERS__ATA_H
 
-
+#include <drivers/driver.h>
 #include <hardwarecommunication/port.h>
 #include <hardwarecommunication/interrupts.h>
 #include <common/types.h>
@@ -11,7 +11,7 @@ namespace os {
 
 	namespace drivers {
 
-		class AdvancedTechnologyAttachment {
+		class AdvancedTechnologyAttachment : public Driver {
 		
 			//protected:
 			public:

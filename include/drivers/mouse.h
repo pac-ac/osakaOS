@@ -32,11 +32,10 @@ namespace os {
 				os::common::uint8_t buffer[3];
 				os::common::int8_t offset;
 				os::common::uint8_t buttons;
+				bool pressed;
 
 				MouseEventHandler* handler;
-
         		public:
-				bool pressed;
                 		
 				MouseDriver(os::hardwarecommunication::InterruptManager* manager, MouseEventHandler* handler);
                 		~MouseDriver();

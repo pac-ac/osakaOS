@@ -16,23 +16,21 @@ namespace os {
 			//protected:
 			public:
 				common::uint8_t keyValue;
-
+				common::uint8_t numCode;
+				
 				bool ctrl;
 				bool alt;
 				bool shift;
 				bool caps;
+				common::uint8_t fkey = 0;
 
-				bool f1;
-				
 				bool cli;
 
-					
-				os::common::uint8_t numCode;
 			public:
 				KeyboardEventHandler();
 
 				virtual void OnKeyDown(char);
-				virtual void OnKeyUp();
+				virtual void OnKeyUp(char);
 				
 				virtual void resetMode();
 				
