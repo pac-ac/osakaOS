@@ -90,6 +90,7 @@ void AddressResolutionProtocol::BroadcastMACAddress(uint32_t IP_BE) {
 
 void AddressResolutionProtocol::RequestMACAddress(uint32_t IP_BE) {
 
+	/*
 	AddressResolutionProtocolMessage* arp;
 	arp->hardwareType = 0x0100; // ethernet
 	arp->protocol = 0x0008; // ipv4
@@ -103,8 +104,9 @@ void AddressResolutionProtocol::RequestMACAddress(uint32_t IP_BE) {
 	arp->dstIP = IP_BE;
 
 	this->Send(arp->dstMAC, (uint8_t*)arp, sizeof(AddressResolutionProtocolMessage));
+	*/
 
-	/*	
+		
 	AddressResolutionProtocolMessage arp;
 	arp.hardwareType = 0x0100; // ethernet
 	arp.protocol = 0x0008; // ipv4
@@ -118,7 +120,7 @@ void AddressResolutionProtocol::RequestMACAddress(uint32_t IP_BE) {
 	arp.dstIP = IP_BE;
 
 	this->Send(arp.dstMAC, (uint8_t*)&arp, sizeof(AddressResolutionProtocolMessage));
-	*/
+
 }
 
 
@@ -154,9 +156,9 @@ uint64_t AddressResolutionProtocol::Resolve(common::uint32_t IP_BE) {
 	
 	uint8_t attempts = 0;
 
-	while (result == 0xffffffffffff && attempts < 128) { //possible infinite loop
+	while (result == 0xffffffffffff && attempts < 128) {
 	
-		result = GetMACFromCache(IP_BE);
+		result = this->GetMACFromCache(IP_BE);
 		attempts++;
 
 	}
@@ -165,7 +167,6 @@ uint64_t AddressResolutionProtocol::Resolve(common::uint32_t IP_BE) {
 	
 		printf("\nARP Resolve has timed out.\n");
 	} else {
-	
 		printf("\nARP Resolve has NOT timed out.\n");
 	}	
 

@@ -27,8 +27,6 @@ InternetProtocolHandler::~InternetProtocolHandler() {
 
 
 
-
-
 bool InternetProtocolHandler::OnInternetProtocolReceived(uint32_t srcIP_BE, uint32_t dstIP_BE,
                                                 uint8_t* internetprotocolPayload, uint32_t size) {
 
@@ -41,10 +39,6 @@ void InternetProtocolHandler::Send(uint32_t dstIP_BE, uint8_t* internetprotocolP
 	backend->Send(dstIP_BE, ip_protocol, internetprotocolPayload, size);
 
 }               
-
-
-
-
 
 
 
