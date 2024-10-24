@@ -61,11 +61,14 @@ namespace os {
 
 		class PeripheralComponentInterconnectController {
 
-			Port32Bit dataport;	
-			Port32Bit commandport;	
-	
 			public:
-				PeripheralComponentInterconnectController();
+				Port32Bit dataport;	
+				Port32Bit commandport;	
+				
+				PeripheralComponentInterconnectDeviceDescriptor* PCIdev = 0; 
+				MemoryManager* memoryManager = 0;
+			public:
+				PeripheralComponentInterconnectController(MemoryManager* memoryManager);
 				~PeripheralComponentInterconnectController();
 
 				//holy shit thats ugly
@@ -80,12 +83,10 @@ namespace os {
 			
 				void SelectDrivers(os::drivers::DriverManager* driverManager, os::hardwarecommunication::InterruptManager* interrupts);
 			
-				//os::drivers::Driver* GetDriver(PeripheralComponentInterconnectDeviceDescriptor dev, 
-				os::drivers::Driver* GetDriver(PeripheralComponentInterconnectDeviceDescriptor *dev, 
+				os::drivers::Driver* GetDriver(PeripheralComponentInterconnectDeviceDescriptor dev, 
 						os::hardwarecommunication::InterruptManager* interrupts);
 
-				//PeripheralComponentInterconnectDeviceDescriptor GetDeviceDescriptor(os::common::uint16_t bus, 
-				PeripheralComponentInterconnectDeviceDescriptor* GetDeviceDescriptor(os::common::uint16_t bus, 
+				PeripheralComponentInterconnectDeviceDescriptor GetDeviceDescriptor(os::common::uint16_t bus, 
 					os::common::uint16_t device, os::common::uint16_t function);
 				
 				BaseAddressRegister GetBaseAddressRegister(os::common::uint16_t bus, os::common::uint16_t device,
