@@ -17,7 +17,7 @@ KeyboardEventHandler::KeyboardEventHandler() {
 void KeyboardEventHandler::OnKeyDown(char ch) {
 }
 
-void KeyboardEventHandler::OnKeyUp() {
+void KeyboardEventHandler::OnKeyUp(char ch) {
 }
 
 void KeyboardEventHandler::resetMode() {
@@ -84,11 +84,7 @@ uint32_t KeyboardDriver::HandleInterrupt(uint32_t esp) {
 	static uint8_t mode = 0;
 	
 		
-	if (handler->cli) {
-		
-		printf("\t");
-	}
-
+	if (handler->cli) { printf("\t"); }
 	
 
 	switch (key) {
@@ -247,96 +243,83 @@ uint32_t KeyboardDriver::HandleInterrupt(uint32_t esp) {
 			break;
 		
 		//space
-		case 0x39:
-			handler->OnKeyDown(' ');
-			break;
+		case 0x39: handler->OnKeyDown(' '); break;
+		
 		//enter
-		case 0x1c:
-			handler->OnKeyDown('\n');
-			break;
+		case 0x1c: handler->OnKeyDown('\n'); break;
+		
 		//handler->caps lock
-		case 0x3a:
-			handler->caps = handler->caps ^ 1;
-			break;
+		case 0x3a: handler->caps = handler->caps ^ 1; break;
+		
 		//windows key
-		case 0x5b:
-			break;
+		case 0x5b: break;
 		
 		//backspace
-		case 0x0e:
-			handler->OnKeyDown('\b');
-			break;
+		case 0x0e: handler->OnKeyDown('\b'); break;
+		
 		//escape
-		case 0x01:
-			handler->OnKeyDown('\x1b');
-			break;
+		case 0x01: handler->OnKeyDown('\x1b'); break;
 
 		//right control
-		case 0x1d:
-			handler->ctrl = true;
-			break;
-		case 0x9d:
-			handler->ctrl = false;
-			break;
+		case 0x1d: handler->ctrl = true; break;
+		case 0x9d: handler->ctrl = false;break;
 		
 		//tab
-		case 0x0f:
-			handler->OnKeyDown('\v');
-			break;
+		case 0x0f: handler->OnKeyDown('\v'); break;
 		
 		//alt keys
-		case 0x38:
-			handler->alt = true;
-			break;
-		case 0xb8:
-			handler->alt = false;
-			break;
-		case 0xe0:
-			handler->alt = false;
-			break;
+		case 0x38: handler->alt = true; break;
+		case 0xb8: handler->alt = false;break;
+		case 0xe0: handler->alt = false;break;
 
 		//f# keys
-		case 0x3b:
-			handler->f1 = true;
-			break;
-		case 0xbb:
-			handler->f1 = false;
-			break;
+		case 0x3b: handler->fkey = 0; handler->OnKeyDown(0); break;
+		case 0x3c: handler->fkey = 1; handler->OnKeyDown(1); break;
+		case 0x3d: handler->fkey = 2; handler->OnKeyDown(2); break;
+		case 0x3e: handler->fkey = 3; handler->OnKeyDown(3); break;
+		
+		case 0x3f: handler->OnKeyDown(4); break;
+		case 0x40: handler->OnKeyDown(5); break;
+		case 0x41: handler->OnKeyDown(6); break;
+		case 0x42: handler->OnKeyDown(7); break;
+		case 0x43: handler->OnKeyDown(8); break;
+
+
 
 		//left arrow
-		case 0x4b:
-			handler->OnKeyDown('\xfc');
-			break;
+		case 0x4b: handler->OnKeyDown('\xfc'); break;
 		//up arrow
-		case 0x48:
-			handler->OnKeyDown('\xfd');
-			break;
+		case 0x48: handler->OnKeyDown('\xfd'); break;
 		//down arrow
-		case 0x50:
-			handler->OnKeyDown('\xfe');
-			break;
+		case 0x50: handler->OnKeyDown('\xfe'); break;
 		//right arrow
-		case 0x4d:
-			handler->OnKeyDown('\xff');
-			break;
+		case 0x4d: handler->OnKeyDown('\xff'); break;
 		
 		//handler->shift keys
-		case 0x2a:
-			handler->shift = true;
-			break;
-		case 0x36:
-			handler->shift = true;
-			break;
-		case 0xaa: 
-			handler->shift = false;
-			break;
-		case 0xb6: 
-			handler->shift = false;
-			break;
+		case 0x2a: handler->shift = true; break;
+		case 0x36: handler->shift = true; break;
+		case 0xaa: handler->shift = false;break;
+		case 0xb6: handler->shift = false;break;
+		
+
+
+
+		//ON_KEY_UP CASES (mainly for keyup recognition in games)
+		case 0xb9: handler->OnKeyUp(' '); break;
+		case 0x91: handler->OnKeyUp('w'); break;
+		case 0x9e: handler->OnKeyUp('a'); break;
+		case 0x9f: handler->OnKeyUp('s'); break;
+		case 0xa0: handler->OnKeyUp('d'); break;
+		
+		case 0x98: handler->OnKeyUp('o'); break;
+		case 0x99: handler->OnKeyUp('p'); break;
+		case 0xb3: handler->OnKeyUp(','); break;
+		case 0xb4: handler->OnKeyUp('.'); break;
+		
 		default:
 			//printf("KEYBOARD ");
 			//printfHex(key);
-			handler->OnKeyUp();
+			handler->OnKeyUp(key);
 			break;
 	}
 

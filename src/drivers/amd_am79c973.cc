@@ -146,9 +146,6 @@ int amd_am79c973::Reset() {
 }
 
 
-
-
-
 uint32_t amd_am79c973::HandleInterrupt(uint32_t esp) {
 
 	printf("\nINTERRUPT FROM AMD am79c973\n");
@@ -192,7 +189,6 @@ void amd_am79c973::Send(uint8_t* buffer, int size) {
 		*dst = *src;
 	}
 			
-	
 	//print data	
 	printf("Sending: ");
 	for (int i = 0; i < size; i++) {
@@ -201,13 +197,10 @@ void amd_am79c973::Send(uint8_t* buffer, int size) {
 		printf(" ");
 	}
 	
-
-
 	sendBufferDescr[sendDescriptor].avail = 0;
 	sendBufferDescr[sendDescriptor].flags2 = 0;
 	sendBufferDescr[sendDescriptor].flags = 0x8300f000
 						| ((uint16_t)((-size) & 0xfff));
-
 
 	registerAddressPort.Write(0);
 	registerDataPort.Write(0x48);

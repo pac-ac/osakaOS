@@ -1,6 +1,8 @@
 #include <drivers/driver.h>
 
+
 using namespace os::drivers;
+using namespace os::common;
 
 
 
@@ -47,3 +49,4 @@ void DriverManager::Replace(Driver* drv, int drvNum) {
 	drivers[drvNum] = drv;
         drivers[drvNum]->Activate();	
 }
+
