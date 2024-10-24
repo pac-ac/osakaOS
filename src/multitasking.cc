@@ -5,10 +5,14 @@ using namespace os::common;
 
 
 
-//Task::Task(GlobalDescriptorTable *gdt, void(*entrypoint)(TaskManager*)) {
-Task::Task(GlobalDescriptorTable *gdt, void entrypoint(), char* name) {
+//Task::Task(GlobalDescriptorTable *gdt, void(*entrypoint)(CommandLine*), CommandLine* cli, char name[33]) {
+Task::Task(GlobalDescriptorTable *gdt, void(*entrypoint)(), char name[33]) {
 
-	taskname = name;
+	//assign task name
+	for (int i = 0; i < 33; i++) {
+		
+		taskname[i] = name[i];
+	}
 
 	cpustate = (CPUState*)(stack + 4096 - sizeof(CPUState));
 
@@ -46,8 +50,6 @@ Task::~Task() {
 
 
 
-
-
 TaskManager::TaskManager(GlobalDescriptorTable* gdt) {
 
 	this->gdt = gdt;
@@ -58,6 +60,7 @@ TaskManager::TaskManager(GlobalDescriptorTable* gdt) {
 	for (int i = 0; i < 256; i++) {
 	
 		tasks[i] = 0;
+		taskPriority[i] = 0;
 	}
 }
 
@@ -84,48 +87,46 @@ bool TaskManager::AddTask(Task* task) {
 
 bool TaskManager::DeleteTask(uint32_t taskNum) {
 
+	if (numTasks <= 0) { return false; }
+	
 	currentTask = -1;
 	numTasks--;
-	tasks[taskNum] = 0;
+	
+	tasks[taskNum]->kill = true;
+	//tasks[taskNum] = 0;
 
 	return true;
 }
 
 
 
-void TaskManager::EndTask() {
-
-	tasks[currentTask]->cpustate->error = 0xffff;
-}
-
-
 
 CPUState* TaskManager::Schedule(CPUState* cpustate) {
 
-	if (numTasks <= 0) {
-		
-		return cpustate;
-	}
-
+	if (numTasks <= 0) { return cpustate; }
 	
 	if (currentTask >= 0) {
-	
-		/*	
-		if (tasks[currentTask]->cpustate->error == 0xffff) {
 			
+		//check if task is to be ended
+		if (tasks[currentTask]->kill == true) {
+		
 			this->DeleteTask(currentTask);
+			if (++currentTask >= numTasks) { currentTask = 0; }
+			return tasks[currentTask]->cpustate;
 		}
-		*/
 		
-		tasks[currentTask]->cpustate = cpustate;
+		
+		//compute task according to assigned priority
+		for (uint16_t i = 0; i < taskPriority[currentTask]+1; i++) {
+		
+			tasks[currentTask]->cpustate = cpustate;
+		}
+	}
 	
-	}
+	//go through tasks again
+	if (++currentTask >= numTasks) { currentTask = 0; }
+	
 
-
-	if (++currentTask >= numTasks) {
-		
-		currentTask = 0;
-	}
-
+	//dont crash lol
 	return tasks[currentTask]->cpustate;
 }

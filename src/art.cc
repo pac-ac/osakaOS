@@ -17,7 +17,7 @@ void printfLine(const char* str, uint8_t line);
 	//render ascii cube in real time or have ugly ass 2000 line file with pre rendered 3d ascii graphics????
 	//cube does look cool though
 	void Funny::cubeAscii(uint16_t cubeCount) {
-        	
+       	
 			printfLine("                                                                                ", 0);
 
 		

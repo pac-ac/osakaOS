@@ -12,7 +12,6 @@ MemoryManager::MemoryManager(size_t start, size_t size) {
 
 	activeMemoryManager = this;
 
-
 	if (size < sizeof(MemoryChunk)) {
 		
 		first = 0;
@@ -39,8 +38,6 @@ MemoryManager::~MemoryManager() {
 
 
 
-
-
 void* MemoryManager::malloc(size_t size) {
 
 	MemoryChunk *result = 0;
@@ -60,9 +57,6 @@ void* MemoryManager::malloc(size_t size) {
 
 	if (result->size >= size + sizeof(MemoryChunk) + 1) {
 	
-		result->allocated = true;
-	} else {
-	
 		MemoryChunk* temp = (MemoryChunk*)((size_t)result + sizeof(MemoryChunk) + size);
 
 		temp->allocated = false;
@@ -74,7 +68,6 @@ void* MemoryManager::malloc(size_t size) {
 		
 			temp->next->prev = temp;
 		}
-		
 		result->size = size;
 		result->next = temp;
 	}
@@ -124,7 +117,6 @@ void* operator new(unsigned size) {
 	
 		return 0;
 	}
-
 	return os::MemoryManager::activeMemoryManager->malloc(size);
 }
 
@@ -136,7 +128,6 @@ void* operator new[](unsigned size) {
 	
 		return 0;
 	}
-
 	return os::MemoryManager::activeMemoryManager->malloc(size);
 }
 

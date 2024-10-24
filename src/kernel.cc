@@ -12,14 +12,17 @@
 #include <drivers/ata.h>
 #include <drivers/speaker.h>
 #include <drivers/pit.h>
+#include <drivers/cmos.h>
 #include <gui/desktop.h>
 #include <gui/window.h>
 #include <gui/button.h>
 #include <gui/widget.h>
 #include <gui/sim.h>
+#include <gui/raycasting.h>
 #include <gui/font.h>
 #include <gui/pixelart.h>
 #include <multitasking.h>
+#include <net/network.h>
 #include <net/etherframe.h>
 #include <net/arp.h>
 #include <net/ipv4.h>
@@ -27,6 +30,10 @@
 #include <filesys/ofs.h>
 #include <cli.h>
 #include <script.h>
+#include <app.h>
+#include <app/paint.h>
+#include <app/file_edit.h>
+#include <app/file_browse.h>
 #include <mode/piano.h>
 #include <mode/snake.h>
 #include <mode/file_edit.h>
@@ -80,10 +87,7 @@ void TUI(uint8_t forecolor, uint8_t backcolor,
 		y1++;
 		
 		//side shadow
-		if (shadow) {
-		
-			putcharTUI(0xff, 0x00, 0x00, x1, y1);
-		}
+		if (shadow) { putcharTUI(0xff, 0x00, 0x00, x1, y1); }
 		x1 = resetX;
 	}
 
@@ -110,17 +114,12 @@ void printfTUI(char* str, uint8_t forecolor, uint8_t backcolor, uint8_t x, uint8
 			putcharTUI(str[i], forecolor, backcolor, x, y);
 			x++;
 		}
-
 		if (x >= 80) {
 			
 			y++;
 			x = 0;
 		}
-
-		if (y >= 25) {
-		
-			y = 0;
-		}
+		if (y >= 25) { y = 0; }
 	}
 }
 
@@ -130,11 +129,7 @@ void printfTUI(char* str, uint8_t forecolor, uint8_t backcolor, uint8_t x, uint8
 uint16_t setTextColor(bool set, uint16_t color = 0x07) {
 	
 	static uint16_t newColor = 0x07; //default gray on black text
-
-	if (set) {	
-		newColor = color;
-	}
-	
+	if (set) { newColor = color; }
 	return newColor;
 }
 
@@ -204,14 +199,14 @@ void printf(char* strChr) {
 				x++;
 				break;
 		}
-	
+
 		if (x >= 80) {
-		
+
 			y++;
 			x = 0;
 		}
 
-		
+
 		//scrolling	
 		if (y >= 25) {
 			
@@ -254,10 +249,10 @@ void printfLine(const char* str, uint8_t line) {
 void printfHex(uint8_t key) {
 
 	char* foo = "00 ";
-       	char* hex = "0123456789ABCDEF";
+	char* hex = "0123456789ABCDEF";
 
-        foo[0] = hex[(key >> 4) & 0x0F];
-        foo[1] = hex[key & 0x0F];
+	foo[0] = hex[(key >> 4) & 0x0F];
+	foo[1] = hex[key & 0x0F];
 	printf(foo);
 }
 
@@ -265,12 +260,9 @@ void printfHex(uint8_t key) {
 
 uint16_t strlen(char* args) {
 
-        uint16_t length = 0;
-
-        for (length = 0; args[length] != '\0'; length++) {
-
-        }
-        return length;
+	uint16_t length = 0;
+	for (length = 0; args[length] != '\0'; length++) {}
+	return length;
 }
 
 
@@ -293,73 +285,62 @@ bool strcmp(char* one, char* two) {
 
 uint32_t str2int(char* args) {
 
-        uint32_t number = 0;
-        uint16_t i = 0;
-        bool gotNum = false;
+	uint32_t number = 0;
+	uint16_t i = 0;
+	bool gotNum = false;
 
-        for (uint16_t i = 0; args[i] != '\0'; i++) {
+	for (uint16_t i = 0; args[i] != '\0'; i++) {
+		
+		if ((args[i] >= 58 || args[i] <= 47) && args[i] != ' ') {
 
-                if ((args[i] >= 58 || args[i] <= 47) && args[i] != ' ') {
+			return 0;
+		}
 
-                        return 0;
-                }
+		if (args[i] != ' ') {
 
-                if (args[i] != ' ') {
-
-                        number *= 10;
-                        number += ((uint32_t)args[i] - 48);
-                        gotNum = true;
-                        args[i] = ' ';
-
+			number *= 10;
+			number += ((uint32_t)args[i] - 48);
+			gotNum = true;
+			args[i] = ' ';
                 } else {
-                        if (gotNum) {
-
-                                return number;
-                        }
-                }
-        }
-        return number;
+                        if (gotNum) { return number; }
+		}
+	}
+	return number;
 }
 
 
 char* int2str(uint32_t num) {
 
-        uint32_t numChar = 1;
-        uint8_t i = 1;
+	uint32_t numChar = 1;
+	uint8_t i = 1;
 
-        if (num % 10 != num) {
+	if (num % 10 != num) {
 
-                while ((num / (numChar)) >= 10) {
+		while ((num / (numChar)) >= 10) {
 
-                        numChar *= 10;
-                        i++;
-                }
+			numChar *= 10;
+			i++;
+		}
+		char* str = "4294967296";
+		uint8_t strIndex = 0;
 
-                char* str = "4294967296";
-                uint8_t strIndex = 0;
+		while (i) {
 
-                while (i) {
+			str[strIndex] = (char)(((num / (numChar)) % 10) + 48);
 
-                        str[strIndex] = (char)(((num / (numChar)) % 10) + 48);
-
-                        if (numChar >= 10) {
-
-                                numChar /= 10;
-                        }
-                        strIndex++;
-                        i--;
-                }
-
-                str[strIndex] = '\0';
-                return str;
-        }
-        char* str = " ";
-        str[0] = (num + 48);
-
-        return str;
+			if (numChar >= 10) { numChar /= 10; }
+			strIndex++;
+			i--;
+		}
+		str[strIndex] = '\0';
+		return str;
+	}
+	char* str = " ";
+	str[0] = (num + 48);
+	
+	return str;
 }
-
-
 
 
 char* argparse(char* args, uint8_t num) {
@@ -421,16 +402,8 @@ void altCode(uint8_t c, uint8_t &numCode) {
 	bool bitShift = (count % 2 == 0);
 	count++;
 
-	if (c <= '9' && c >= '0') { 
-				
-		numCode += (c - '0');
-	} 
-	
-	if (c <= 'f' && c >= 'a') { 
-				
-		numCode += (c - 'a') + 10;			
-	}
-	
+	if (c <= '9' && c >= '0') { numCode += (c - '0'); }
+	if (c <= 'f' && c >= 'a') { numCode += (c - 'a') + 10; }
 	numCode <<= (4 * bitShift);
 }
 
@@ -440,28 +413,25 @@ void altCode(uint8_t c, uint8_t &numCode) {
 //class that connects the keyboard to the rest of the command line
 class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine {
 	
-	//protected:
 	public:
 		bool pressed;
 	public:
 		CLIKeyboardEventHandler(GlobalDescriptorTable* gdt, 
 					TaskManager* tm,
-					AdvancedTechnologyAttachment* ata0m) 
-		: CommandLine(gdt, tm, ata0m) {
+					MemoryManager* mm,
+					FileSystem* filesystem,
+					CMOS* cmos,
+					DriverManager* drvManager) 
+		: CommandLine(gdt, tm, mm, filesystem, cmos, drvManager) {
 		
 			this->cli = true;
 		}
 	
-
 		void modeSelect(uint16_t mode, bool pressed, unsigned char ch, 
-				bool ctrl, bool type) {			
+				bool ctrl, bool type, FileSystem* filesystem) {			
 	
 			switch (this->cliMode) {
 			
-				case 1:
-					//if (type) { this->script(pressed, ch, ctrl); }
-					this->script(pressed, ch, ctrl);
-					break;
 				case 2:
 					piano(pressed, ch);
 					break;
@@ -469,7 +439,7 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 					snake(ch);
 					break;
 				case 4:
-					if (type) { fileMain(pressed, ch, ctrl); }
+					if (type) { fileMain(pressed, ch, ctrl, filesystem); }
 					break;
 				case 5:
 					space(pressed, ch);
@@ -481,7 +451,6 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 					break;
 			}
 		}
-
 		
 		void OnKeyDown(char c) {
 			
@@ -613,7 +582,8 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 				}
 			} else {
 				//modes
-				this->modeSelect(this->cliMode, this->pressed, this->keyChar, this->ctrl, 1);
+				this->modeSelect(this->cliMode, this->pressed, 
+						this->keyChar, this->ctrl, 1, this->filesystem);
 				
 				//lol
 				index = 0;
@@ -621,10 +591,7 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 		}
 	
 
-		void OnKeyUp() {
-
-			this->pressed = false;
-		}
+		void OnKeyUp() { this->pressed = false; }
 		
 
 		void resetCmd() {
@@ -657,7 +624,7 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 				case 4:
 					//file editor
 					fileTUI();
-					fileMain(0, 'c', 1);
+					fileMain(0, 'c', 1, nullptr);
 					break;
 				case 5:
 					//space game
@@ -674,7 +641,6 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 					break;
 			}
 		}
-
 		//print error messages for modes
 		//and other things you want
 		void resetMode() {
@@ -683,9 +649,6 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 	
 			switch (this->cliMode) {
 		
-				case 1:
-					printf("\nScript has been terminated.\n\n");
-					break;
 				case 2:
 					printf("\nExiting piano mode...\n\n");
 					break;
@@ -693,7 +656,7 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 					printf("\nExiting snake mode...\n\n");
 					break;
 				case 4:
-					fileMain(0, 'c', 1);
+					fileMain(0, 'c', 1, nullptr);
 					printf("\nExiting file edit mode...\n\n");
 					break;
 				case 5:
@@ -724,6 +687,15 @@ void sleep(uint32_t ms) {
 }
 
 
+double getTicks() {
+
+	PIT pit;
+	pit.setCount(1193182/1000);
+	return (double)(pit.readCount());
+}
+
+
+
 void memWrite(uint32_t memory, uint32_t inputVal) {
 
 	volatile uint32_t* value;
@@ -738,7 +710,6 @@ uint32_t memRead(uint32_t memory) {
 	
 	return *value;
 }
-
 
 
 void printOsaka(uint8_t num, bool cube) {
@@ -806,97 +777,8 @@ uint16_t prng() {
 }
 
 
-void lulalu() {
-
-	//bmp is 135, each beat is 444 ms
-	char notes1[] = {
-		'E', 'G', 'E', 'G', 'E', 'G', 'A', 'B', 'C', 'B', 'A', 'G', 
-		'F', 'd', 'F', 'd', 'd', 'D', 'C', 'a', 'g', 'G', 'F', 'G',
-		'E', 'G', 'E', 'G', 'E', 'G', 'A', 'B', 'C', 'B', 'A', 'G', 
-		'F', 'd', 'F', 'd', 'd', 'D', 'C', 'a', 'g', 'a',
-		'C', 'a', 'C', 'D', 'C', 'a', 'g', 'G', 'E', 'G', 'A', 'G', 
-		'E', 'G',
-		'C', 'a', 'C', 'D', 'C', 'a', 'g', 'a', 'C', 'G', 'F', 'E',
-		'D', 'D', 'D', 'E', 'E', 'F', 'F', 'F', 'a', 'g', 'a',
-		'G', 'A', 'B', 'C', 'D', 'C', 'B',
-		'C', 'A', 'C', 'E', 'D', 'C', 'G', 'F', 'E', 'D', 'E',
-		'C', 'A', 'C', 'E', 'D', 'C', 'G', 'F', 'E', 'D', 'E',
-		'C', 'A', 'C', 'E', 'D', 'C', 'G', 'F', 'E', 'D', 'E',
-		'F', 'G', 'g', 'a', 'g', 'a', 'C', 'D',
-		'C', 'A', 'C', 'E', 'D', 'C', 'G', 'F', 'E', 'D', 'E',
-		'C', 'A', 'C', 'E', 'D', 'C', 'G', 'F', 'E', 'D', 'E',
-		'C', 'a', 'C', 'd', 'D', 'C', 'G', 'F', 'd', 'D',
-		'd', 'F', 'G', 'g', 'G', 'A', 'B', 'D',
-		'C', 'D', 'C', 'D', 'C', 'D', 'C', 'D', 'C', 'D', 'C'
-	};
-
-	uint8_t octave1[] = {
-		4, 4, 4, 4, 4, 4, 4, 4, 5, 4, 4, 4,
-		4, 5, 4, 5, 5, 5, 5, 4, 4, 4, 4, 4,
-		4, 4, 4, 4, 4, 4, 4, 4, 5, 4, 4, 4,
-		4, 5, 4, 5, 5, 5, 5, 4, 4, 4,
-		5, 4, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4,
-		4, 4,
-		5, 4, 5, 5, 5, 4, 4, 4, 5, 4, 4, 4,
-		4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-		4, 4, 4, 5, 5, 5, 4,
-		5, 4, 5, 5, 5, 5, 4, 4, 4, 4, 4,
-		5, 4, 5, 5, 5, 5, 4, 4, 4, 4, 4,
-		5, 4, 5, 5, 5, 5, 4, 4, 4, 4, 4,
-		4, 4, 4, 4, 4, 4, 5, 5,
-		5, 4, 5, 5, 5, 5, 4, 4, 4, 4, 4,
-		5, 4, 5, 5, 5, 5, 4, 4, 4, 4, 4,
-		5, 4, 5, 5, 5, 5, 4, 4, 4, 4,
-		4, 4, 4, 4, 4, 4, 4, 5,
-		5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5
-	};
-
-	uint16_t time1[] = {
-		888, 222, 888, 222, 222, 222, 222, 222, 222, 222, 222, 222, 
-		888, 222, 888, 222, 222, 222, 222, 222, 222, 222, 222, 222,
-		888, 222, 888, 222, 222, 222, 222, 222, 222, 222, 222, 222, 
-		888, 222, 888, 222, 222, 222, 222, 222, 222, 888,
-		333, 111, 222, 222, 222, 222, 222, 222, 222, 222, 222, 222,
-		222, 888,
-		333, 111, 222, 222, 222, 222, 222, 222, 444, 444, 444, 444,
-		444, 222, 222, 666, 222, 666, 222, 222, 333, 333, 222,
-		888, 888, 444, 444, 222, 222, 444,
-		444, 444, 444, 222, 222, 222, 222, 222, 222, 222, 222,
-		444, 444, 444, 222, 222, 222, 222, 222, 222, 222, 222,
-		444, 444, 444, 222, 222, 222, 222, 222, 222, 222, 222,
-		444, 444, 444, 444, 444, 444, 444, 444,
-		444, 444, 444, 222, 222, 222, 222, 222, 222, 222, 222,
-		444, 444, 444, 222, 222, 222, 222, 222, 222, 222, 222,
-		444, 444, 444, 222, 222, 222, 444, 222, 222, 222,
-		444, 444, 444, 444, 444, 444, 444, 444,
-		444, 222, 444, 222, 444, 222, 444, 222, 222, 222, 888
-	};
-
-	while (1) {
-
-		for (uint8_t i = 0; i < 182; i++) {
-			
-			notePlay(notes1[i], octave1[i], time1[i]);
-		}
-	}
-}
-
-
-
-void forget() {
-
-	uint32_t start = 0;
-	uint32_t end = prng();
-
-	for (start; start < end; start++) {
-	
-		memWrite(start, 0);
-	}
-}
-
-
 void reboot() {
-	
+
 	asm volatile ("cli");
 
 	uint8_t read = 0x02;
@@ -911,59 +793,101 @@ void reboot() {
 	asm volatile ("hlt");
 }
 
+uint32_t cmosDetectMemory() {
 
-void explodeMain() {
+	uint32_t total = 0;
+	uint8_t lowmem, highmem = 0;
 
-	//vga
-	VideoGraphicsArray vga;
-	vga.SetMode(320, 200, 8);
+	Port8Bit WriteCMOS(0x70);
+	Port8Bit ReadCMOS(0x71);
 	
-	uint8_t color = 0;
+	//size of low memory
+	WriteCMOS.Write(0x15);
+	sleep(10);
+	lowmem = ReadCMOS.Read();
 	
-	//beeps
-	Speaker speaker;
-	speaker.PlaySound(1234);
-
-	//memory	
-	MemoryManager memoryManager((size_t)0, (size_t)4*1024*1024*1024);
-
-
-	while (1) {
+	WriteCMOS.Write(0x16);
+	sleep(10);
+	highmem = ReadCMOS.Read();
+	total += ((lowmem | highmem) << 10);
 	
-		void* mem = memoryManager.malloc((size_t)4*1024*1024);
+	//total memory between 1M and 16M...or 65M osdev says lol
+	WriteCMOS.Write(0x17);
+	sleep(10);
+	lowmem = ReadCMOS.Read();
 	
+	WriteCMOS.Write(0x18);
+	sleep(10);
+	highmem = ReadCMOS.Read();
+	total += ((lowmem | highmem) << 10);
 
-		speaker.PlaySound(1200);
-		speaker.NoSound();
+	//total memory between 16M and 4G
+	WriteCMOS.Write(0x30);
+	sleep(10);
+	lowmem = ReadCMOS.Read();
+	
+	WriteCMOS.Write(0x31);
+	sleep(10);
+	highmem = ReadCMOS.Read();
+	total += ((lowmem | highmem) << 16);
+
+	return total;
+}
+
+
+
+uint8_t Web2EGA(uint32_t color) {
+
+	uint8_t bytes[3];
+	bytes[2] = color >> 16;
+	bytes[1] = (color >> 8) & 0xff;
+	bytes[0] = color & 0xff;
+
+	uint8_t result = 0;
+
+	for (int i = 0; i < 3; i++) {
+	
+		if        (bytes[i] < 0x2b) { bytes[i] = 0x00;
+		} else if (bytes[i] < 0x80) { bytes[i] = 0x55; 
+		} else if (bytes[i] < 0xd5) { bytes[i] = 0xaa; 
+		} else {		      bytes[i] = 0xff; }
+	}
+
+	for (int i = 0; i < 3; i++) {
+	
+		switch (bytes[i]) {
 		
-		for (uint16_t y = 0; y < 200; y++) {
-			for (uint16_t x = 0; x < 320; x++) {
-		
-				vga.PutPixelRaw(x, y, color);
-			}
+			//both sets of
+			//3 bits
+			case 0xff:
+				result |= (1 << (i+3));
+				result |= (1 << i);
+				break;
+			//most sig 3 bits
+			case 0x55: result |= (1 << (i+3)); break;
+			//least sig 3 bits
+			case 0xaa: result |= (1 << i); break;
+			default: break;
 		}
+	}
+	return result;
+}
 
-		color++;
-			
-		if (color > 0x3f) {
-		
-			color = 0;
-		}	
 
-		speaker.PlaySound(200);
-		speaker.NoSound();
-	}	
+
+
+CommandLine* LoadScriptForTask(bool set, CommandLine* cli = 0) {
+
+	static CommandLine* retCli = 0;
+	if (set) { retCli = cli; }
+	return retCli;
 }
 
 
 Desktop* LoadDesktopForTask(bool set, Desktop* desktop = 0) {
 
 	static Desktop* retDesktop = 0;
-	
-	if (set) {
-		retDesktop = desktop;
-	}
-
+	if (set) { retDesktop = desktop; }
 	return retDesktop;
 }
 
@@ -972,12 +896,8 @@ void DrawDesktopTask() {
 	Desktop* desktop = LoadDesktopForTask(false);
 	desktop->gc->SetMode(320, 200, 8);
 
-	while (1) {
-	
-		desktop->Draw(desktop->gc);
-	}
+	while (1) { desktop->Draw(desktop->gc); }
 }
-
 
 
 typedef void (*constructor)();
@@ -1003,99 +923,148 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 	GlobalDescriptorTable* gdt;
 	TaskManager taskManager(gdt);
 	
+	//heap manager
+	uint32_t* memupper = (uint32_t*)(((size_t)multiboot_structure) + 8);
+	size_t heap = 4*1024*1024;
+	MemoryManager memoryManager(heap, (*memupper)*1024 - heap - 10*1024);
+
+	
 	InterruptManager interrupts(0x20, gdt, &taskManager);
 	printf("Initializing Hardware, Stage 1\n");
 
 	DriverManager drvManager;
 	
-	//drivers
+	//drivers and command line
+	CMOS cmos;
 	AdvancedTechnologyAttachment ata0m(0x1F0, true);
-	CLIKeyboardEventHandler kbhandler(gdt, &taskManager, &ata0m);
-	KeyboardDriver keyboard(&interrupts, &kbhandler);
+	FileSystem osakaFileSystem(&ata0m);
 	
+	CLIKeyboardEventHandler* kbhandler = (CLIKeyboardEventHandler*)memoryManager.malloc(sizeof(CLIKeyboardEventHandler));
+	new (kbhandler) CLIKeyboardEventHandler(gdt, &taskManager, &memoryManager, &osakaFileSystem, &cmos, &drvManager);
+	kbhandler->hash_cli_init(); //init command line
 	
-	drvManager.AddDriver(&keyboard);
+	KeyboardDriver keyboard(&interrupts, kbhandler);
+	kbhandler->caps = false;
+	kbhandler->shift = false;
+	kbhandler->ctrl = false;
+
 
 	//gui driver stuff
 	VideoGraphicsArray vga;
-	Simulator osaka;	
-	Desktop desktop(320, 200, 0x01, &vga, gdt, &taskManager, &osaka);
+	Simulator osaka(&cmos);
+	Button buttons;
+	Desktop desktop(320, 200, 0x01, &vga, gdt, &taskManager, 
+			&memoryManager, &osakaFileSystem, &cmos, 
+			&drvManager, &buttons, &osaka);
 	MouseDriver mouse(&interrupts, &desktop);
 
+
+	drvManager.AddDriver(&keyboard);
 	drvManager.AddDriver(&mouse);
+	drvManager.AddDriver(&ata0m);
+
 
 	//pci and init
-	PeripheralComponentInterconnectController PCIController;
+	PeripheralComponentInterconnectController PCIController(&memoryManager);
 	PCIController.SelectDrivers(&drvManager, &interrupts);
+
+
+	//network
+	amd_am79c973* eth0 = (amd_am79c973*)(drvManager.drivers[3]);
+	//amd_am79c973 eth0(PCIController.PCIdev, &interrupts);
+	//drvManager.drivers[3] = &eth0;
+
 
 	printf("\nInitializing Hardware, Stage 2\n");
 	drvManager.ActivateAll();
 	
+	
+	//network init
+	//IP Address
+	uint8_t ip1 = 10, ip2 = 0, ip3 = 2, ip4 = 15;
+	uint32_t ip_be = ((uint32_t)ip4 << 24) | ((uint32_t)ip3 << 16) 
+			| ((uint32_t)ip2 << 8) | (uint32_t)ip1;
+	
+	eth0->SetIPAddress(ip_be);
+	EtherFrameProvider etherframe(eth0);
+	AddressResolutionProtocol arp(&etherframe);    
+
+
+	// IP Address of the default gateway
+	uint8_t gip1 = 10, gip2 = 0, gip3 = 2, gip4 = 2;
+	uint32_t gip_be = ((uint32_t)gip4 << 24) | ((uint32_t)gip3 << 16) 
+			| ((uint32_t)gip2 << 8) | (uint32_t)gip1;
+
+	uint8_t subnet1 = 255, subnet2 = 255, subnet3 = 255, subnet4 = 0;
+	uint32_t subnet_be = ((uint32_t)subnet4 << 24) | ((uint32_t)subnet3 << 16) 
+			| ((uint32_t)subnet2 << 8) | (uint32_t)subnet1;
+		           
+	InternetProtocolProvider ipv4(&etherframe, &arp, gip_be, subnet_be);
+	InternetControlMessageProtocol icmp(&ipv4);
+	
+	
+	Network network(eth0, &arp, &ipv4, &icmp, gip_be, subnet_be);
+	kbhandler->network = &network;
+
+
 	printf("Initializing Hardware, Stage 3\n");
 	interrupts.Activate();
 	
 	printf("\n\nEverything seems fine.\n");
+
 	
 	interrupts.boot = true;
 	makeBeep(600);
-
 
 	//while (1) {}
 	//everything beyond this point is no longer testing/initialization
 
 
 	//the boot screen and very important cube
-	printOsaka(4, false);
 	uint8_t cubeNum = 0;
-	
-	while (kbhandler.pressed == false) {
-	
+	printOsaka(4, false);
+	kbhandler->pressed = false;
+	while (kbhandler->pressed == false) {
+
 		printOsaka(cubeNum, true);
 		cubeNum++;
 		sleep(10);
 	}
-	printf("\v");
-	
+
 
 	//initialize command line hash table
-	kbhandler.cli = true;
-	kbhandler.hash_cli_init();
-	kbhandler.OnKeyDown('\b');
+	kbhandler->gui = false;
+	kbhandler->cli = true;
+	kbhandler->OnKeyDown('\b');
+	printf("\v");
 
 
 	//this is the command line :D		
 	while (keyboard.handler->keyValue != 0x5b) { //0x5b = command/windows key	
 
-		kbhandler.cli = true;
+		kbhandler->cli = true;
 
-		while (kbhandler.cliMode) {
-			
-			kbhandler.cli = false;
-			kbhandler.modeSelect(kbhandler.cliMode, kbhandler.pressed, 
-					kbhandler.keyChar, kbhandler.ctrl, 0);
+		while (kbhandler->cliMode) {
+
+			kbhandler->cli = false;
+			kbhandler->modeSelect(kbhandler->cliMode, kbhandler->pressed, 
+					kbhandler->keyChar, kbhandler->ctrl, 0, 
+					&osakaFileSystem);
 		}
 	}
-	kbhandler.cli = true;
-	
-	
+	kbhandler->cli = true;
+	kbhandler->gui = true;
+
 
 	//initialize desktop
 	KeyboardDriver keyboardDesktop(&interrupts, &desktop);
 	drvManager.Replace(&keyboardDesktop, 0);
 
-
-	Window win1(&desktop, 10, 10, 40, 20, "1", 0x04, &kbhandler);
-	desktop.AddChild(&win1);
-
-	Window win2(&desktop, 100, 15, 50, 30, "2", 0x19, &kbhandler);
-	desktop.AddChild(&win2);
+	desktop.CreateChild(1, "Osaka's Terminal", kbhandler);
 	
-	Window win3(&desktop, 60, 45, 80, 65, "3", 0x32, &kbhandler);
-	desktop.AddChild(&win3);
 	
-
 	//add task for drawing desktop
-	LoadDesktopForTask(true, &desktop);	
+	LoadDesktopForTask(true, &desktop);
 	Task guiTask(gdt, DrawDesktopTask, "osakaOS GUI");
 	taskManager.AddTask(&guiTask);
 
@@ -1108,6 +1077,6 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 		//to the taskmanager, godspeed o7
 		//			      /|
 		//			      / \
-		
+
 	}
 }

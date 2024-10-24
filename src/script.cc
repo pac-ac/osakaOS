@@ -1,7 +1,10 @@
 #include <script.h>
+#include <gui/desktop.h>
 
 using namespace os;
+using namespace os::gui;
 using namespace os::common;
+using namespace os::drivers;
 using namespace os::filesystem;
 
 
@@ -11,167 +14,204 @@ uint16_t strlen(char*);
 bool strcmp(char*, char*);
 uint32_t str2int(char*);
 char* int2str(uint32_t);
+Desktop* LoadDesktopForTask(bool set, Desktop* desktop = 0);
+//void sleep(uint32_t)
 
 
 
+os::CommandLine* LoadScriptForTask(bool set, os::CommandLine* cli = 0);
 
-//exi
-//not working yet
-void AyumuScriptInput(CommandLine* cli, uint8_t* file, 
-		uint32_t size, uint32_t &indexF, 
-		uint32_t* nestedLoop, uint32_t &indexLoopF) {
 
-	char line[256];
+Script::Script(CommandLine* cli) {
 
-	uint16_t indexLBA = 0;
-	uint16_t indexL = 0;
+	this->parentCli = cli;
+	this->appType = 0;
+}
+
+Script::~Script() {}
+
+void Script::ComputeAppState(GraphicsContext* gc, CompositeWidget* widget) {
+}
+void Script::DrawAppMenu(GraphicsContext* gc, CompositeWidget* widget) {
+}
+
+
+//allow command line to allocate new window again
+void Script::Close() { 
 	
-	bool start = false;
-	bool inLoop = false;
+	this->parentCli->userWindow = nullptr; 
+	this->parentCli->targetWindow = false;
+}
 
 
-	while (indexLBA < 1920) {
-		
-		switch (file[indexLBA]) {
-			
-			case 0x00:
-				if (!start) { printf("no line\n"); break; }
-				line[indexL] = '\0';
-				indexL = 0;
+void Script::SaveOutput(char* fileName, CompositeWidget* widget) {
+}
+void Script::ReadInput(char* fileName, CompositeWidget* widget) {
+}
 
 
-				if (strcmp("loop ", line)) {
+void Script::OnKeyDown(char ch, CompositeWidget* widget) {
 
-					nestedLoop[indexLoopF] = indexLBA - (strlen(line) + 1);
-					
-					if (!inLoop) {
-					
-						indexLoopF++;
-					}
-					inLoop = true;
-				}
-				
-				if (strcmp("pool", line)) {
-			
-					if (cli->conditionLoop) {
-						
-						indexLBA = nestedLoop[indexLoopF-(1 * (indexLoopF > 0))];
-					} else {	
-						indexLoopF--;
-						inLoop = false;
-					}
-				}
-			
-				//execute as command
-				cli->command(line, strlen(line));	
-				start = false;
-				//printf("eol\n");	
-				break;
-			default:
-				//printf("not eol\n");	
-				line[indexL] = file[indexLBA];
-				indexL++;	
-				start = true;
-				break;
-		}
-		indexLBA++;
-		indexF++;
+	this->parentCli->Key = ch;
+}
 
-		if (!start && indexL > 0) { return; }
+void Script::OnKeyUp(char ch, CompositeWidget* widget) {
+}
+
+
+void Script::OnMouseDown(int32_t x, int32_t y, uint8_t button, CompositeWidget* widget) {
+
+	this->parentCli->MouseX = x;
+	this->parentCli->MouseY = y;
+
+	//widget->Dragging = true;
+	switch (button) {
+	
+		case 1:
+			break;
+		default:
+			break;
 	}
 }
 
 
+void Script::OnMouseUp(int32_t x, int32_t y, uint8_t button, CompositeWidget* widget) {
+}
+
+void Script::OnMouseMove(int32_t oldx, int32_t oldy, 
+		    int32_t newx, int32_t newy, CompositeWidget* widget) {
+}
 
 
 
+//function for script multitasking
+//for each terminal
+void UserScript() {
 
+	CommandLine* cli = LoadScriptForTask(false);
+	cli->PrintCommand("\n");
+	AyumuScriptCli(cli->scriptName, cli);
 
-
+	cli->userTask->kill = true;
+	while (1) {}
+	//return;
+}
 
 
 
 //ex
-void AyumuScriptCli(char* name, CommandLine* cli) {
+void AyumuScriptCli(char* name, os::CommandLine* cli) {
 
 	//get file info
-	uint32_t size = GetFileSize(argparse(name, 0));
+	uint32_t size = cli->filesystem->GetFileSize(argparse(name, 0));
+	//uint8_t file[3840];
 	uint8_t file[1920];
 	uint8_t LBA = 0;
-
-	//nested loops and if statements currently not supported
-
-	char line[256];
 	
-	//number of loops allowed (16)
-	uint16_t nestedLoop[16];
-	for (uint8_t i = 0; i < 16; i++) { nestedLoop[i] = 0; }
-
 	//file indexes
 	uint32_t indexF = 0;
 	uint16_t indexLBA = 0;
 	
+	uint32_t fileIndexLoop = 0;
+
+	//store individual command
+	char line[256];
+	uint16_t indexL = 0;
+	bool start = false;
+	bool startLoop = false;
+	
+	//number of loops allowed (16)
+	uint16_t nestedLoop[16];
+	bool nestedLoopCondition[16];
+	
+	for (uint8_t i = 0; i < 16; i++) {
+
+		nestedLoop[i] = 0; 
+		nestedLoopCondition[i] = false;
+	}
 	//loop indexes
 	uint8_t indexLoopF = 0;
-	
-	uint32_t fileIndexLoop = 0;
-	uint16_t indexL = 0;
-	
 
-	bool start = false;
-	bool inLoop = false;
+	
+	//input/return pointer
+	uint32_t jumpIndexes[8];
+	for (uint8_t i = 0; i < 8; i++) { jumpIndexes[i] = size - 1; }
+	uint32_t returnPointer = 0;
+	uint16_t hashIndex = 0;
+
 
 
 	while (indexF < size) {
-	
+
+		//terminate script
+		if (cli->scriptKillSwitch) { 
+			
+			cli->conditionIf = true;
+			cli->conditionLoop = true;
+			for (int i = 0; i < 10; i++) { cli->argTable[i] = 0; }
+			cli->scriptKillSwitch = false;
+			return;	
+		}
+
+		//read next block
 		if (indexF % 1920 == 0) {
-		
+
 			indexLBA = 0;
-			//not efficient using argparse
-			//but it wont work otherwise
-			//because im a hack......
-			ReadLBA(argparse(name, 0), file, LBA);
+			cli->filesystem->ReadLBA(argparse(name, 0), file, LBA);
 			LBA++;
 		}
 
+		//parse and interpret
 		switch (file[indexLBA]) {
-		
+
+			case '\n':
+			case '\v':
 			case 0x00:
 				if (!start) { break; }
-				
+
 				line[indexL] = '\0';
 				indexL = 0;
 				
 				if (strcmp("loop ", line)) {
-						
+
 					//add for every new loop command
-					if (!inLoop) {
-				
+					if (indexLoopF < 16) {
+
+						nestedLoop[indexLoopF] = indexLBA - ((strlen(line) + 1));
 						indexLoopF++;
-						nestedLoop[1] = indexLBA - (strlen(line) + 1);
 					}
-					inLoop = true;
-				}
-				
-				if (strcmp("pool", line)) {
-			
-					if (cli->conditionLoop) {
-						
-						indexF -= (indexLBA - nestedLoop[1]);
-						indexLBA = nestedLoop[1];
-						
-					} else {	
-						indexLoopF--;
-						inLoop = false;
+					startLoop = true;
+
+				} else if (strcmp("pool", line) && indexLoopF > 0) {
+
+					//outer pool checks inner loop condition instead of outer
+					if (nestedLoopCondition[indexLoopF-1] == true) {
+
+						//go back to start of loop if
+						//condition is still true
+						indexF -= (indexLBA - nestedLoop[indexLoopF-1]);
+						indexLBA = nestedLoop[indexLoopF-1];
+					} else {
+						//remove loop index and
+						//proceed with program
+						nestedLoop[indexLoopF-1] = 0;
+						nestedLoopCondition[indexLoopF-1] = false;
 					}
+					indexLoopF -= (1 * (indexLoopF > 0));
+				} else {
 				}
-			
+
 				//execute as command
-				cli->command(line, strlen(line));	
+				cli->command(line, strlen(line));
+				
+				if (startLoop && indexLoopF > 0) {
+				
+					nestedLoopCondition[indexLoopF-1] = cli->conditionLoop;
+					startLoop = false;
+				}
 				start = false;
 				break;
 			default:
-				
 				line[indexL] = file[indexLBA];
 				indexL++;
 				start = true;
@@ -180,8 +220,9 @@ void AyumuScriptCli(char* name, CommandLine* cli) {
 		indexLBA++;
 		indexF++;
 	}
-
+	//reset conditions and script arguments
 	cli->conditionIf = true;
 	cli->conditionLoop = true;
+	for (int i = 0; i < 10; i++) { cli->argTable[i] = 0; }
+	cli->scriptKillSwitch = false;
 }
-

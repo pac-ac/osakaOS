@@ -15,8 +15,10 @@
 
 loader:
 	mov $kernel_stack, %esp
+	
 		
 	call callConstructors
+	
 
 	push %eax
 	push %ebx
@@ -25,8 +27,8 @@ loader:
 	#push %ecx
 	#push %edx
 	
-	call kernelMain
 	
+	call kernelMain
 _stop:
 	cli
 	hlt
