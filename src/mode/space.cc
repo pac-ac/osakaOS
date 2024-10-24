@@ -100,10 +100,12 @@ void space(bool pressed, char key) {
 					
 						putcharTUI('*', 0x09, 0x00, ax, ay);
 						asteroid = false;
-						score += 50;
+						score += 5000;
 						makeBeep(50);
 						putcharTUI(' ', 0x09, 0x00, ax, ay);
 					}
+					score += 50;
+					makeBeep(500);
 				}
 				fire = true;
 				break;
@@ -175,11 +177,8 @@ void space(bool pressed, char key) {
 		putcharTUI(0xff, 0x00, 0x00, 12 + (health / 5), 0);
 		putcharTUI(0xff, 0x00, 0x00, 12 + (health / 5) + 1, 0);
 	}
-
-
-
-	//vidmem = (volatile uint16_t*)0xb8000 + (80*x+y);
 	gameTicks++;
+	if (gameTicks % 50 == 0) { score++; }
 	
 	putcharTUI((score / 1000) + 48, 0x0f, 0x00, 72, 0);
 	putcharTUI((score / 100) + 48, 0x0f, 0x00, 73, 0);

@@ -1,5 +1,4 @@
 #include <mode/file_edit.h>
-#include <filesys/ofs.h>
 
 
 using namespace os;
@@ -28,7 +27,7 @@ void fileTUI() {
 
 
 
-void file(bool pressed, char key, bool ctrl, bool reset) {
+void file(bool pressed, char key, bool ctrl, bool reset, FileSystem* filesystem) {
 
 	AdvancedTechnologyAttachment ata0m(0x1F0, true);
 	static char fileName[32];
@@ -68,7 +67,6 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 			searchStr[i] = 0x00;
 		}
 		searchStr[0] = '\0';	
-
 
 		x = 0;
 		y = 0;
@@ -134,8 +132,8 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 
 
 						//read file if it already exists
-						fileSize = GetFileSize(fileName);
-						ReadLBA(fileName, file, lba);
+						fileSize = filesystem->GetFileSize(fileName);
+						filesystem->ReadLBA(fileName, file, lba);
 
 						for (int y = 0; y < 24; y++) {
 							for (int x = 0; x < 80; x++) {
@@ -156,8 +154,6 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 					}
 					break;
 				}
-			
-
 			char* displayStr = searchStr;
 			displayStr[index] = '_';
 			printfTUI(displayStr, 0xff, 0x00, 29, 11);
@@ -176,13 +172,13 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 				
 					//save file to disk
 					case 'w':
-						if (FileIf(fnv1a(fileName))) {
+						if (filesystem->FileIf(fnv1a(fileName))) {
 
-							WriteLBA(fileName, file, lba);
+							filesystem->WriteLBA(fileName, file, lba);
 							printfTUI("File has been saved.", 0x0f, 0x01, 33, 24);
 						} else {
 				
-							NewFile(fileName, file, (lba + 1) * 1920);
+							filesystem->NewFile(fileName, file, fnv1a(fileName), (lba + 1) * 1920);
 							printfTUI("File was created.", 0x0f, 0x01, 33, 24);
 						}
 						return;	
@@ -196,41 +192,13 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 					case '\xfc':
 						lba -= (1 * (lba > 0));
 						break;
-					//copy line
-					case 'Y':
-						for (uint8_t i = 0; i < 80; i++) {
-						
-							copyLine[i] = file[80*y+i];
-						}
-						printfTUI("Copied line to clipboard.", 0x0f, 0x01, 33, 24);
-						break;
-					//paste line
-					case 'P':
-						for (uint8_t i = 0; i < 80; i++) {
-						
-							file[80*y+i] = copyLine[i];
-							putcharTUI(file[80*y+i], 0x0f, 0x00, i, y);
-						}
-						printfTUI("Pasted line from clipboard.", 0x0f, 0x01, 33, 24);
-						y += (1 * (y < 23));
-						break;
-					//delete line
-					case 'D':
-						for (uint8_t i = 0; i < 80; i++) {
-						
-							file[80*y+i] = 0x00;
-							putcharTUI(0x00, 0x0f, 0x00, i, y);
-						}
-						printfTUI("Deleted line.", 0x0f, 0x01, 33, 24);
-						y += (1 * (y < 23));
-						break;
 					default:
 						break;
 				}
 				
 				if (key == '\xff' || key == '\xfc') {
 				
-					ReadLBA(fileName, file, lba);
+					filesystem->ReadLBA(fileName, file, lba);
 					
 					for (int y = 0; y < 24; y++) {
 						for (int x = 0; x < 80; x++) {	
@@ -276,11 +244,9 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 				case '\n':
 					if (y < 24) { y++; x = 0; }
 					break;
-				//tab
 				case '\v':
 					x += (4 * (x < 76));
 					break;
-
 				//escape, file is not saved
 				case '\x1b':
 
@@ -331,13 +297,12 @@ void file(bool pressed, char key, bool ctrl, bool reset) {
 }
 
 
-void fileMain(bool pressed, char key, bool ctrl) {
+void fileMain(bool pressed, char key, bool ctrl, FileSystem* filesystem) {
 
 	if (key == 'c' && ctrl) {
 	
-		file(pressed, key, ctrl, 1);
+		file(pressed, key, ctrl, 1, filesystem);
 		return;
 	}
-
-	file(pressed, key, ctrl, 0);
+	file(pressed, key, ctrl, 0, filesystem);
 }	
