@@ -18,9 +18,250 @@ namespace os {
 			0xff, 0xff, 0xff, 0xff, 0xff
 		};
 
+		
+		static common::uint8_t font_smile[5] {
+			0b00010000,
+			0b00100110,
+			0b00100000,
+			0b00100110,
+			0b00010000
+		};
+		static common::uint8_t font_heart[5] {
+			0b00011100,
+			0b00111110,
+			0b01111100,
+			0b00111110,
+			0b00011100
+		};
+		static common::uint8_t font_diamond[5] {
+			0b00001000,
+			0b00011100,
+			0b00111110,
+			0b00011100,
+			0b00001000
+		};
+		static common::uint8_t font_club[5] {
+			0b00011100,
+			0b01001010,
+			0b01111111,
+			0b01001010,
+			0b00011100
+		};
+		static common::uint8_t font_spade[5] {
+			0b00001100,
+			0b01011110,
+			0b01111111,
+			0b01011110,
+			0b00001100
+		};
+		static common::uint8_t font_dot[5] {
+			0b00111000,
+			0b01111100,
+			0b01111100,
+			0b01111100,
+			0b00111000
+		};
+		
+		
+		//notation
+		static common::uint8_t font_forany[5] {
+			0b00000000,
+			0b00111111,
+			0b01010000,
+			0b01010000,
+			0b00111111
+		};
+		static common::uint8_t font_suchthat[5] {
+			0b00000000,
+			0b01001001,
+			0b01001001,
+			0b00101010,
+			0b00011100
+		};
+		static common::uint8_t font_negation[5] {
+			0b00000000,
+			0b00001000,
+			0b00001000,
+			0b00001000,
+			0b00111000
+		};
+		static common::uint8_t font_uparrow[5] {
+			0b01100000,
+			0b00011000,
+			0b00000110,
+			0b00011000,
+			0b01100000
+		};
+		static common::uint8_t font_downarrow[5] {
+			0b00000110,
+			0b00011000,
+			0b01100000,
+			0b00011000,
+			0b00000110
+		};
+		static common::uint8_t font_xor[5] {
+			0b00111000,
+			0b01010100,
+			0b01111100,
+			0b01010100,
+			0b00111000
+		};
+		static common::uint8_t font_therefore[5] {
+			0b00000000,
+			0b00100000,
+			0b00000100,
+			0b00100000,
+			0b00000000
+		};
+		static common::uint8_t font_belongsto[5] {
+			0b00000000,
+			0b00011100,
+			0b00101010,
+			0b01001001,
+			0b01001001
+		};
+		static common::uint8_t font_subset[5] {
+			0b00000000,
+			0b10011100,
+			0b10100010,
+			0b11000001,
+			0b11000001
+		};
+		static common::uint8_t font_union[5] {
+			0b00111111,
+			0b01000000,
+			0b01000000,
+			0b01000000,
+			0b00111111
+		};
+		static common::uint8_t font_intersection[5] {
+			0b01111110,
+			0b00000001,
+			0b00000001,
+			0b00000001,
+			0b01111110
+		};
+		static common::uint8_t font_pi[5] {
+			0b00000100,
+			0b01111100,
+			0b00000100,
+			0b01111100,
+			0b00000100
+		};
+		static common::uint8_t font_infinity[5] {
+			0b00010000,
+			0b00101000,
+			0b00010000,
+			0b00101000,
+			0b00010000
+		};
+		static common::uint8_t font_approx[5] {
+			0b00100100,
+			0b00010010,
+			0b00100100,
+			0b01001000,
+			0b00100100
+		};
+		static common::uint8_t font_sigma[5] {
+			0b00000000,
+			0b01100011,
+			0b01010101,
+			0b01001001,
+			0b01000001
+		};
+		static common::uint8_t font_sub0[5] {
+			0b00000000,
+			0b00000000,
+			0b01110000,
+			0b10001000,
+			0b01110000
+		};
+		static common::uint8_t font_sub1[5] {
+			0b00000000,
+			0b00000000,
+			0b00000000,
+			0b11111000,
+			0b00000000
+		};
+		static common::uint8_t font_sub2[5] {
+			0b00000000,
+			0b00000000,
+			0b10010000,
+			0b11001000,
+			0b10110000
+		};
+		static common::uint8_t font_sub3[5] {
+			0b00000000,
+			0b00000000,
+			0b10001000,
+			0b10101000,
+			0b01010000
+		};
+		static common::uint8_t font_sub4[5] {
+			0b00000000,
+			0b00000000,
+			0b00111000,
+			0b00100000,
+			0b11111000
+		};
+		static common::uint8_t font_sub5[5] {
+			0b00000000,
+			0b00000000,
+			0b10111000,
+			0b10101000,
+			0b01001000
+		};
+		static common::uint8_t font_sub6[5] {
+			0b00000000,
+			0b00000000,
+			0b01110000,
+			0b10101000,
+			0b01001000
+		};
+		static common::uint8_t font_sub7[5] {
+			0b00000000,
+			0b00000000,
+			0b10001000,
+			0b01001000,
+			0b00111000
+		};
+		static common::uint8_t font_sub8[5] {
+			0b00000000,
+			0b00000000,
+			0b01010000,
+			0b10101000,
+			0b01010000
+		};
+		static common::uint8_t font_sub9[5] {
+			0b00000000,
+			0b00000000,
+			0b10010000,
+			0b10101000,
+			0b01110000
+		};
+		
+		
+		//paint icons
+		static common::uint8_t font_dither[5] {
+			0b10101010,
+			0b01010100,
+			0b10101010,
+			0b01010100,
+			0b10101010
+		};
+		static common::uint8_t font_bucket[5] {
+			0b01111110,
+			0b10001000,
+			0b10000100,
+			0b10001000,
+			0b01111110
+		};
 
 
 
+
+
+		//beginning of ascii
 		//font_special *******************************************************
 		static common::uint8_t font_space[5] {
 			0b00000000,
@@ -114,11 +355,11 @@ namespace os {
 		};
 		
 		static common::uint8_t font_plus[5] {
-			0b00000000,
 			0b00010000,
-			0b00111000,
 			0b00010000,
-			0b00000000
+			0b01111100,
+			0b00010000,
+			0b00010000
 		};
 		
 		static common::uint8_t font_comma[5] {
@@ -130,11 +371,11 @@ namespace os {
 		};
 		
 		static common::uint8_t font_dash[5] {
-			0b00000000,
 			0b00010000,
 			0b00010000,
 			0b00010000,
-			0b00000000
+			0b00010000,
+			0b00010000
 		};
 		
 		static common::uint8_t font_period[5] {
@@ -745,11 +986,11 @@ namespace os {
 		};
 		
 		static common::uint8_t font_V[5] {
-			0b00000000,
-			0b00111111,
+			0b00001111,
+			0b00110000,
 			0b01000000,
-			0b00111111,
-			0b00000000
+			0b00110000,
+			0b00001111
 		};
 		
 		static common::uint8_t font_W[5] {
@@ -761,19 +1002,19 @@ namespace os {
 		};
 		
 		static common::uint8_t font_X[5] {
-			0b00000000,
-			0b01110111,
+			0b01100011,
+			0b00010100,
 			0b00001000,
-			0b01110111,
-			0b00000000
+			0b00010100,
+			0b01100011
 		};
 		
 		static common::uint8_t font_Y[5] {
-			0b00000000,
-			0b00000111,
+			0b00000011,
+			0b00000100,
 			0b01111000,
-			0b00000111,
-			0b00000000
+			0b00000100,
+			0b00000011
 		};
 		
 		static common::uint8_t font_Z[5] {
@@ -784,43 +1025,66 @@ namespace os {
 			0b01000011
 		};
 		
+		//other special characters
+		static common::uint8_t font_leftcurly[5] {
+			0b00000000,
+			0b00001000,
+			0b00110110,
+			0b01000001,
+			0b00000000
+		};
 		
+		static common::uint8_t font_bar[5] {
+			0b00000000,
+			0b00000000,
+			0b01111111,
+			0b00000000,
+			0b00000000
+		};
 		
+		static common::uint8_t font_rightcurly[5] {
+			0b00000000,
+			0b01000001,
+			0b00110110,
+			0b00001000,
+			0b00000000
+		};
 		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
+		static common::uint8_t font_tilde[5] {
+			0b00000000,
+			0b00010000,
+			0b00001000,
+			0b00010000,
+			0b00001000
+		};
+	
+	
 
 
+
+
+
+		static common::uint8_t font_rect[5] {
+			0b11111111,
+			0b10000001,
+			0b10000001,
+			0b10000001,
+			0b11111111
+		};
+		
+		static common::uint8_t font_unknown[5] {
+			0b11111111,
+			0b11111101,
+			0b10101110,
+			0b11110110,
+			0b11111001
+		};
+		
 
 		
 		//font_array *******************************************************
-		static common::uint8_t* charset[256] {
+		static common::uint8_t* charset[] = {
+							//ascii
 							//special 1
 							font_space, font_exclamation, font_quote, font_pound, 
 							font_dollar, font_percent, font_ampersand, font_apos,
@@ -851,10 +1115,24 @@ namespace os {
 							font_g, font_h, font_i, font_j, font_k, font_l, 
 							font_m, font_n, font_o, font_p, font_q, font_r, 
 							font_s, font_t, font_u, font_v, font_w, font_x, 
-							font_y, font_z
+							font_y, font_z,
 
+							//other special chars
+							font_leftcurly, font_bar, font_rightcurly,
+							font_tilde,
+							font_rect, font_unknown,
 							
-		
+							//beyond ascii
+							font_full,
+							font_smile, font_heart, font_diamond, font_club, font_spade, font_dot,
+							font_forany, font_suchthat, font_negation, font_uparrow, font_downarrow,
+							font_xor, font_therefore, font_belongsto, font_subset, font_union, 
+							font_intersection, font_pi, font_infinity, font_approx, font_sigma,
+							font_sub0, font_sub1, font_sub2, font_sub3, font_sub4, font_sub5,
+							font_sub6, font_sub7, font_sub8, font_sub9,
+
+							//paint icons
+							font_dither, font_bucket
 		};
 	
 	}
