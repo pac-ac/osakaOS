@@ -16,7 +16,7 @@ To compile from source do 'sudo make run' and pray for the best. The binary will
 
 You will probably need the following software packages: g++, binutils, libc6-dev-i386, qemu-system-x86_64 grub-legacy, grub2, xorriso.
 
-If you plan on using other emulators then make sure it has piix4 ide support for storage, at least 8MB of memory, and pc speaker support for basic audio. Emulation is the preferred way to run the OS as running it on real hardware requires a very old machine for the drivers to work, as well as a lack of concern for the data on the machine since the OS doesn't care to ask if you want to write over a pre-existing system partition, it will just do it. There is also a lack of error catching that can cause crashes, which would be annoying to deal with on real machines.
+If you plan on using other emulators then make sure it has piix4 ide support for storage, at least 8MB of memory, standard VGA emulation, and pc speaker support for basic audio. Emulation is the preferred way to run the OS as running it on real hardware requires a very old machine for the drivers to work, as well as a lack of concern for the data on the machine since the OS doesn't care to ask if you want to write over a pre-existing system partition, it will just do it. There is also a lack of error catching that can cause crashes, which would be annoying to deal with on real machines.
 
 <h2>How to get audio using PulseAudio</h2>
 
