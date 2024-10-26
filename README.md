@@ -8,6 +8,7 @@ osakaOS is a 32 bit, (optionally) multitasking, megalithic operating system that
 Multitasking kernel programs, file allocation, graphical window manipulation, a paint GUI program, and much more :)
 
 ![](desktop.png)
+<i>The desktop of osakaOS, you can enter the GUI by pressing the windows/command key.</i>
 
 <h2>How to run/compile</h2>
 
