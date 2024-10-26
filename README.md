@@ -54,10 +54,10 @@ No, I just thought it would be funny.
 <br>"wdisk (int) (string)" - write (string) data to (int) sector.</br>
 
 <br>FILESYSTEM</br>
-<br>"files"         - list all known files and number of files currently allocated.</br>
-<br>"tag"           - assign an organizational tag to given files.</br>
-<br>"size (file)"   - print out size of (file) in bytes.</br>
-<br>"delete (file)" - deletes and removes (file) from filesystem. [partly broken]</br>
+<br>"files"                - list all known files and number of files currently allocated.</br>
+<br>"tag (string) (file)"  - assign an organizational tag (string) to given files.</br>
+<br>"size (file)"          - print out size of (file) in bytes.</br>
+<br>"delete (file)"        - deletes and removes (file) from filesystem.</br>
 
 <br>AYUMUSCRIPT</br>
 <br>"int (string) (int)"               - define variable with name (string) and value (int).</br>
