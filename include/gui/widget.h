@@ -92,6 +92,7 @@ namespace os {
 				virtual bool AddChild(CompositeWidget* child);
 				virtual CompositeWidget* CreateChild(common::uint8_t appType, char* name, App* app);
 				virtual bool DeleteChild();
+				
 			
 				//menu stuff to change window
 				virtual bool Maximize();

@@ -2255,7 +2255,7 @@ void printfLine(const char* str, uint8_t line);
 		
         	printfLine("                  __   ", 12);
         	printfLine("     ######      /  \\ ", 13);
-		printfLine("   #,,,,,v!5#       |  ", 14);
+		    printfLine("   #,,,,,v!5#       |  ", 14);
        		printfLine("  #,,,,,,,v!5#     /   ", 15);
        		printfLine("  #,,,,,,,v!5#     |   ", 16);
        		printfLine("  #,,,,,,,v!5#     .   ", 17);

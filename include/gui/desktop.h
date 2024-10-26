@@ -47,6 +47,8 @@ namespace os {
 
 				bool takeSS = false;
 
+				bool kClick = false;
+    
 				common::uint32_t MouseX;
 				common::uint32_t MouseY;
 

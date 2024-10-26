@@ -7,6 +7,13 @@ using namespace os::common;
 using namespace os::drivers;
 using namespace os::math;
 
+static inline void outb(uint16_t port, uint8_t val)
+{
+    __asm__ volatile ( "outb %b0, %w1" : : "a"(val), "Nd"(port) : "memory");
+}
+
+
+
 
 uint16_t strlen(char*);
 uint8_t Web2EGA(uint32_t webColor);
@@ -125,6 +132,18 @@ bool VideoGraphicsArray::SetMode(uint32_t width, uint32_t height, uint32_t color
 	WriteRegisters(g_320x200x256);
 
 	this->FrameBufferSegment = GetFrameBufferSegment();
+
+
+	//Generate pallete
+	
+	uint16_t color = 0;
+	for(color; color < 256; color++){
+		outb(0x03C8, color);
+		outb(0x03C9, (color & 0x20 ? 0x15 : 0) | (color & 0x04 ? 0x2A: 0));
+		outb(0x03C9, (color & 0x10 ? 0x15 : 0) | (color & 0x02 ? 0x2A: 0));
+		outb(0x03C9, (color & 0x08 ? 0x15 : 0) | (color & 0x01 ? 0x2A: 0));
+	}
+
 
 	return true;
 }

@@ -54,7 +54,7 @@ void CompositeWidget::GetFocus(CompositeWidget* widget) {
 	if (parent != 0) { parent->GetFocus(widget); }
 
 	this->focussedChild = widget;
-	int i = windowOffset;
+	int i = 0;
 
 	//find widget index
 	for (i; i < numChildren; i++) {
@@ -131,6 +131,7 @@ bool CompositeWidget::DeleteChild() {
 
 	return true;
 }
+
 
 
 bool CompositeWidget::Maximize() {

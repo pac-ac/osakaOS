@@ -53,6 +53,7 @@ namespace os {
 				void OnMouseUp(common::int32_t x, common::int32_t y, common::uint8_t button);
 				void OnMouseMove(common::int32_t oldx, common::int32_t oldy,
 						 common::int32_t newx, common::int32_t newy);
+				void Close();
 
 				void OnKeyDown(char str);
 				void OnKeyUp(char str);

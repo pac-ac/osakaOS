@@ -2,7 +2,7 @@
 #sudo apt-get install qemu-system-x86_64(any qemu stuff ngl) grub-legacy grub-mkrescue grub2 xorriso
 
 
-GPPPARAMS = -m32 -Iinclude -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-leading-underscore -Wno-write-strings
+GPPPARAMS = -m32 -Iinclude -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-leading-underscore -Wno-write-strings -fno-stack-protector
 ASPARAMS = --32
 LDPARAMS = -melf_i386
 
@@ -73,6 +73,8 @@ osakaOS.iso: osakaOS.bin
 	cp osakaOS.bin iso/boot/osakaOS.bin
 	echo 'set timeout=0' >> iso/boot/grub/grub.cfg
 	echo 'set default=0' >> iso/boot/grub/grub.cfg
+	echo 'insmod all_video' >> iso/boot/grub/grub.cfg
+	echo 'insmod gfxterm' >> iso/boot/grub/grub.cfg
 	echo '' >> iso/boot/grub/grub.cfg
 	echo 'menuentry "osakaOS" {' >> iso/boot/grub/grub.cfg
 	echo '	multiboot /boot/osakaOS.bin' >> iso/boot/grub/grub.cfg

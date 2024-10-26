@@ -51,6 +51,8 @@ using namespace os::filesystem;
 using namespace os::gui;
 using namespace os::math;
 
+PeripheralComponentInterconnectController* pcic;
+
 
 
 void putcharTUI(unsigned char ch, unsigned char forecolor, 
@@ -341,6 +343,26 @@ char* int2str(uint32_t num) {
 	
 	return str;
 }
+
+
+
+char* int2hex(uint32_t num) {
+
+	char* str = "0x00000000";
+	const char* hex = "0123456789ABCDEF";
+	
+	uint8_t i = 0;
+	while (num)
+	{
+		i++;
+		str[10-i] = hex[num & 0x0F];
+		num = num >> 4;
+	}
+	
+	
+	return str;
+}
+
 
 
 char* argparse(char* args, uint8_t num) {
@@ -899,6 +921,11 @@ void DrawDesktopTask() {
 	while (1) { desktop->Draw(desktop->gc); }
 }
 
+// Zinchuk. Need for some wierd driver stuff
+PeripheralComponentInterconnectController* GetPeripheralComponentInterconnectController(){
+	return pcic;
+}
+
 
 typedef void (*constructor)();
 extern "C" constructor start_ctors;
@@ -967,7 +994,7 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 	//pci and init
 	PeripheralComponentInterconnectController PCIController(&memoryManager);
 	PCIController.SelectDrivers(&drvManager, &interrupts);
-
+	pcic = &PCIController;
 
 	//network
 	amd_am79c973* eth0 = (amd_am79c973*)(drvManager.drivers[3]);

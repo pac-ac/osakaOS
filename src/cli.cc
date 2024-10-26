@@ -1,5 +1,6 @@
 #include <cli.h>
 #include <script.h>
+#include <hardwarecommunication/pci.h>
 
 
 using namespace os;
@@ -24,11 +25,13 @@ void putcharTUI(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t);
 uint16_t setTextColor(bool set, uint16_t color = 0x07);
 void printf(char*);
 void printOsaka(uint8_t, bool);
+void printfHex(uint8_t key);
 
 uint16_t strlen(char* args);
 bool strcmp(char* str1, char* str2);
 uint32_t str2int(char* args);
 char* int2str(uint32_t num);
+char* int2hex(uint32_t num);
 char* argparse(char*, uint8_t);
 uint8_t argcount(char*);
 
@@ -49,8 +52,7 @@ uint32_t numOrVar(char* args, CommandLine* cli, uint8_t argNum);
 
 CommandLine* LoadScriptForTask(bool set, CommandLine* cli = 0);
 
-
-
+PeripheralComponentInterconnectController* GetPeripheralComponentInterconnectController();
 
 
 
@@ -527,6 +529,80 @@ void deleteFile(char* args, CommandLine* cli) {
 		cli->PrintCommand("' isn't a file dumbass.\n");
 	}
 }
+//driver stuff
+
+void checkDevice(char* args, CommandLine* cli){
+	uint16_t bus = str2int(argparse(args, 0));
+	uint16_t device = str2int(argparse(args, 1));
+
+	cli->PrintCommand("\n");
+	cli->PrintCommand("Checking bus:");
+	cli->PrintCommand(int2str(bus));
+	cli->PrintCommand(" device:");
+	cli->PrintCommand(int2str(device));
+	cli->PrintCommand("\n");
+
+	uint8_t function_num =  GetPeripheralComponentInterconnectController()->DeviceHasFunctions(bus,device) ? 8 : 1;
+
+	cli->PrintCommand("Functions:");
+	cli->PrintCommand(int2str(function_num));
+	cli->PrintCommand("\n");
+	
+	PeripheralComponentInterconnectDeviceDescriptor dev;
+	for(uint8_t function = 0; function < function_num; function++){
+		dev = GetPeripheralComponentInterconnectController()->GetDeviceDescriptor(bus, device, function);
+		cli->PrintCommand("- Func");
+		cli->PrintCommand(int2str(function));
+		cli->PrintCommand(":");	
+
+		if (dev.vendor_id == 0x0000 || dev.vendor_id == 0xffff) {
+			cli->PrintCommand("invalid vendor\n");	
+			continue;
+		}	
+
+		cli->PrintCommand("\n");	
+		cli->PrintCommand("   - Vendor:");
+		cli->PrintCommand(int2hex(dev.vendor_id));
+		cli->PrintCommand("'\n");	
+				
+		cli->PrintCommand("\n");	
+		cli->PrintCommand("   - DeviceID:");
+		cli->PrintCommand(int2hex(dev.device_id));
+		cli->PrintCommand("\n");	
+	}
+}
+
+void checkBus(char* args, CommandLine* cli){
+	uint16_t bus = str2int(argparse(args, 0));
+
+	cli->PrintCommand("\n");
+	cli->PrintCommand("Checking bus:");
+	cli->PrintCommand(int2str(bus));
+	cli->PrintCommand("\n");
+
+	PeripheralComponentInterconnectDeviceDescriptor dev;
+    for(uint8_t device = 0; device < 32; device++){
+		uint8_t function_num =  GetPeripheralComponentInterconnectController()->DeviceHasFunctions(bus,device) ? 8 : 1;
+		
+		for(uint8_t function = 0; function < function_num; function++){
+			dev = GetPeripheralComponentInterconnectController()->GetDeviceDescriptor(bus, device, function);
+
+			if (dev.vendor_id == 0x0000 || dev.vendor_id == 0xffff) 
+				continue;
+			
+
+			cli->PrintCommand(" - Dev ");
+			cli->PrintCommand(int2str(device));
+			cli->PrintCommand("(");
+			cli->PrintCommand(int2str(function));
+			cli->PrintCommand("): Vendor=");	
+			cli->PrintCommand(int2hex(dev.vendor_id));
+			cli->PrintCommand("; DeviceID=");	
+			cli->PrintCommand(int2hex(dev.device_id));
+			cli->PrintCommand("\n");	
+		}
+	}
+}
 
 
 //networking commands
@@ -944,6 +1020,7 @@ void evalExpr(char* args, CommandLine* cli) {
 	//evaluate term
 	cli->returnVal = evalTerm(term, cli);
 }
+
 
 
 uint32_t evalTerm(char* args, CommandLine* cli) {
@@ -1593,6 +1670,10 @@ void CommandLine::hash_cli_init() {
 	this->hash_add("size", size);
 	this->hash_add("create", createFile);
 	this->hash_add("delete", deleteFile);
+
+	this->hash_add("checkdev", checkDevice);
+	this->hash_add("checkbus", checkBus);
+
 	this->hash_add("terminal", terminal);
 	this->hash_add("kasugapaint", kasugapaint);
 	this->hash_add("journal", journal);
@@ -1635,6 +1716,7 @@ void CommandLine::hash_cli_init() {
 	this->hash_add("^", bit_xor);
 	this->hash_add("sin", trig_sin);
 	this->hash_add("cos", trig_cos);
+	
 
 	this->hash_add("offset", offsetptr);
 	

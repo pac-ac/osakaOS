@@ -122,6 +122,7 @@ CompositeWidget* Desktop::CreateChild(uint8_t appType, char* name, App* oldApp) 
 	new (window) Window(this, 70, 50, 180, 80, name, color, app, this->filesystem);
 	this->AddChild(window);	
 	this->GetFocus(window);
+	window->Draw(gc);
 	return window;
 }
 
@@ -158,7 +159,11 @@ void Desktop::Draw(common::GraphicsContext* gc) {
 		if (drawButtons) { this->buttons->Draw(gc); }
 
 		//draw windows
-		CompositeWidget::Draw(gc);
+		uint8_t c = 30;
+		while (c--)
+		{
+			if(children[c] != 0) children[c]->Draw(gc);
+		}
 
 		//taskbar
 		if (this->taskbar) { this->DrawTaskBar(gc); }

@@ -203,6 +203,9 @@ uint8_t Window::ReturnAppType() {
 	return this->app->appType;
 }
 
+void Window::Close(){
+	this->app->Close();
+}
 
 
 
@@ -223,7 +226,7 @@ void Window::OnMouseDown(int32_t x, int32_t y, uint8_t button) {
 		Dragging = true;
 	
 		//this is fucked up but it works
-		if (x >= this->x+w-10) { this->app->Close(); }
+		if (x >= this->x+w-10) { this->Close(); }
 
 	//click on menu below border
 	} else if (this->Menu && y < this->y + 20 - (10 * Fullscreen)) {
