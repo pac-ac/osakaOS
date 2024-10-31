@@ -1063,8 +1063,16 @@ uint32_t mathCMD(char* args, CommandLine* cli, uint8_t op) {
 				case 0: result += num; break;
 				case 1: result -= num; break;
 				case 2: result *= num; break;
-				case 3: result /= num; break;
-				case 4: result %= num; break;
+				
+				//div by 0 lol
+				case 3: 
+					if (num) { result /= num; }
+					break;
+				
+				case 4: 
+					if (num) { result %= num; }
+					break;
+				
 				case 5: result &= num; break;
 				case 6: result |= num; break;
 				case 7: result ^= num; break;
@@ -1110,8 +1118,7 @@ void mul(char* args, CommandLine* cli) {
 
 void div(char* args, CommandLine* cli) {
 
-	uint32_t quo = mathCMD(args, cli, 3);
-
+	uint32_t quo = mathCMD(args, cli, 3); 
 	uint16_t hashVar = hash(argparse(args, 0)) % 1024;
 	
 	if (quo) {
@@ -1125,8 +1132,7 @@ void div(char* args, CommandLine* cli) {
 
 void mod(char* args, CommandLine* cli) {
 
-	uint32_t quo = mathCMD(args, cli, 4);
-
+	uint32_t quo = mathCMD(args, cli, 4); 
 	uint16_t hashVar = hash(argparse(args, 0)) % 1024;
 	
 	if (quo) {
