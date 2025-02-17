@@ -1,0 +1,37 @@
+name: Build osakaOS
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update # && sudo apt-get upgrade -y
+          sudo apt-get install -y build-essential binutils libc6-dev-i386 g++ mtools
+          sudo apt-get install -y qemu-system-x86 grub2 xorriso
+
+      - name: Build osakaOS
+        run: |
+          make -j8 osakaOS.bin
+          make -j8 osakaOS.iso
+        env:
+          ARCHIVE: 1
+
+      - name: Store ISO build
+        uses: actions/upload-artifact@v4
+        with:
+          name: osakaOS_build
+          path: osakaOS.iso
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish a release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            *.iso
