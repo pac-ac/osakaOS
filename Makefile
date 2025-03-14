@@ -2,7 +2,8 @@
 #sudo apt-get install qemu-system-x86_64(any qemu stuff ngl) grub-legacy grub-mkrescue grub2 xorriso
 
 
-GPPPARAMS = -m32 -Iinclude -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-leading-underscore -Wno-write-strings
+GPPPARAMS = -m32 -Iinclude -fno-use-cxa-atexit -nostdlib -fno-pie -fno-stack-protector -fno-builtin -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-leading-underscore -Wno-write-strings
+#GPPPARAMS = -m32 -Iinclude -fno-use-cxa-atexit -nostdlib -fno-stack-protector -fno-builtin -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-leading-underscore -Wno-write-strings
 ASPARAMS = --32
 LDPARAMS = -melf_i386
 
@@ -15,6 +16,7 @@ objects = obj/loader.o \
 	  obj/hardwarecommunication/interruptstubs.o \
 	  obj/hardwarecommunication/interrupts.o \
 	  obj/multitasking.o \
+	  obj/code/asm.o \
 	  obj/hardwarecommunication/pci.o \
 	  obj/drivers/keyboard.o \
 	  obj/drivers/mouse.o \
@@ -27,7 +29,6 @@ objects = obj/loader.o \
 	  obj/gui/widget.o \
 	  obj/gui/desktop.o \
 	  obj/gui/window.o \
-	  obj/gui/button.o \
 	  obj/gui/sim.o \
 	  obj/gui/raycasting.o \
 	  obj/gui/games/platformer.o \
@@ -40,6 +41,7 @@ objects = obj/loader.o \
 	  obj/filesys/ofs.o \
 	  obj/cli.o \
 	  obj/app.o \
+	  obj/list.o \
 	  obj/app/paint.o \
 	  obj/app/file_edit.o \
 	  obj/app/file_browse.o \
@@ -49,7 +51,6 @@ objects = obj/loader.o \
 	  obj/mode/snake.o \
 	  obj/mode/file_edit.o \
 	  obj/mode/space.o \
-	  obj/mode/bootscreen.o \
 	  obj/kernel.o
 
 obj/%.o: src/%.cc
@@ -67,6 +68,7 @@ install: osakaOS.bin
 	sudo cp $< /boot/osakaOS.bin
 
 osakaOS.iso: osakaOS.bin
+	
 	mkdir iso
 	mkdir iso/boot
 	mkdir iso/boot/grub
@@ -81,10 +83,9 @@ osakaOS.iso: osakaOS.bin
 	grub-mkrescue --output=osakaOS.iso iso
 	rm -rf iso
 	
-	qemu-img create -f qcow2 Image.img 1G
-	dd if=osakaOS.iso of=Image.img	
+	qemu-img create -f qcow2 Image.img 128M
+	dd if=osakaOS.iso of=Image.img
 
-#run: osakaOS.bin
 run: osakaOS.iso
 	qemu-system-x86_64 -enable-kvm \
 		-boot menu=on \
@@ -105,5 +106,9 @@ run: osakaOS.iso
 
 .PHONY: clean
 clean:
-	rm -rf obj osakaOS.bin osakaOS.iso
-
+	rm -rf obj osakaOS.iso
+	rm -rf diskimage.dd
+	rm -rf *.bin
+	rm -rf *.img
+	rm -rf iso
+	rm -rf tmpdir
