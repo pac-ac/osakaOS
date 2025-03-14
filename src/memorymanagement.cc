@@ -16,7 +16,6 @@ MemoryManager::MemoryManager(size_t start, size_t size) {
 		
 		first = 0;
 	} else {
-
 		first = (MemoryChunk*)start;
 	
 		first -> allocated = false;
@@ -40,6 +39,8 @@ MemoryManager::~MemoryManager() {
 
 void* MemoryManager::malloc(size_t size) {
 
+	this->size += (uint32_t)size;
+
 	MemoryChunk *result = 0;
 
 	for (MemoryChunk* chunk = first; chunk != 0 && result == 0; chunk = chunk->next) {
@@ -49,11 +50,7 @@ void* MemoryManager::malloc(size_t size) {
 			result = chunk;
 		}
 	}
-
-	if (result == 0) {
-	
-		return 0;
-	}
+	if (result == 0) { return 0; }
 
 	if (result->size >= size + sizeof(MemoryChunk) + 1) {
 	
@@ -81,7 +78,6 @@ void* MemoryManager::malloc(size_t size) {
 void MemoryManager::free(void* ptr) {
 
 	MemoryChunk* chunk = (MemoryChunk*)((size_t)ptr - sizeof(MemoryChunk));
-	
 	chunk -> allocated = false;
 	
 	if (chunk->prev != 0 && !chunk->prev->allocated) {
@@ -106,6 +102,17 @@ void MemoryManager::free(void* ptr) {
 		
 			chunk->next->prev = chunk;
 		}
+	}
+}
+
+
+//shift values in buffer starting from index
+void MemoryManager::BufferShift(uint8_t* buffer, uint32_t bufsize, 
+				uint32_t index, int32_t shift) {
+
+	for (uint32_t i = index; i < bufsize; i++) {
+	
+		buffer[index+shift] = buffer[index];
 	}
 }
 

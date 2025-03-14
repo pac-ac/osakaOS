@@ -15,9 +15,8 @@ bool strcmp(char*, char*);
 uint32_t str2int(char*);
 char* int2str(uint32_t);
 Desktop* LoadDesktopForTask(bool set, Desktop* desktop = 0);
+TaskManager* LoadTaskManager(bool set, TaskManager* tm = 0);
 //void sleep(uint32_t)
-
-
 
 os::CommandLine* LoadScriptForTask(bool set, os::CommandLine* cli = 0);
 
@@ -88,13 +87,13 @@ void Script::OnMouseMove(int32_t oldx, int32_t oldy,
 //for each terminal
 void UserScript() {
 
+	TaskManager* tm = LoadTaskManager(false);
 	CommandLine* cli = LoadScriptForTask(false);
 	cli->PrintCommand("\n");
 	AyumuScriptCli(cli->scriptName, cli);
 
 	cli->userTask->kill = true;
 	while (1) {}
-	//return;
 }
 
 
@@ -104,8 +103,7 @@ void AyumuScriptCli(char* name, os::CommandLine* cli) {
 
 	//get file info
 	uint32_t size = cli->filesystem->GetFileSize(argparse(name, 0));
-	//uint8_t file[3840];
-	uint8_t file[1920];
+	uint8_t file[OFS_BLOCK_SIZE];
 	uint8_t LBA = 0;
 	
 	//file indexes
@@ -132,13 +130,11 @@ void AyumuScriptCli(char* name, os::CommandLine* cli) {
 	//loop indexes
 	uint8_t indexLoopF = 0;
 
-	
 	//input/return pointer
 	uint32_t jumpIndexes[8];
 	for (uint8_t i = 0; i < 8; i++) { jumpIndexes[i] = size - 1; }
 	uint32_t returnPointer = 0;
 	uint16_t hashIndex = 0;
-
 
 
 	while (indexF < size) {
@@ -154,7 +150,7 @@ void AyumuScriptCli(char* name, os::CommandLine* cli) {
 		}
 
 		//read next block
-		if (indexF % 1920 == 0) {
+		if (indexF % OFS_BLOCK_SIZE == 0) {
 
 			indexLBA = 0;
 			cli->filesystem->ReadLBA(argparse(name, 0), file, LBA);

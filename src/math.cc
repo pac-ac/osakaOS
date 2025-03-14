@@ -28,6 +28,15 @@ double os::math::power(double x, double p) {
 }
 
 
+uint8_t os::math::log2(int32_t x) {
+
+	uint8_t highestBitSet = 0;
+
+	while (x >>= 1) { highestBitSet++; }
+	return highestBitSet;
+}
+
+
 double os::math::factorial(double x) {
 
 	if (x == 0) { return 1.0; }
@@ -166,4 +175,59 @@ uint16_t os::math::LineFillArray(int32_t x0, int32_t y0,
 	}
 
 	return index;
+}
+
+
+float os::math::calculateX(int i, int j, int k, Cube* data) {
+
+	return j * sin(data->A) * sin(data->B) * cos(data->C) - k * cos(data->A) * sin(data->B) * cos(data->C) + 
+		j * cos(data->A) * sin(data->C) + k * sin(data->A) * sin(data->C) + i * cos(data->B) * cos(data->C);
+}
+float os::math::calculateY(int i, int j, int k, Cube* data) {
+
+	return j * cos(data->A) * cos(data->C) + k * sin(data->A) * cos(data->C) - 
+		j * sin(data->A) * sin(data->B) * sin(data->C) + k * cos(data->A) * sin(data->B) * sin(data->C) - 
+		i * cos(data->B) * sin(data->C);
+}
+float os::math::calculateZ(int i, int j, int k, Cube* data) {
+	
+	return k * cos(data->A) * cos(data->B) - j * sin(data->A) * cos(data->B) + i * sin(data->B);
+}
+
+void os::math::calculateForSurface(float cubeX, float cubeY, float cubeZ, int ch, Cube* data) {
+
+	data->x = calculateX(cubeX, cubeY, cubeZ, data);
+	data->y = calculateY(cubeX, cubeY, cubeZ, data);
+	data->z = calculateZ(cubeX, cubeY, cubeZ, data) + data->distanceFromCam;
+
+	data->ooz = 1.0 / data->z;
+
+	data->xp = (int)(data->width / 2 + data->horizontalOffset + data->K1 * data->ooz * data->x * 2);
+	data->yp = (int)(data->height / 2 + data->K1 * data->ooz * data->y);
+
+	data->idx = data->xp + data->yp * data->width;
+
+	if (data->idx >= 0 && data->idx < data->width*data->height) {
+	
+		if (data->ooz > data->zBuffer[data->idx]) {
+
+			data->zBuffer[data->idx] = data->ooz;
+			data->buffer[data->idx] = ch;
+		}
+	}
+}
+
+void os::math::calculateCube(float incrementSpeed, Cube* data) {
+
+	for (float cubeX = -data->cubeWidth; cubeX < data->cubeWidth; cubeX += incrementSpeed) {
+		for (float cubeY = -data->cubeWidth; cubeY < data->cubeWidth; cubeY += incrementSpeed) {
+
+			calculateForSurface(cubeX, cubeY, -data->cubeWidth, '@', data);
+			calculateForSurface(data->cubeWidth, cubeY, cubeX, '$', data);
+			calculateForSurface(-data->cubeWidth, cubeY, -cubeX, '~', data);
+			calculateForSurface(-cubeX, cubeY, data->cubeWidth, '#', data);
+			calculateForSurface(cubeX, -data->cubeWidth, -cubeY, ';', data);
+			calculateForSurface(cubeX, data->cubeWidth, cubeY, '+', data);
+		}
+	}
 }

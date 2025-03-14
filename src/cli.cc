@@ -11,7 +11,7 @@ using namespace os::filesystem;
 using namespace os::hardwarecommunication;
 
 
-//the entire command line of osakaOS
+//the entire command line of osakaOS is stored here
 void (*CommandLine::cmdTable[65536])(char* str, CommandLine* cli);
 bool CommandLine::WakeupInit = false;
 
@@ -32,12 +32,15 @@ char* int2str(uint32_t num);
 char* argparse(char*, uint8_t);
 uint8_t argcount(char*);
 
+float str2float(char* str);
+
+
 void makeBeep(uint32_t freq);
 
 uint32_t prng();
 
 void reboot();
-void sleep(uint32_t);
+//void sleep(uint32_t);
 
 void memWrite(uint32_t, uint32_t);
 uint32_t memRead(uint32_t);
@@ -58,7 +61,15 @@ CommandLine* LoadScriptForTask(bool set, CommandLine* cli = 0);
 
 uint16_t hash(char* str) {
 
-	uint32_t val = fnv1a(str) + 1;
+	uint32_t val = 0x811c9dc5;
+	
+	for (int i = 0; str[i] != '\0'; i++) {
+	
+		val ^= str[i];
+		val *= 0x01000193;
+	}
+	val++;
+	
 	return (val >> 16) ^ (val & 0xffff);
 }
 
@@ -72,24 +83,28 @@ void say(char* args, CommandLine* cli) {
 void print(char* args, CommandLine* cli) {
 
 	uint32_t charNum = numOrVar(args, cli, 0);
+	char* foo = " ";
+	foo[0] = (int8_t)(charNum);
 	
-	if (charNum != 0) {
+	if (charNum < cli->lists->numOfNodes) {
 	
-		char* foo = " ";
-		foo[0] = (int8_t)(charNum);
+		List* list = (List*)(cli->lists->Read(charNum));
+
+		for (int i = 0; i < list->numOfNodes; i++) {
 		
-		cli->PrintCommand(foo);
-	} else {
-		cli->PrintCommand(args);
-	}
+			foo[0] = *(char*)(list->Read(i));
+			cli->PrintCommand(foo);
+		}
+
+	} else if (charNum != 0) { cli->PrintCommand(foo); 
+	} else { 		   cli->PrintCommand(args); }
 }
 
 
 void textcolor(char* args, CommandLine* cli) {
 		
 	uint16_t newColor = (uint16_t)(str2int(args));
-	if (!newColor) { return; }	
-	
+	if (!newColor) { return; }
 	setTextColor(true, newColor);
 }
 
@@ -130,15 +145,11 @@ void kill(char* args, CommandLine* cli) {
 	//stall lol
 	for (int i = 0; i < 0xffff; i++) {}
 	
-
 	//delete task
 	cli->tm->DeleteTask(taskNum);
-	
-
 
 	//free task from kernel heap
 	cli->DeleteTaskForScript(taskNum);
-	
 
 	//let user know
 	cli->PrintCommand("Task ");
@@ -158,7 +169,7 @@ void schedule(char* args, CommandLine* cli) {
 void delay(char* args, CommandLine* cli) {
 
 	uint32_t repeat = numOrVar(args, cli, 0);
-	sleep(repeat);
+	cli->cmos->pit->sleep(repeat);
 }
 
 void userSleep(char* args, CommandLine* cli) {
@@ -200,10 +211,27 @@ void rmem(char* args, CommandLine* cli) {
 }
 
 
+void heap(char* args, CommandLine* cli) {
+
+	cli->PrintCommand("Allocated ");
+	cli->PrintCommand(int2str(cli->mm->size));
+	cli->PrintCommand(" bytes on heap.\n");
+}
+
+
 //asm
 void startInterrupts(char* args, CommandLine* cli) { asm volatile("sti"); }
 void stopInterrupts(char* args, CommandLine* cli) { asm volatile("cli"); }
 void halt(char* args, CommandLine* cli) { asm volatile("hlt"); }
+
+
+//assembler for generating executable 
+//binary code from assembly file
+void assembler(char* args, CommandLine* cli) {
+
+	//generate binary file
+	cli->compiler->Assemble(argparse(args, 0), argparse(args, 1));
+}
 
 
 //port commands
@@ -258,11 +286,9 @@ void wdisk(char* args, CommandLine* cli) {
 
 	uint32_t sector = numOrVar(args, cli, 0);
 	
-	if (sector < 64) {
-	
+	if (sector < 64) { 
 		cli->PrintCommand("Hopefully you're not overwriting anything important.\n");
 	}
-
 
 	//shift string
 	char* cmp = argparse(args, 0);
@@ -301,6 +327,34 @@ void rdisk(char* args, CommandLine* cli) {
 	cli->PrintCommand("\n");
 	
 	for (int i = 0; i < 512; i++) data[i] = 0;
+}
+
+
+
+//query filesystem table in memory
+void ofs(char* args, CommandLine* cli) {
+
+	cli->PrintCommand("Files allocated in table: ");
+	cli->PrintCommand(int2str(cli->filesystem->table->fileCount));
+	cli->PrintCommand("\n");
+
+	for (int i = 0; i < cli->filesystem->table->fileCount; i++) {
+	
+		File* file = (File*)(cli->filesystem->table->files->Read(i));
+		
+		cli->PrintCommand("Sector: ");
+		cli->PrintCommand(int2str(file->Location));
+		cli->PrintCommand(" - Name: ");
+		cli->PrintCommand(file->Name);
+		cli->PrintCommand(" - Entry #");
+		cli->PrintCommand(int2str(i));
+		cli->PrintCommand("\n");
+	}
+	cli->PrintCommand("Current allocation sector: ");
+	cli->PrintCommand(int2str(cli->filesystem->table->currentOpenSector));
+	cli->PrintCommand("\n");
+	
+	cli->returnVal = cli->filesystem->table->fileCount;
 }
 
 
@@ -357,10 +411,11 @@ void files(char* args, CommandLine* cli) {
 
 
 
-void cat(char* args, CommandLine* cli) {
 
-	uint32_t LBAsize = cli->filesystem->GetFileSize(args)/1920;
-	uint8_t data[1920];
+void catFile(char* args, CommandLine* cli) {
+
+	uint32_t LBAsize = cli->filesystem->GetFileSize(args)/OFS_BLOCK_SIZE;
+	uint8_t data[OFS_BLOCK_SIZE];
 
 	if (LBAsize == 0) {
 	
@@ -371,7 +426,7 @@ void cat(char* args, CommandLine* cli) {
 			cli->filesystem->ReadLBA(args, data, i);
 	
 			//print data from file
-			for (uint16_t j = 0; j < 1920; j++) {
+			for (uint16_t j = 0; j < OFS_BLOCK_SIZE; j++) {
 		
 				char* str = " ";
 				str[0] = (char)(data[j]);
@@ -401,50 +456,99 @@ void size(char* args, CommandLine* cli) {
 }
 
 
+void createFile(char* args, CommandLine* cli) {
+	
+	if (argcount(args) < 1) {
+	
+		cli->PrintCommand("Must provide name for file creation.\n");
+		return;
+	}
+	
+	//get file name
+	int i = 0;
+	char fileName[33];
+	for (i; i < strlen(argparse(args, 0)); i++) { fileName[i] = args[i];}
+	fileName[i] = '\0';
+
+	//get list name
+	int j = 0;
+	char listName[256];
+	for (j; j < strlen(argparse(args, 1)); j++) { listName[j] = args[i+j+1];}
+	listName[j] = '\0';
+	
+	
+	
+	List* dataList = nullptr;
+	uint32_t listIndex = hash(listName) % 1024;
+	
+	//check if list for data exists
+	if (argcount(args) > 1 && cli->varTable[listIndex] < cli->lists->numOfNodes) {
+		
+		dataList = (List*)(cli->lists->Read(cli->varTable[listIndex]));
+	}
+
+	//write data from list to file
+	uint8_t data[OFS_BLOCK_SIZE];
+		
+
+	if (dataList != nullptr) {
+		
+		for (int i = 0; i < OFS_BLOCK_SIZE; i++) { 
+		
+			if (i < dataList->numOfNodes) { data[i] = (uint8_t)(*((uint32_t*)(dataList->Read(i))));
+			} else { 	   data[i] = 0x00; }
+		}
+	} else {
+		for (int i = 0; i < OFS_BLOCK_SIZE; i++) { data[i] = 0x00; } 
+	}
+	
+
+	//create file
+	bool created = cli->filesystem->NewFile(fileName, data, OFS_BLOCK_SIZE);
+
+	cli->PrintCommand("'");
+	cli->PrintCommand(argparse(args, 0));
+
+	if (created) {  cli->PrintCommand("' was created.\n");
+	} else {	cli->PrintCommand("' already exists or couldn't be created for some reason.\n"); }
+}
+
+
+void deleteFile(char* args, CommandLine* cli) {
+
+	bool deleted = cli->filesystem->DeleteFile(args);
+
+	cli->PrintCommand("'");
+	cli->PrintCommand(args);
+	
+	if (deleted) {  cli->PrintCommand("' was deleted.\n");
+	} else {	cli->PrintCommand("' isn't a file dumbass.\n"); }
+}
+
+
+
 void copy(char* args, CommandLine* cli) {
 
 	if (argcount(args) < 2) {
 	
-		cli->PrintCommand("Proper args not given.\n");
+		cli->PrintCommand("Atleast 2 files are needed for command.\n");
 		return;
 	}
-	uint32_t location = fnv1a(argparse(args, 0));
-	uint32_t newLocation = fnv1a(argparse(args, 1));
-	
+	uint32_t location = cli->filesystem->GetFileSector(argparse(args, 0));
 	
 	if (cli->filesystem->FileIf(location) == false) {
 		
-		cli->PrintCommand("First file doesn't exist.\n");
+		cli->PrintCommand("File to copy doesn't exist.\n");
 		return;
 	}
 
+	//file block data
+	uint8_t data[OFS_BLOCK_SIZE];
 
-	if (location == newLocation) {
-	
-		cli->PrintCommand("File names must be different.\n");
-	} else {
-		uint8_t LBA[1920];
-		uint32_t lbaCount = cli->filesystem->GetFileSize(argparse(args, 0))/1920;
+	//create and copy file
+	bool created = cli->filesystem->NewFile(argparse(args, 1), data, OFS_BLOCK_SIZE);
 
-	
-		//shift string
-		char* cmp = argparse(args, 0);
-		uint8_t offset = 0;
 
-		for (offset; cmp[offset] != '\0'; offset++) {} offset++;
-		for (int i = 0; args[i] != '\0'; i++) { args[i] = args[i+offset]; }
-
-		//create file and first block
-		cli->filesystem->ReadLBA(cmp, LBA, 0);
-		cli->filesystem->NewFile(args, LBA, newLocation, 1920);
-		
-		//copy rest of data
-		for (int i = 1; i < lbaCount; i++) {
-		
-			cli->filesystem->ReadLBA(cmp, LBA, i);
-			cli->filesystem->WriteLBA(args, LBA, i);
-		}
-	}
 }
 
 
@@ -452,7 +556,7 @@ void tag(char* args, CommandLine* cli) {
 
 	for (int i = 1; i < argcount(args); i++) {
 
-		uint32_t location = fnv1a(argparse(args, i));
+		uint32_t location = cli->filesystem->GetFileSector(argparse(args, i));
 		bool check = cli->filesystem->NewTag(args, location);
 
 		if (check) {
@@ -473,7 +577,7 @@ void detag(char* args, CommandLine* cli) {
 	
 	for (int i = 1; i < argcount(args); i++) {
 
-		uint32_t location = fnv1a(argparse(args, i));
+		uint32_t location = cli->filesystem->GetFileSector(argparse(args, i));
 		uint8_t tagNum = 0;
 		bool tagMatches = cli->filesystem->GetTagFile(argparse(args, 0), location, &tagNum) == location;
 
@@ -487,46 +591,35 @@ void detag(char* args, CommandLine* cli) {
 	}
 }
 
+void encrypt(char* args, CommandLine* cli) {
 
-void createFile(char* args, CommandLine* cli) {
-
-	char* name = argparse(args, 0);
-	uint32_t sector = str2int(argparse(args, 1));
-
-
-	uint8_t data[1920];
-
-	for (int i = 0; i < 1920; i++) {
+	int i = 0;
 	
-		data[i] = 0x00;
-	}
-	bool created = cli->filesystem->NewFile(name, data, sector, 1920);
+	char fileName[33];
+	for (i; i < strlen(argparse(args, 0)); i++) { fileName[i] = args[i];}
+	fileName[i] = '\0';
 
-	cli->PrintCommand("'");
-	cli->PrintCommand(name);
-
-	if (created) {
-		cli->PrintCommand("' was created.\n");
-	} else {
-		cli->PrintCommand("' already exists or can't be created on this sector.\n");
-	}
+	uint8_t key[16];
+	for (int j = i+1; j < strlen(argparse(args, 1)); j++) { key[j] = (uint8_t)args[i+j+1]; }
+	
+	cli->filesystem->CryptFile(fileName, key, true);
 }
 
-
-void deleteFile(char* args, CommandLine* cli) {
-
-	bool deleted = cli->filesystem->DeleteFile(args);
-
-	cli->PrintCommand("'");
-	cli->PrintCommand(args);
+void decrypt(char* args, CommandLine* cli) {
 	
-	if (deleted) {
-		
-		cli->PrintCommand("' was deleted.\n");
-	} else {
-		cli->PrintCommand("' isn't a file dumbass.\n");
-	}
+	int i = 0;
+	
+	char fileName[33];
+	for (i; i < strlen(argparse(args, 0)); i++) { fileName[i] = args[i];}
+	fileName[i] = '\0';
+	
+	uint8_t key[16];
+	for (int j = i+1; j < strlen(argparse(args, 1)); j++) { key[j] = (uint8_t)args[i+j+1]; }
+	
+	
+	cli->filesystem->CryptFile(fileName, key, false);
 }
+
 
 
 //networking commands
@@ -602,6 +695,29 @@ void window(char* args, CommandLine* cli) {
 }
 
 
+//add desktop shortcut
+void shortcut(char* args, CommandLine* cli) {
+
+	char* file = argparse(args, 0);
+	uint32_t location = cli->filesystem->GetFileSector(argparse(args, 0));
+
+	uint8_t openType = str2int(argparse(args, 1));
+	char* imageFile = nullptr;
+	//char* imageFile = argparse(args, 2);
+
+	if (cli->filesystem->FileIf(location) == false) {
+	
+		cli->PrintCommand("'");
+		cli->PrintCommand(argparse(args, 0));
+		cli->PrintCommand("' wasn't found on the disk :/\n");
+		return;
+	}
+
+	//make button
+	cli->appWindow->parent->CreateButton(argparse(args, 0), openType, imageFile);
+}
+
+
 void targetgui(char* args, CommandLine* cli) {
 
 	if (cli->userWindow == nullptr) { 
@@ -615,6 +731,17 @@ void targetgui(char* args, CommandLine* cli) {
 	if (cli->targetWindow) { cli->PrintCommand("Currently targeting user window.\n"); }
 	else { cli->PrintCommand("Currently targeting desktop buffer.\n"); }
 }
+
+void vgaPalette(char* args, CommandLine* cli) {
+
+	uint8_t vgaIndex = str2int(argparse(args, 0));
+	uint8_t r = str2int(argparse(args, 1));
+	uint8_t g = str2int(argparse(args, 2));
+	uint8_t b = str2int(argparse(args, 3));
+
+	cli->vga->PaletteUpdate(vgaIndex, r, g, b);
+}
+
 
 void putpixel(char* args, CommandLine* cli) {
 	
@@ -682,8 +809,18 @@ void drawpic(char* args, CommandLine* cli) {
 	
 		if (args[i] == ' ') { args[i] = '\0'; break; }
 	}
-	//very expensive operation
-	cli->filesystem->Read13H(args, buf, &w, &h);
+	
+
+	uint8_t* ptr = nullptr;
+	
+	if (cli->filesystem->GetTagFile("compressed", cli->filesystem->GetFileSector(args), ptr)) {
+	
+		//very expensive operations
+		cli->filesystem->Read13H(args, buf, &w, &h, true);
+	} else {
+		cli->filesystem->Read13H(args, buf, &w, &h, false);
+	}
+	
 
 	if (cli->targetWindow) { cli->userWindow->FillBuffer(x, y, w, h, buf); }
 	else { cli->appWindow->parent->FillBuffer(x, y, w, h, buf); }
@@ -697,57 +834,28 @@ uint32_t numOrVar(char* args, CommandLine* cli, uint8_t argNum) {
 	char* name = argparse(args, argNum);
 	uint16_t hashVar = hash(name) % 1024;
 	
-	if (cli->varTable[hashVar] != 0xffffffff) {
-	
-		return cli->varTable[hashVar];
+	if (cli->varTable[hashVar] != 0xffffffff) { return cli->varTable[hashVar];
 
 	} else if (name[0] == '$' && name[2] == '\0') {
 
 		//given arguments to script
-		if (name[1] <= '9' && name[1] >= '0') {
-		
-			return cli->argTable[name[1]-'0'];
-		}
+		if (name[1] <= '9' && name[1] >= '0') { return cli->argTable[name[1]-'0']; }
 
 		//value returned from most recent command
-		if (name[1] == 'R') {
-		
-			return cli->returnVal;
-		}
+		if (name[1] == 'R') { return cli->returnVal; }
 
-	} else if (name[0] == '@' && name[2] == '\0') {
-
-		return (uint8_t)(name[1]);
-
-	//input key	
-	} else if (strcmp("$KEY_CHAR", name)) {
-
-		return (uint8_t)(cli->Key);
-
-	//key press
-	} else if (strcmp("$KEY_PRESS", name)) {
-
-		if (cli->userWindow->keypress) { return 1; }
-		else { return 0; }
-
-	//mouse click
-	} else if (strcmp("$LEFT_CLICK", name)) {
-		
-		if (cli->userWindow->mouseclick) { return 1; }
-		else { return 0; }
+	//chars
+	} else if (name[0] == '@' && name[2] == '\0') { return (uint8_t)(name[1]);
 	
-	//mouse coords
-	} else if (strcmp("$MOUSE_X", name)) {
+	//input	
+	} else if (strcmp("$KEY_CHAR", name)) { return (uint8_t)(cli->Key);
+	} else if (strcmp("$KEY_PRESS", name)) { return cli->userWindow->keypress; 
+	} else if (strcmp("$LEFT_CLICK", name)) { return cli->userWindow->mouseclick; 
+	} else if (strcmp("$MOUSE_X", name)) { return cli->MouseX;
+	} else if (strcmp("$MOUSE_Y", name)) { return cli->MouseY;
 	
-		return cli->MouseX;
-
-	} else if (strcmp("$MOUSE_Y", name)) {
-		
-		return cli->MouseY;
 	//str2int
-	} else { 
-		return str2int(name);
-	}
+	} else { return str2int(name); }
 }
 
 
@@ -756,30 +864,25 @@ void varInt(char* args, CommandLine* cli) {
 
 	char* name = argparse(args, 0);
 
-	if ((uint8_t)(name[0] - '0') < 10) {
+	if (((uint8_t)(name[0] - '0') < 10) || (name[0] == '$') || (name[0] == '@')) {
+		
+		char* foo = " "; 
+		foo[0] = name[0];
 	
-		cli->PrintCommand("int error: name cannot begin with number.\n");
+		cli->PrintCommand("error: name cannot begin with '");
+		cli->PrintCommand(foo);
+		cli->PrintCommand("'.\n");
 		return;
 	}
-
-	if (name[0] == '$') {
-	
-		cli->PrintCommand("int error: name cannot begin with '$'.\n");
-		return;
-	}
-
-	if (name[0] == '@') {
-	
-		cli->PrintCommand("int error: name cannot begin with '@'.\n");
-		return;
-	}
-
 
 	uint32_t value = numOrVar(args, cli, 1);
 	uint16_t hashVar = hash(name) % 1024;
 	
 	cli->varTable[hashVar] = value;	
 }
+
+
+
 
 //read raw int from table
 void rint(char* args, CommandLine* cli) {
@@ -821,6 +924,170 @@ void dint(char* args, CommandLine* cli) {
 	cli->varTable[index] = 0xffffffff;
 }
 
+
+//create list
+void varList(char* args, CommandLine* cli) {
+	
+	char* name = argparse(args, 0);
+	uint16_t hashVar = hash(name) % 1024;
+
+	if (((uint8_t)(name[0] - '0') < 10) || (name[0] == '$') || (name[0] == '@')) {
+		
+		char* foo = " "; 
+		foo[0] = name[0];
+	
+		cli->PrintCommand("error: name cannot begin with '");
+		cli->PrintCommand(foo);
+		cli->PrintCommand("'.\n");
+		return;
+	}
+
+	cli->varTable[hashVar] = cli->lists->numOfNodes;
+	
+	List* list = (List*)(cli->mm->malloc(sizeof(List)));
+	new (list) List(cli->mm);
+	cli->lists->Push(list);
+}
+
+//print each element in list
+void printList(char* args, CommandLine* cli) {
+
+	char* name = argparse(args, 0);
+	uint16_t hashVar = hash(name) % 1024;
+
+	if (cli->varTable[hashVar] >= cli->lists->numOfNodes) {
+	
+		cli->PrintCommand("List not found.\n");
+		return;
+	}
+
+	List* list = (List*)(cli->lists->Read(cli->varTable[hash(name) % 1024]));	
+	Node* node = list->entryNode;
+
+	for (int i = 0; i < list->numOfNodes; i++) {
+	
+		cli->PrintCommand(int2str(*(uint32_t*)(node->value)));
+		cli->PrintCommand("\n");
+		node = node->next;
+	}
+}
+
+
+//add to list
+void insertList(char* args, CommandLine* cli) {
+
+	char* name = argparse(args, 0);
+	uint16_t hashVar = hash(name) % 1024;
+	
+	if (cli->varTable[hashVar] >= cli->lists->numOfNodes) {
+	
+		cli->PrintCommand("List not found.\n");
+		return;
+	}
+	List* list = (List*)(cli->lists->Read(cli->varTable[hashVar]));	
+
+	uint32_t num = numOrVar(args, cli, 1);
+	uint32_t index = numOrVar(args, cli, 2);
+
+
+	uint32_t* newNum = (uint32_t*)(cli->mm->malloc(sizeof(uint32_t)));
+	new (newNum) uint32_t;
+	*newNum = num;
+		
+	if (argcount(args) < 3) { list->Push(newNum);
+	} else { list->Insert(newNum, index); }
+}
+
+
+//remove from list
+void removeList(char* args, CommandLine* cli) {
+
+	char* name = argparse(args, 0);
+	uint16_t hashVar = hash(name) % 1024;
+	
+	if (cli->varTable[hashVar] >= cli->lists->numOfNodes) {
+	
+		cli->PrintCommand("List not found.\n");
+		return;
+	}
+	List* list = (List*)(cli->lists->Read(cli->varTable[hashVar]));	
+
+	uint32_t index = numOrVar(args, cli, 1);
+
+	if (argcount(args) < 2) { list->Pop(); }
+	else { list->Remove(index); }
+}
+
+
+//read from list index and save into variable
+void readList(char* args, CommandLine* cli) {
+
+	char* name = argparse(args, 0);
+	uint16_t hashVar = hash(name) % 1024;
+	
+	if (cli->varTable[hashVar] >= cli->lists->numOfNodes) {
+	
+		cli->PrintCommand("List not found.\n");
+		return;
+	}
+	List* list = (List*)(cli->lists->Read(cli->varTable[hashVar]));
+
+	uint32_t index = numOrVar(args, cli, 1);
+	uint32_t* value = (uint32_t*)(list->Read(index));
+
+	//save to variable
+	char* varName = argparse(args, 2);
+	uint16_t readHashVar = hash(varName) % 1024;
+	
+	if (argcount(args) > 2) { cli->varTable[readHashVar] = *value; }
+	cli->returnVal = *value;
+}
+
+//write to preexisting node
+void writeList(char* args, CommandLine* cli) {
+
+	char* name = argparse(args, 0);
+	uint16_t hashVar = hash(name) % 1024;
+	
+	if (cli->varTable[hashVar] >= cli->lists->numOfNodes) {
+	
+		cli->PrintCommand("List not found.\n");
+		return;
+	}
+	List* list = (List*)(cli->lists->Read(cli->varTable[hashVar]));
+	
+	uint32_t index = numOrVar(args, cli, 1);
+	uint32_t value = numOrVar(args, cli, 2);
+	
+	uint32_t* newNum = (uint32_t*)(cli->mm->malloc(sizeof(uint32_t)));
+	new (newNum) uint32_t;
+	*newNum = value;
+	
+	list->Write(newNum, index);
+}
+
+
+
+//destroy list
+void destroyList(char* args, CommandLine* cli) {
+
+	char* name = argparse(args, 0);
+	uint16_t hashVar = hash(name) % 1024;
+	
+	if (cli->varTable[hashVar] >= cli->lists->numOfNodes) {
+	
+		cli->PrintCommand("List not found.\n");
+		return;
+	}
+
+	//if you remove list that was not most recently
+	//allocated, lists index in hash table will be fucked	
+	uint32_t index = cli->varTable[hashVar];	
+	List* list = (List*)(cli->lists->Read(index));
+	list->DestroyList();
+	cli->lists->Remove(index);
+	cli->varTable[hashVar] = 0xffffffff;
+}
 
 
 //comments
@@ -896,154 +1163,6 @@ void loop(char* args, CommandLine* cli) {
 	cli->conditionLoop = trueOrFalse(op, arg1, arg2, cli);
 }
 void pool(char* args, CommandLine* cli) { cli->conditionLoop = true; }
-
-
-
-// math functions for cli
-uint32_t evalTerm(char* args, CommandLine* cli);
-
-void evalExpr(char* args, CommandLine* cli) {
-
-	uint8_t openBrackets = 0;	
-	uint8_t closeBrackets = 0;
-	uint8_t firstTermIndex = 0;
-	uint8_t numOfTerms = 0;
-	char term[33];
-	for (int i = 0; i < 33; i++) { term[i] = '\0'; }
-
-	//go through innermost parentheses first
-	for (int i = 0; args[i] != '\0'; i++) {
-	
-		switch (args[i]) {
-
-			case '(':
-				openBrackets++;
-				firstTermIndex = i+1;
-				break;
-			case ')':
-				closeBrackets++;
-				break;
-			default:
-				break;
-		}
-	}
-
-	if (closeBrackets > openBrackets) { numOfTerms = openBrackets; } 
-	else { numOfTerms = closeBrackets; }
-	
-
-	//isolate term in string
-	int i = 0;
-	for (i; args[i+firstTermIndex] != ')' && args[i+firstTermIndex] != '\0'; i++) {
-	
-		term[i] = args[i+firstTermIndex];
-	}
-	term[i] = '\0';
-
-
-	//evaluate term
-	cli->returnVal = evalTerm(term, cli);
-}
-
-
-uint32_t evalTerm(char* args, CommandLine* cli) {
-	
-	//pemdas
-	//which mnemonic did you learn in school?
-	//I learned it as "please excuse my dear aunt sally"
-	//is that just an american thing? or did everyone learn that?
-
-	//assume spaces between each number/variable/operator
-	//and term starts with number with operators inbetween them
-	uint8_t opcount = argcount(args)/2;
-	uint32_t numcount = opcount+1;
-
-
-	int64_t products[16];
-	uint8_t prodIndex = 0;
-	
-	int64_t sums[16];
-	uint8_t sumIndex = 0;
-
-	int64_t sum1, sum2 = 0;
-
-	
-	//do multiplication and division first
-	//and store them for the sums
-	for (int i = 1; i < opcount; i += 2) {
-	
-		char* operand = argparse(args, i);
-
-		switch (operand[0]) {
-		
-			case '*':
-				products[prodIndex] = (numOrVar(args, cli, i-1)*numOrVar(args, cli, i+1));
-				prodIndex++;
-				break;
-			case '/':
-				products[prodIndex] = (numOrVar(args, cli, i-1)/numOrVar(args, cli, i+1));
-				prodIndex++;
-				break;
-			default:
-				break;
-		}
-		if (prodIndex >= 16) { break; }
-	}
-	prodIndex = 0;
-
-
-	//do the sums and subtractions while
-	//replacing with product nums
-	for (int i = 1; i < opcount; i += 2) {
-		
-		sum1 = numOrVar(args, cli, i-1);
-		sum2 = numOrVar(args, cli, i+1);
-			
-		if (i > 1) {
-				
-			if (argparse(args, i-2)[0] == '*' 
-			|| argparse(args, i-2)[0] == '/') {
-					
-				sum1 = products[prodIndex];
-				prodIndex++;
-			}
-		}
-		
-		if (argparse(args, i+2)[0] == '*' 
-		|| argparse(args, i+2)[0] == '/') {
-					
-			sum2 = products[prodIndex];
-			prodIndex++;
-		}
-	
-
-		char* operand = argparse(args, i);
-
-		switch (operand[0]) {
-		
-			case '+':
-				sums[sumIndex] = sum1+sum2;
-				sumIndex++;
-				break;
-			case '-':
-				sums[sumIndex] = sum1-sum2;
-				sumIndex++;
-				break;
-			default:
-				break;
-		}
-		if (sumIndex >= 16) { break; }
-	}
-
-
-	//return result
-	int64_t result = 0;
-	for (int i = 0; i < sumIndex; i++) { 
-		
-		result += sums[sumIndex]; 
-	}
-	return (uint32_t)result;
-}
 
 
 uint32_t mathCMD(char* args, CommandLine* cli, uint8_t op) {
@@ -1185,6 +1304,7 @@ void trig_sin(char* args, CommandLine* cli) {
 	cli->varTable[hashVar] = result;
 	cli->returnVal = result;
 }
+
 void trig_cos(char* args, CommandLine* cli) {
 	
 	uint16_t hashVar = hash(argparse(args, 0)) % 1024;
@@ -1203,7 +1323,7 @@ void trig_cos(char* args, CommandLine* cli) {
 void ex(char* args, CommandLine* cli) {
 
 	char* file = argparse(args, 0);
-	uint32_t fileSector = fnv1a(file);
+	uint32_t fileSector = cli->filesystem->GetFileSector(file);
 
 	if (cli->filesystem->FileIf(fileSector)) {
 
@@ -1225,9 +1345,8 @@ void ext(char* args, CommandLine* cli) {
 	
 	char* file = argparse(args, 0);
 	uint32_t priority = numOrVar(args, cli, 1) % 256;
-	uint32_t fileSector = fnv1a(file);
+	uint32_t fileSector = cli->filesystem->GetFileSector(file);
 	int i = 0;
-	
 	
 	if (cli->filesystem->FileIf(fileSector)) {
 
@@ -1259,6 +1378,70 @@ void ext(char* args, CommandLine* cli) {
 	cli->PrintCommand("Script file wasn't found.\n");
 }
 
+//execute binary
+void exb(char* args, CommandLine* cli) {
+
+	char* file = argparse(args, 0);
+	uint32_t fileSector = cli->filesystem->GetFileSector(file);
+	
+	if (cli->filesystem->FileIf(fileSector) == false) {
+	
+		cli->PrintCommand("Executable wasn't found.\n");
+		return;
+	}
+	
+	//read from file and load into memory
+	uint8_t binData[OFS_BLOCK_SIZE];
+	cli->filesystem->ReadLBA(file, binData, 0);
+	
+	
+	//allocate memory for code
+	uint16_t codeSize = (binData[0] << 8) | binData[1];
+	uint16_t instructionCount = ((binData[2] << 8) | binData[3]);
+	uint32_t entrypoint = (uint32_t)(cli->code);
+
+	//uint8_t* code = (uint8_t*)(cli->mm->malloc(sizeof(uint8_t)*codeSize));
+	//new (code) uint8_t;
+	
+	cli->PrintCommand("Size of code: ");
+	cli->PrintCommand(int2str(codeSize));
+	cli->PrintCommand(" bytes\n");
+	cli->PrintCommand("Number of instructions: ");
+	cli->PrintCommand(int2str(instructionCount));
+	cli->PrintCommand("\nEntrypoint: ");
+	cli->PrintCommand(int2str(entrypoint));
+	cli->PrintCommand("\n");
+	
+
+	//load program code into memory
+	for (int i = 0; i < codeSize; i++) { cli->code[i] = binData[i+4]; }
+	
+	//allocate and add task
+	Task* task = (Task*)(cli->mm->malloc(sizeof(Task)));
+	new (task) Task(cli->gdt, (void(*)())(entrypoint), "bin generic", instructionCount);
+	//new (task) Task(cli->gdt, (void(*)())(code), "bin generic", instructionCount);
+
+	//yes this is a memory leak, the loader isn't really 
+	//being used seriously for now so fuck it, 12 bytes of
+	//unfreed memory isnt going to kill you relax
+
+
+	cli->tm->AddTask(task);
+}
+
+//print registers of previous task
+void regPrint(char* args, CommandLine* cli) {
+
+	cli->PrintCommand("EAX: ");   cli->PrintCommand(int2str(cli->tm->eaxPrint));
+	cli->PrintCommand("\nEBX: "); cli->PrintCommand(int2str(cli->tm->ebxPrint));
+	cli->PrintCommand("\nECX: "); cli->PrintCommand(int2str(cli->tm->ecxPrint));
+	cli->PrintCommand("\nEDX: "); cli->PrintCommand(int2str(cli->tm->edxPrint));
+
+	cli->PrintCommand("\nESP: "); cli->PrintCommand(int2str(cli->tm->espPrint));
+	cli->PrintCommand("\nEBP: "); cli->PrintCommand(int2str(cli->tm->ebpPrint));
+	cli->PrintCommand("\n");
+}
+
 
 //********************************************************END*****************************************************************
 
@@ -1268,7 +1451,7 @@ void ext(char* args, CommandLine* cli) {
 //misc. commands
 void version(char* args, CommandLine* cli) {
 
-	cli->PrintCommand("osakaOS v2.0\n");
+	cli->PrintCommand("osakaOS v2.1\n");
 	cli->PrintCommand("Copyleft, Leechplus Software\n");
 }
 
@@ -1383,11 +1566,11 @@ void PANIC(char* args, CommandLine* cli) {
 				cli->PrintCommand("|_|   |_|   |_____|   |____|  |_|           |_| \\ / |_|   |_____|   |_|   \n");
 			}
 			speaker.PlaySound(1100);
-			sleep(700);
+			cli->cmos->pit->sleep(700);
 		
 			cli->PrintCommand("\v");
 			speaker.NoSound();
-			sleep(700);
+			cli->cmos->pit->sleep(700);
 		}
 	} else {
 		cli->appWindow->Print("This command is only available in text mode.\n");
@@ -1458,15 +1641,13 @@ void dad(char* args, CommandLine* cli) {
 
 	if (cli->gui == false) {
 
-		Funny cat;
-
 		printf("\v");
-		cat.cat();
+		cat();
 	
-		sleep(3000);
+		cli->cmos->pit->sleep(3000);
 	
 		printf("\v");
-		cat.god();
+		god();
 	} else {
 		cli->appWindow->Print("This command is only available in text mode.\n");
 	}
@@ -1477,21 +1658,32 @@ CommandLine::CommandLine(GlobalDescriptorTable* gdt,
 			TaskManager* tm, 
 			MemoryManager* mm,
 			FileSystem* filesystem,
+			Compiler* compiler,
+			VideoGraphicsArray* vga,
 			CMOS* cmos,
 			DriverManager* drvManager) {
 	
 	this->appType = 1;
 	
+	this->vga = vga;
 	this->gdt = gdt;
 	this->tm = tm;
 	this->mm = mm;
 	this->drvManager = drvManager;
 	this->cmos = cmos;
 	this->filesystem = filesystem;
+	this->compiler = compiler;
 	
+	List* lists = (List*)(mm->malloc(sizeof(List)));
+	new (lists) List(mm);
+	this->lists = lists;
+
 	this->userTask = nullptr;
-	
-	
+
+	//init bin code
+	for (int i = 0; i < 2048; i++) { this->code[i] = 0x00; }
+
+
 	//init variables for scripts
 	for (int i = 0; i < 1024; i++) {
 			
@@ -1510,11 +1702,21 @@ CommandLine::~CommandLine() {
 
 
 
+void CommandLine::SaveOutput(char* filename, CompositeWidget* widget, FileSystem* filesystem) {
+}
+void CommandLine::ReadInput(char* filename, CompositeWidget* widget, FileSystem* filesystem) {
+
+	//when reading in file to command line 
+	//execute as multitasking script
+	ext(filename, this);
+}
+
+
 void CommandLine::CreateTaskForScript(char* fileName) {
 
 	Task* userTask = (Task*)this->mm->malloc(sizeof(Task));
 	
-	new (userTask) Task(gdt, &UserScript, fileName);
+	new (userTask) Task(gdt, &UserScript, fileName, 0);
 	this->userTask = userTask;
 	this->tm->AddTask(this->userTask);
 }
@@ -1528,7 +1730,6 @@ void CommandLine::DeleteTaskForScript(uint8_t taskNum) {
 		this->userTask = nullptr;
 	}
 }
-
 
 
 
@@ -1554,6 +1755,8 @@ void CommandLine::hash_cli_init() {
 
 	//compute and add functions 
 	//to hash table on boot
+	
+	//general commands
 	this->hash_add("say", say);
 	this->hash_add("print", print);
 	this->hash_add("textcolor", textcolor);
@@ -1567,6 +1770,7 @@ void CommandLine::hash_cli_init() {
 	this->hash_add("ping", ping);
 	this->hash_add("reboot", rebootCMD);
 	
+	//hw ports and asm
 	this->hash_add("wport8",  PortWrite8);
 	this->hash_add("rport8",  PortRead8);
 	this->hash_add("wport16", PortWrite16);
@@ -1577,7 +1781,11 @@ void CommandLine::hash_cli_init() {
 	this->hash_add("startINT", startInterrupts);
 	this->hash_add("stopINT", stopInterrupts);
 	this->hash_add("halt", halt);
+	
+	this->hash_add("asm", assembler);
 
+
+	//misc.
 	this->hash_add("mute", muteNonErrors);
 	this->hash_add("delay", delay);
 	this->hash_add("sleep", userSleep);
@@ -1589,29 +1797,44 @@ void CommandLine::hash_cli_init() {
 	this->hash_add("PANIC", PANIC);
 	this->hash_add("wmem", wmem);
 	this->hash_add("rmem", rmem);
+	this->hash_add("heap", heap);
+
+	//disk/file
 	this->hash_add("wdisk", wdisk);
 	this->hash_add("rdisk", rdisk);
+	this->hash_add("ofs", ofs);
 	this->hash_add("files", files);
 	this->hash_add("copy", copy);
 	this->hash_add("tag", tag);
 	this->hash_add("detag", detag);
-	this->hash_add("cat", cat);
+	this->hash_add("cat", catFile);
 	this->hash_add("size", size);
 	this->hash_add("create", createFile);
 	this->hash_add("delete", deleteFile);
+	this->hash_add("encrypt", encrypt);
+	this->hash_add("decrypt", decrypt);
+
+	//vga/graphical
 	this->hash_add("terminal", terminal);
 	this->hash_add("kasugapaint", kasugapaint);
 	this->hash_add("journal", journal);
 	this->hash_add("window", window);
+	this->hash_add("shortcut", shortcut);
 	this->hash_add("targetgui", targetgui);
 	this->hash_add("putpixel", putpixel);
 	this->hash_add("drawrect", drawrect);
 	this->hash_add("drawline", drawline);
 	this->hash_add("drawtext", drawtext);
 	this->hash_add("drawpic", drawpic);
+	this->hash_add("vga", vgaPalette);
 	this->hash_add("version", version);
 
+	
+	//used for binary programs
+	this->hash_add("exb", exb);
+	this->hash_add("reg", regPrint);
 
+	
 	//special commands for scripting
 	this->hash_add("ex", ex);
 	this->hash_add("ext", ext);
@@ -1620,7 +1843,15 @@ void CommandLine::hash_cli_init() {
 	this->hash_add("rint", rint);
 	this->hash_add("wint", wint);
 	this->hash_add("dint", dint);
-	
+
+	this->hash_add("list", varList);
+	this->hash_add("prlist", printList);
+	this->hash_add("insert", insertList);
+	this->hash_add("remove", removeList);
+	this->hash_add("rlist", readList);
+	this->hash_add("wlist", writeList);
+	this->hash_add("delist", destroyList);
+
 	this->hash_add("//", comment);
 
 	this->hash_add("if", If);
@@ -1630,7 +1861,6 @@ void CommandLine::hash_cli_init() {
 	this->hash_add("loop", loop);
 	this->hash_add("pool", pool);
 
-	this->hash_add("math", evalExpr);
 	this->hash_add("+", add);
 	this->hash_add("-", sub);
 	this->hash_add("*", mul);
@@ -1750,7 +1980,6 @@ void CommandLine::OnMouseDown(int32_t x, int32_t y, uint8_t button, CompositeWid
 
 void CommandLine::ComputeAppState(GraphicsContext* gc, CompositeWidget* widget) {
 
-	
 	if (this->init == false) {
 		
 		this->appWindow = widget;
@@ -1766,7 +1995,7 @@ void CommandLine::ComputeAppState(GraphicsContext* gc, CompositeWidget* widget) 
 		//execute wakeup script
 		if ((CommandLine::WakeupInit) == false) {
 		
-			if (this->filesystem->FileIf(fnv1a("wakeup"))) {
+			if (this->filesystem->FileIf(this->filesystem->GetFileSector("wakeup"))) {
 			
 				this->command("ex wakeup", strlen("ex wakeup"));
 			}
@@ -1785,12 +2014,10 @@ char* CommandLine::command(char* cmd, uint8_t length) {
 	char arguments[length];
 	arguments[0] = '\0';
 
-	
 	bool args = false;
+	bool pipe = false;
 	uint8_t argLength = 0;
 	uint8_t cmdLength = length;
-	
-	bool pipe = false;
 	
 
 	for (uint8_t i = 0; i < length; i++) {
@@ -1804,8 +2031,8 @@ char* CommandLine::command(char* cmd, uint8_t length) {
 		}
 
 		if (args) {
-			//pipe
-			pipe = (cmd[i] == '!');
+			
+			pipe = (cmd[i] == '!' && cmd[i-1] != '\\');
 			
 			if (pipe) {
 
@@ -1854,11 +2081,11 @@ char* CommandLine::command(char* cmd, uint8_t length) {
 		//variable
 		if (this->varTable[result % 1024] != 0xffffffff) {
 			
-			if (mute == false) {
-			
-				PrintCommand(int2str(this->varTable[result % 1024]));
-				PrintCommand("\n");
-			}
+			if (mute) { return cmd; }
+				
+			PrintCommand(int2str(this->varTable[result % 1024]));
+			PrintCommand("\n");
+				
 		//unknown command		
 		} else {
 			if (length < 0xff) {

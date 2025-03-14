@@ -15,13 +15,13 @@
 #include <drivers/cmos.h>
 #include <gui/desktop.h>
 #include <gui/window.h>
-#include <gui/button.h>
 #include <gui/widget.h>
 #include <gui/sim.h>
 #include <gui/raycasting.h>
 #include <gui/font.h>
 #include <gui/pixelart.h>
 #include <multitasking.h>
+#include <code/asm.h>
 #include <net/network.h>
 #include <net/etherframe.h>
 #include <net/arp.h>
@@ -31,6 +31,7 @@
 #include <cli.h>
 #include <script.h>
 #include <app.h>
+#include <list.h>
 #include <app/paint.h>
 #include <app/file_edit.h>
 #include <app/file_browse.h>
@@ -38,7 +39,6 @@
 #include <mode/snake.h>
 #include <mode/file_edit.h>
 #include <mode/space.h>
-#include <mode/bootscreen.h>
 #include <math.h>
 
 
@@ -273,10 +273,7 @@ bool strcmp(char* one, char* two) {
 
 	for (i; one[i] != '\0'; i++) {
 	
-		if (one[i] != two[i]) {
-		
-			return false;
-		}
+		if (one[i] != two[i]) { return false; }
 	}
 	return true;
 }
@@ -342,6 +339,26 @@ char* int2str(uint32_t num) {
 	return str;
 }
 
+float str2float(char* str) {
+
+	char beforeDecimal[16];
+	char afterDecimal[16];
+
+	int i = 0;
+	for (i; str[i] != '.'; i++) { beforeDecimal[i] = str[i]; }
+	beforeDecimal[i] = '\0';
+	
+	int j = 0;
+	for (j = i; str[j] != '\0'; j++) { afterDecimal[j-i] = str[j]; }
+	afterDecimal[j-i] = '\0';
+
+	float val = 0.0;
+	val += (float)(str2int(beforeDecimal));
+	val += ((float)(str2int(beforeDecimal)))/((j-i)*10);
+
+	return val;
+}
+
 
 char* argparse(char* args, uint8_t num) {
 
@@ -357,7 +374,6 @@ char* argparse(char* args, uint8_t num) {
 		if (args[i] == ' ' || args[i] == '\0') {
 		
 			if (valid) {
-				
 				if (argIndex == num) {
 				
 					buffer[bufferIndex] = '\0';
@@ -420,9 +436,11 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 					TaskManager* tm,
 					MemoryManager* mm,
 					FileSystem* filesystem,
+					Compiler* compiler,
+					VideoGraphicsArray* vga,
 					CMOS* cmos,
 					DriverManager* drvManager) 
-		: CommandLine(gdt, tm, mm, filesystem, cmos, drvManager) {
+		: CommandLine(gdt, tm, mm, filesystem, compiler, vga, cmos, drvManager) {
 		
 			this->cli = true;
 		}
@@ -443,9 +461,6 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 					break;
 				case 5:
 					space(pressed, ch);
-					break;
-				case 6:
-					bootScreen(pressed, ch);
 					break;
 				default:
 					break;
@@ -492,10 +507,6 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 						break;
 					case 'i':
 						this->cliMode = 5;
-						modeSet(this->cliMode);
-						break;
-					case 'b':
-						this->cliMode = 6;
 						modeSet(this->cliMode);
 						break;
 					default:
@@ -631,11 +642,6 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 					space(true, 'r');
 					spaceTUI();
 					break;
-				case 6:
-					//initial mode for cube
-					bootInit();
-					bootScreen(false, 'b');
-					break;
 				default:
 					printf("Mode not found.\n");
 					break;
@@ -672,28 +678,32 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 };
 
 
-void sleep(uint32_t ms) {
-
-	//sleep 1 = wait 1 ms
-	PIT pit;
-
-	for (uint32_t i = 0; i < ms; i++) {
-		
-		pit.setCount(1193182/1000);
-		uint32_t start = pit.readCount();
-	
-		while ((start - pit.readCount()) < 1000) {}
-	}
-}
-
+void sleep(uint32_t ms) {}
 
 double getTicks() {
 
-	PIT pit;
-	pit.setCount(1193182/1000);
-	return (double)(pit.readCount());
-}
+	Port8Bit cmdPort(0x43);
+	Port8Bit channel0(0x40);
 
+	asm("cli");
+
+	channel0.Write(1193182/1000);
+	channel0.Write((1193182/1000) >> 8);
+	
+	asm("sti");
+	
+	
+	asm("cli");
+	
+	cmdPort.Write(0x00);
+	
+	uint32_t count = channel0.Read();
+	count |= channel0.Read() << 8;
+	
+	asm("sti");
+
+	return (double)(count);
+}
 
 
 void memWrite(uint32_t memory, uint32_t inputVal) {
@@ -714,10 +724,9 @@ uint32_t memRead(uint32_t memory) {
 
 void printOsaka(uint8_t num, bool cube) {
 
-	Funny osaka;
 
 	if (cube) {	
-		osaka.cubeAscii(num);
+		//osaka.cubeScreen('.', 0.6, &cubeData);
 		return;
 	} else {
 		printf("\v");
@@ -727,22 +736,22 @@ void printOsaka(uint8_t num, bool cube) {
 	switch (num) {
 	
 		case 0:
-			osaka.osakaFace();
+			osakaFace();
 			break;
 		case 1:
-			osaka.osakaHead();
+			osakaHead();
 			break;
 		case 2:
-			osaka.god();
+			god();
 			break;
 		case 3:
-			osaka.osakaKnife();
+			osakaKnife();
 			break;
 		case 4:
-			osaka.osakaAscii();
+			osakaAscii();
 			break;
 		default:
-			osaka.osakaFace();
+			osakaFace();
 			break;
 	}
 }
@@ -758,9 +767,22 @@ void makeBeep(uint32_t freq) {
 
 uint16_t prng() {
 
-	PIT pit;
-	uint16_t seed = (uint16_t)pit.readCount();
-	uint16_t lfsr = seed;
+	//PIT pit;
+	
+	asm("cli");
+	
+	Port8Bit cmdPort(0x43);
+	Port8Bit channel0(0x40);
+	cmdPort.Write(0x00);
+	
+	uint32_t seed = channel0.Read();
+	seed |= channel0.Read() << 8;
+	
+	asm("sti");
+
+
+	
+	uint16_t lfsr = (uint16_t)seed;
 	uint16_t period = 0;
 
 	do {
@@ -874,15 +896,19 @@ uint8_t Web2EGA(uint32_t color) {
 }
 
 
+TaskManager* LoadTaskManager(bool set, TaskManager* tm = 0) {
 
+	static TaskManager* manager = 0;
+	if (set) { manager = tm; }
+	return manager;
+}
 
 CommandLine* LoadScriptForTask(bool set, CommandLine* cli = 0) {
 
-	static CommandLine* retCli = 0;
-	if (set) { retCli = cli; }
-	return retCli;
+	static CommandLine* script = 0;
+	if (set) { script = cli; }
+	return script;
 }
-
 
 Desktop* LoadDesktopForTask(bool set, Desktop* desktop = 0) {
 
@@ -914,11 +940,10 @@ extern "C" void callConstructors() {
 }
 
 
-
+//extern "C" void kmain(void* multiboot_structure, uint32_t magicnumber) {
 extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 
 	printf("Hello :^)\n");
-
 
 	GlobalDescriptorTable* gdt;
 	TaskManager taskManager(gdt);
@@ -935,12 +960,17 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 	DriverManager drvManager;
 	
 	//drivers and command line
-	CMOS cmos;
 	AdvancedTechnologyAttachment ata0m(0x1F0, true);
-	FileSystem osakaFileSystem(&ata0m);
-	
+	VideoGraphicsArray vga;
+	OFS_Table table;
+	FileSystem osakaFileSystem(&ata0m, &memoryManager, &table);
+	Compiler compiler(&osakaFileSystem);
+	PIT pit(&interrupts);
+	CMOS cmos;
+	cmos.pit = &pit;
+
 	CLIKeyboardEventHandler* kbhandler = (CLIKeyboardEventHandler*)memoryManager.malloc(sizeof(CLIKeyboardEventHandler));
-	new (kbhandler) CLIKeyboardEventHandler(gdt, &taskManager, &memoryManager, &osakaFileSystem, &cmos, &drvManager);
+	new (kbhandler) CLIKeyboardEventHandler(gdt, &taskManager, &memoryManager, &osakaFileSystem, &compiler, &vga, &cmos, &drvManager);
 	kbhandler->hash_cli_init(); //init command line
 	
 	KeyboardDriver keyboard(&interrupts, kbhandler);
@@ -950,12 +980,10 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 
 
 	//gui driver stuff
-	VideoGraphicsArray vga;
 	Simulator osaka(&cmos);
-	Button buttons;
 	Desktop desktop(320, 200, 0x01, &vga, gdt, &taskManager, 
-			&memoryManager, &osakaFileSystem, &cmos, 
-			&drvManager, &buttons, &osaka);
+			&memoryManager, &osakaFileSystem, &compiler, 
+			&cmos, &drvManager, &osaka);
 	MouseDriver mouse(&interrupts, &desktop);
 
 
@@ -1012,7 +1040,6 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 	
 	printf("\n\nEverything seems fine.\n");
 
-	
 	interrupts.boot = true;
 	makeBeep(600);
 
@@ -1021,22 +1048,31 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 
 
 	//the boot screen and very important cube
-	uint8_t cubeNum = 0;
-	printOsaka(4, false);
+	/*
 	kbhandler->pressed = false;
+	Cube cubeData;
+	cubeData.cubeWidth = 20;
+	cubeData.width = 45;
+	cubeData.height = 20;
+	cubeData.distanceFromCam = 50;
+	cubeData.K1 = 10;
+	int backgroundASCIICode = ' ';
+	float incrementSpeed = 3.0;
+
 	while (kbhandler->pressed == false) {
 
-		printOsaka(cubeNum, true);
-		cubeNum++;
+		cubeScreen(backgroundASCIICode, incrementSpeed, &cubeData);
+		printf("The Osaka Operating System");
 		sleep(10);
 	}
+	*/
 
 
 	//initialize command line hash table
 	kbhandler->gui = false;
 	kbhandler->cli = true;
-	kbhandler->OnKeyDown('\b');
-	printf("\v");
+	//kbhandler->OnKeyDown('\b');
+	//printf("\v");
 
 
 	//this is the command line :D		
@@ -1065,7 +1101,7 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 	
 	//add task for drawing desktop
 	LoadDesktopForTask(true, &desktop);
-	Task guiTask(gdt, DrawDesktopTask, "osakaOS GUI");
+	Task guiTask(gdt, DrawDesktopTask, "osakaOS GUI", 0);
 	taskManager.AddTask(&guiTask);
 
 	
