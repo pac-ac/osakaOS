@@ -19,6 +19,12 @@ VideoGraphicsArray::VideoGraphicsArray() :
 	crtcDataPort(0x3d5),
 	sequencerIndexPort(0x3c4),
 	sequencerDataPort(0x3c5),
+	
+	colorPaletteMask(0x3c6),
+	colorRegisterRead(0x3c7),
+	colorRegisterWrite(0x3c8),
+	colorDataPort(0x3c9),
+	
 	graphicsControllerIndexPort(0x3ce),
 	graphicsControllerDataPort(0x3cf),
 	attributeControllerIndexPort(0x3c0),
@@ -90,7 +96,7 @@ void VideoGraphicsArray::WriteRegisters(uint8_t* registers) {
 
 bool VideoGraphicsArray::SupportsMode(uint32_t width, uint32_t height, uint32_t colordepth) {
 
-	return width == 320 && height == 200 && colordepth == 8;
+	return width == WIDTH_13H && height == HEIGHT_13H && colordepth == 8;
 }
 
 
@@ -101,7 +107,7 @@ bool VideoGraphicsArray::SetMode(uint32_t width, uint32_t height, uint32_t color
 		return false;
 	}
 
-	unsigned char g_320x200x256[] = {
+	unsigned char g_WIDTH_13HxHEIGHT_13Hx256[] = {
 	
 	/* misc */
 		0x63,
@@ -122,13 +128,55 @@ bool VideoGraphicsArray::SetMode(uint32_t width, uint32_t height, uint32_t color
 	};
 
 
-	WriteRegisters(g_320x200x256);
+	WriteRegisters(g_WIDTH_13HxHEIGHT_13Hx256);
 
 	this->FrameBufferSegment = GetFrameBufferSegment();
+
+	//pallete init
+	this->colorPaletteMask.Write(0xff);
+	
+	for (uint16_t color = 0; color < 256; color++) {
+	
+		this->colorRegisterWrite.Write(color);
+	
+		switch (color / 64) {	
+			
+			case 0:
+				this->colorDataPort.Write((color & 0x20 ? 0x15 : 0) | (color & 0x04 ? 0x2a : 0));
+				this->colorDataPort.Write((color & 0x10 ? 0x15 : 0) | (color & 0x02 ? 0x2a : 0));
+				this->colorDataPort.Write((color & 0x08 ? 0x15 : 0) | (color & 0x01 ? 0x2a : 0));
+				break;
+			case 1:
+				this->colorDataPort.Write((color & 0x20 ? 0x15 : 0) | (color & 0x04 ? 0x2a : 0) >> 3);
+				this->colorDataPort.Write((color & 0x10 ? 0x15 : 0) | (color & 0x02 ? 0x2a : 0) >> 3);
+				this->colorDataPort.Write((color & 0x08 ? 0x15 : 0) | (color & 0x01 ? 0x2a : 0) >> 3);
+				break;
+			case 2:
+				this->colorDataPort.Write((color & 0x20 ? 0x15 : 0) | (color & 0x04 ? 0x2a : 0) << 3);
+				this->colorDataPort.Write((color & 0x10 ? 0x15 : 0) | (color & 0x02 ? 0x2a : 0) << 3);
+				this->colorDataPort.Write((color & 0x08 ? 0x15 : 0) | (color & 0x01 ? 0x2a : 0) << 3);
+				break;
+			default:
+				this->colorDataPort.Write(0);
+				this->colorDataPort.Write(0);
+				this->colorDataPort.Write(0);
+				break;
+		}
+	}
+
 
 	return true;
 }
 
+void VideoGraphicsArray::PaletteUpdate(uint8_t index, uint8_t r, uint8_t g, uint8_t b) {
+
+	this->colorRegisterWrite.Write(index);
+	
+	//color is in 18 bits with 6 bits for each channel
+	this->colorDataPort.Write(r); //Red
+	this->colorDataPort.Write(g); //Green
+	this->colorDataPort.Write(b); //Blue
+}
 
 
 uint8_t* VideoGraphicsArray::GetFrameBufferSegment() {
@@ -152,9 +200,9 @@ uint8_t* VideoGraphicsArray::GetFrameBufferSegment() {
 //place in backbuffer
 void VideoGraphicsArray::PutPixel(int32_t x, int32_t y, uint8_t color) {
 
-	if (x < 0 || 320 <= x || y < 0 || 200 <= y) { return; }
-	pixels[(y<<8)+(y<<6)+x] = color;
-	//pixels[320*y+x] = color;
+	if (x >= 0 && WIDTH_13H > x && y >= 0 && HEIGHT_13H > y) {
+		pixels[(y<<8)+(y<<6)+x] = color;
+	}
 }
 
 
@@ -162,20 +210,29 @@ void VideoGraphicsArray::PutPixel(int32_t x, int32_t y, uint8_t color) {
 //draw directly to vmem
 void VideoGraphicsArray::PutPixelRaw(int32_t x, int32_t y, uint8_t colorIndex) {
 
-	if (x < 0 || 320 <= x || y < 0 || 200 <= y) {
-		return;
-	}
+	if (x >= 0 && WIDTH_13H > x && y >= 0 && HEIGHT_13H > y) {
 
-	uint8_t* pixelAddress = this->FrameBufferSegment+((y<<8) + (y<<6) + x);
-	*pixelAddress = colorIndex;
+		uint8_t* pixelAddress = this->FrameBufferSegment+((y<<8) + (y<<6) + x);
+		*pixelAddress = colorIndex;
+	}
+}
+
+
+//darken pixel in buffer
+void VideoGraphicsArray::DarkenPixel(int32_t x, int32_t y) {
+
+	if (x >= 0 && WIDTH_13H > x && y >= 0 && HEIGHT_13H > y) {
+	
+		pixels[(y<<8)+(y<<6)+x] = light2dark[pixels[(y<<8)+(y<<6)+x]];
+	}
 }
 
 
 //read from backbuffer
 uint8_t VideoGraphicsArray::ReadPixel(int32_t x, int32_t y) {
 
-	if (x < 0 || 320 <= x || y < 0 || 200 <= y) { return 0; }
-	return pixels[320*y+x];
+	if (x < 0 || WIDTH_13H <= x || y < 0 || HEIGHT_13H <= y) { return 0; }
+	return pixels[WIDTH_13H*y+x];
 }
 
 
@@ -184,7 +241,7 @@ void VideoGraphicsArray::PutText(char* str, int32_t x, int32_t y, uint8_t color)
 
 	uint16_t length = strlen(str);
 
-	if ((320 - x) < (length * 5)) { return; }
+	if ((WIDTH_13H - x) < (length * 5)) { return; }
 
 	uint8_t* charArr = charset[0];
 
@@ -214,7 +271,7 @@ void VideoGraphicsArray::FillBufferFull(int32_t x, int32_t y,
 	for (int32_t Y = y; Y < y+h; Y++) {
 		for (int32_t X = x; X < x+w; X++) {
 		
-			this->PutPixel(X, Y, buf[320*(Y-y)+(X-x)]);
+			this->PutPixel(X, Y, buf[WIDTH_13H*(Y-y)+(X-x)]);
 		}
 	}
 }
@@ -384,7 +441,7 @@ void VideoGraphicsArray::FillPolygon(uint16_t x[], uint16_t y[],
 				     uint8_t edgeNum, 
 				     uint8_t color) {
 	int16_t i, j, temp = 0;
-	uint16_t xmin = 320; 
+	uint16_t xmin = WIDTH_13H; 
 	uint16_t xmax = 0;
 
 	for (i = 0; i < edgeNum; i++) {
@@ -438,8 +495,8 @@ void VideoGraphicsArray::MakeDark(uint8_t darkness) {
 
 	if (darkness > 0) {
 
-		for (uint8_t y = 0; y < 200; y++) {
-			for (uint16_t x = 0; x < 320; x++) {
+		for (uint8_t y = 0; y < HEIGHT_13H; y++) {
+			for (uint16_t x = 0; x < WIDTH_13H; x++) {
 
 				//make pixel darker	
 				for (uint8_t i = 0; i < darkness; i++) {
@@ -458,8 +515,8 @@ void VideoGraphicsArray::MakeWave(uint8_t waveLength) {
 	uint16_t offset = waveLength;
 	bool incOrDec = true;
 
-	for (uint8_t y = 0; y < 200; y++) {
-		for (uint16_t x = offset; x < 320; x++) {
+	for (uint8_t y = 0; y < HEIGHT_13H; y++) {
+		for (uint16_t x = offset; x < WIDTH_13H; x++) {
 		
 			pixels[(y<<8)+(y<<6)+(x-offset)] = pixels[(y<<8)+(y<<6)+x];
 		}
@@ -472,10 +529,12 @@ void VideoGraphicsArray::MakeWave(uint8_t waveLength) {
 	}
 }
 
+
+//actually draw to the screen
 void VideoGraphicsArray::DrawToScreen() {
 
-	for (uint8_t y = 0; y < 200; y++) {
-		for (uint16_t x = 0; x < 320; x++) {
+	for (uint8_t y = 0; y < HEIGHT_13H; y++) {
+		for (uint16_t x = 0; x < WIDTH_13H; x++) {
 
 			uint8_t* pixelAddress = this->FrameBufferSegment+((y<<8) + (y<<6) + x);
 			*pixelAddress = pixels[(y<<8)+(y<<6)+x];
@@ -508,7 +567,7 @@ void VideoGraphicsArray::FSdither(uint32_t* buf, uint16_t w, uint16_t h) {
 
 void VideoGraphicsArray::ErrorScreen() {
 
-	this->FillRectangle(0, 0, 320, 200, 0x09);
+	this->FillRectangle(0, 0, WIDTH_13H, HEIGHT_13H, 0x09);
 	this->FillRectangle(0, 29, 300, 101, 0x3f);
 	
 	this->PutText("Sorry, osakaOS experienced a critical error. :(", 1, 11, 0x40);

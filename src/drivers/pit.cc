@@ -6,17 +6,34 @@ using namespace os::drivers;
 using namespace os::hardwarecommunication;
 
 
-PIT::PIT() 
+void printf(char*);
 
-: channel0(0x40),
+
+PIT::PIT(InterruptManager* manager) 
+
+: InterruptHandler(0x00, manager),
+  channel0(0x40),
   channel1(0x41),
   channel2(0x42),
-  commandPort(0x43) {
+  commandPort(0x43),
+  PIC(0x20) {
 
 }
 
 
 PIT::~PIT() {
+}
+
+
+void PIT::sleep(uint32_t ms) {
+
+	for (uint32_t i = 0; i < ms; i++) {
+	
+		this->setCount(1193182/1000);
+		uint32_t start = this->readCount();
+
+		while ((start - this->readCount()) < 1000) {}
+	}
 }
 
 
@@ -43,4 +60,14 @@ void PIT::setCount(uint32_t count) {
 	channel0.Write(count >> 8);
 	
 	asm("sti");
+}
+
+uint32_t PIT::HandleInterrupt(uint32_t esp) {
+
+
+
+	//send EOI to the PIC
+	PIC.Write(0x20);
+
+	return esp;
 }

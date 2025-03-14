@@ -44,10 +44,7 @@ bool AdvancedTechnologyAttachment::Identify() {
 	devicePort.Write(0xa0);
 	uint8_t status = commandPort.Read();
 	
-	if (status == 0xff) {
-	
-		return false;
-	}
+	if (status == 0xff) { return false; }
 
 	devicePort.Write(master ? 0xa0 : 0xb0);
 	sectorCountPort.Write(0);
@@ -137,14 +134,12 @@ void AdvancedTechnologyAttachment::Read28(common::uint32_t sector, common::uint8
 	}
 
 
-	//
 	if (offset) {
 		for (uint16_t i = 0; i < offset; i += 2) {
 	
 			dataPort.Read();
 		}
 	}
-	//
 
 	
 	for (uint16_t i = offset; i < count; i+= 2) {
@@ -192,8 +187,6 @@ void AdvancedTechnologyAttachment::Write28(common::uint32_t sector, common::uint
 	}
 	
 	
-	
-	//
 	if (offset) {
 
 		uint8_t fillData[offset];
@@ -207,11 +200,9 @@ void AdvancedTechnologyAttachment::Write28(common::uint32_t sector, common::uint
 		
 				wdata |= ((uint16_t)fillData[i+1]) << 8;
 			}
-		
 			dataPort.Write(wdata);
 		}
 	}
-	//
 	
 	
 	for (uint16_t i = offset; i < count; i += 2) {
@@ -222,7 +213,6 @@ void AdvancedTechnologyAttachment::Write28(common::uint32_t sector, common::uint
 		
 			wdata |= ((uint16_t)data[i+1]) << 8;
 		}
-		
 		dataPort.Write(wdata);
 	}
 	
@@ -231,6 +221,9 @@ void AdvancedTechnologyAttachment::Write28(common::uint32_t sector, common::uint
 	
 		dataPort.Write(0x0000);
 	}
+
+	//very important
+	this->Flush();
 }
 
 
@@ -241,13 +234,9 @@ void AdvancedTechnologyAttachment::Flush() {
 	devicePort.Write(master ? 0xe0 : 0xf0);
 	commandPort.Write(0xe7);
 
-
 	uint8_t status = commandPort.Read();
 
-	if (status == 0x00) {
-
-		return;
-	}
+	if (status == 0x00) { return; }
 
 
 	while (((status & 0x80) == 0x80) && ((status & 0x01) != 0x01)) {
