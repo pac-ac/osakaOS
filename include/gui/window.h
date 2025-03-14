@@ -5,6 +5,7 @@
 #include <drivers/mouse.h>
 #include <filesys/ofs.h>
 #include <gui/font.h>
+#include <list.h>
 #include <app.h>
 
 		
@@ -41,14 +42,14 @@ namespace os {
 
 				void FullScreen();
 
-
 				void Draw(common::GraphicsContext* gc);
 				void MenuDraw(common::GraphicsContext* gc);
 				void FileDraw(common::GraphicsContext* gc);
 
-
 				common::uint8_t ReturnAppType();
 
+				void DestroyWindow();
+				
 				void OnMouseDown(common::int32_t x, common::int32_t y, common::uint8_t button);
 				void OnMouseUp(common::int32_t x, common::int32_t y, common::uint8_t button);
 				void OnMouseMove(common::int32_t oldx, common::int32_t oldy,
@@ -57,6 +58,25 @@ namespace os {
 				void OnKeyDown(char str);
 				void OnKeyUp(char str);
 		};
+		
+		/*
+		class WindowButton : public Widget {
+	
+			public:
+				common::uint8_t buttonType;
+				common::uint8_t* buf;
+			public:
+				WindowButton(Window* window,
+						common::int32_t x, common::int32_t y, 
+						common::int32_t w, common::int32_t h, 
+						common::uint8_t buttonType,
+						bool offsetX, bool offsetY,
+						bool offsetW, bool offsetH);
+				~WindowButton();
+				
+				void OnMouseDown(common::int32_t x, common::int32_t y, common::uint8_t button);
+		};
+		*/
 	}
 }
 

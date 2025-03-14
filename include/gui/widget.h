@@ -5,6 +5,7 @@
 #include <common/graphicscontext.h>
 #include <drivers/keyboard.h>
 #include <gui/pixelart.h>
+#include <list.h>
 
 
 #define TEXT_MAX_WIDTH 53
@@ -17,7 +18,29 @@ namespace os {
 
 	namespace gui {
 
-		class CompositeWidget : public os::drivers::KeyboardEventHandler {
+		class Widget : public os::drivers::KeyboardEventHandler {
+
+			public:
+				common::int32_t x;
+				common::int32_t y;
+				common::int32_t w;
+				common::int32_t h;
+				
+				common::uint8_t* buf;
+			public:
+				Widget(common::int32_t x, common::int32_t y, 
+					common::int32_t w, common::int32_t h);
+				~Widget();
+				
+				virtual bool ContainsCoordinate(common::int32_t x, common::int32_t y);
+				virtual void PutPixel(common::int32_t x, common::int32_t y, common::uint8_t color);
+				void PutText(char* str, common::int32_t x, common::int32_t y, common::uint8_t color);
+		};
+	
+		
+
+
+		class CompositeWidget : public Widget {
 		
 			//private:
 			public:
@@ -26,19 +49,16 @@ namespace os {
 				CompositeWidget* children[30];
 				CompositeWidget* focussedChild;
 				int numChildren;
-				
 
-				//graphical buffer for windows and shit
-				common::uint8_t buf[64000];
+				List* buttons;
 				
+				//graphical buffer for windows and shit
+				common::uint8_t windowBuffer[64000];
 
 				//data for storing position
 				//of window and text etc.
-				common::int32_t x;
-				common::int32_t y;
-				common::int32_t w;
-				common::int32_t h;
-				
+				common::int32_t xo;
+				common::int32_t yo;
 				common::int32_t wo;
 				common::int32_t ho;
 			
@@ -49,7 +69,6 @@ namespace os {
 				//check if scrolling
 				bool textScroll = false;
 
-
 				//other stuff we need
 				char* name;
 				common::uint8_t color;
@@ -57,7 +76,6 @@ namespace os {
 				
 				common::uint8_t windowOffset;
 				common::uint8_t minWindows = 0;
-				
 
 				//window attributes
 				bool Focussable;
@@ -67,7 +85,6 @@ namespace os {
 				bool Dragging;
 				bool Menu;
 				bool Min;
-
 
 				//input
 				bool keypress = false;
@@ -85,12 +102,12 @@ namespace os {
 				//identify and check position of windows
 				virtual void GetFocus(CompositeWidget* widget);
 				virtual void ModelToScreen(common::int32_t &x, common::int32_t &y);
-				virtual bool ContainsCoordinate(common::int32_t x, common::int32_t y);
 				virtual common::uint8_t ContainsCoordinateButton(common::int32_t x, common::int32_t y);
 				
 				//add, remove, sub windows
 				virtual bool AddChild(CompositeWidget* child);
 				virtual CompositeWidget* CreateChild(common::uint8_t appType, char* name, App* app);
+				virtual void CreateButton(char* file, common::uint8_t openType, char* imageFile);
 				virtual bool DeleteChild();
 			
 				//menu stuff to change window
@@ -109,7 +126,6 @@ namespace os {
 				virtual common::uint8_t ReturnAppType();
 				
 				//drawing shapes n shit
-				virtual void PutPixel(common::int32_t x, common::int32_t y, common::uint8_t color);
 				virtual void WritePixel(common::int32_t x, common::int32_t y, common::uint8_t color);
 				virtual common::uint8_t ReadPixel(common::uint32_t i);	
 				virtual void DrawRectangle(common::int32_t x0, common::int32_t y0, 
@@ -128,7 +144,6 @@ namespace os {
 				//words and shit
 				void PutChar(char ch);
 				void Print(char* str);
-				void PutText(char* str, common::int32_t x, common::int32_t y, common::uint8_t color);
 			
 				//input
 				virtual void OnMouseDown(common::int32_t x, common::int32_t y, common::uint8_t button);
@@ -139,6 +154,36 @@ namespace os {
 				virtual void OnKeyDown(char);
 				virtual void OnKeyUp(char);
 		
+		};
+		
+		
+		
+		class WindowButton : public Widget {
+		
+			public:
+				CompositeWidget* window;
+				common::uint8_t buttonType;
+			
+				common::int32_t savex;
+				common::int32_t savey;
+
+				bool stretchW;
+				bool stretchH;
+				
+				bool offsetX;
+				bool offsetY;
+				bool offsetW;
+				bool offsetH;
+			public:
+				WindowButton(CompositeWidget* window, 
+						common::int32_t x, common::int32_t y, 
+						common::int32_t w, common::int32_t h, common::uint8_t buttonType,
+						bool offsetX, bool offsetY, bool offsetW, bool offsetH);
+				~WindowButton();
+
+				void Draw(common::GraphicsContext* gc);
+
+				void OnMouseDown(common::int32_t x, common::int32_t y, common::uint8_t button);
 		};
 	}
 }
