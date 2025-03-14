@@ -35,20 +35,18 @@ void file(bool pressed, char key, bool ctrl, bool reset, FileSystem* filesystem)
 	
 	static bool start = false;
 
-
 	//search things		
 	static uint8_t index = 0;
 	uint32_t clusterNum = 0;
 	static char searchStr[32];
 	searchStr[index] = '\0';
 
-	
 	//edit things
 	static uint8_t x = 0;
 	static uint8_t y = 0;
 
-	static uint8_t file[1920];
-	static uint32_t fileSize = 1920;
+	static uint8_t file[OFS_BLOCK_SIZE];
+	static uint32_t fileSize = OFS_BLOCK_SIZE;
 	static uint8_t lba = 0;
 
 	static uint8_t copyLine[80];
@@ -71,11 +69,11 @@ void file(bool pressed, char key, bool ctrl, bool reset, FileSystem* filesystem)
 		x = 0;
 		y = 0;
 		
-		for (int i = 0; i < 1920; i++) {
+		for (int i = 0; i < OFS_BLOCK_SIZE; i++) {
 		
 			file[i] = 0x00;
 		}
-		fileSize = 1920;
+		fileSize = OFS_BLOCK_SIZE;
 		lba = 0;
 	}
 
@@ -164,7 +162,6 @@ void file(bool pressed, char key, bool ctrl, bool reset, FileSystem* filesystem)
 
 			//ctrl-key shortcuts
 			if (ctrl) {	
-				
 				//remove previous message		
 				printfTUI("0123456789abcdef0123456789abcdef", 0x01, 0x01, 33, 24);
 				
@@ -172,13 +169,12 @@ void file(bool pressed, char key, bool ctrl, bool reset, FileSystem* filesystem)
 				
 					//save file to disk
 					case 'w':
-						if (filesystem->FileIf(fnv1a(fileName))) {
+						if (filesystem->FileIf(filesystem->GetFileSector(fileName))) {
 
 							filesystem->WriteLBA(fileName, file, lba);
 							printfTUI("File has been saved.", 0x0f, 0x01, 33, 24);
 						} else {
-				
-							filesystem->NewFile(fileName, file, fnv1a(fileName), (lba + 1) * 1920);
+							filesystem->NewFile(fileName, file, (lba + 1) * OFS_BLOCK_SIZE);
 							printfTUI("File was created.", 0x0f, 0x01, 33, 24);
 						}
 						return;	
@@ -249,23 +245,14 @@ void file(bool pressed, char key, bool ctrl, bool reset, FileSystem* filesystem)
 					break;
 				//escape, file is not saved
 				case '\x1b':
-
 					x = 0;
 					y = 0;
-					//lba = 0;
 
-					for (uint32_t i = 0; i < 1920; i++) {
-				
-						file[i] = 0x00;
-					}
-
-					for (int i = 0; fileName[i] != '\0'; i++) {
-						
-						fileName[i] = 0x00;
-					}
+					for (uint32_t i = 0; i < OFS_BLOCK_SIZE; i++) { file[i] = 0x00; }
+					for (int i = 0; fileName[i] != '\0'; i++) { fileName[i] = 0x00; }
 					fileName[0] = '\0';	
 
-					fileSize = 1920;
+					fileSize = OFS_BLOCK_SIZE;
 					search = true;
 
 					fileTUI();	
@@ -273,7 +260,6 @@ void file(bool pressed, char key, bool ctrl, bool reset, FileSystem* filesystem)
 				
 					break;
 				default:
-					
 					putcharTUI(key, 0xff, 0x00, x, y);
 					file[80*y+x] = key;
 					x++;
@@ -282,10 +268,6 @@ void file(bool pressed, char key, bool ctrl, bool reset, FileSystem* filesystem)
 					
 						x = 0;
 						y += (1 * (y < 23));
-
-						if (y >= 24) {
-							//do later
-						}
 					}
 					break;
 			}
