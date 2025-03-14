@@ -11,6 +11,11 @@
 
 
 
+#define WIDTH_13H 320
+#define HEIGHT_13H 200
+
+
+
 namespace os {
 
 	namespace drivers {
@@ -25,6 +30,11 @@ namespace os {
 			
 			hardwarecommunication::Port8Bit sequencerIndexPort;
 			hardwarecommunication::Port8Bit sequencerDataPort;
+			
+			hardwarecommunication::Port8Bit colorPaletteMask;
+			hardwarecommunication::Port8Bit colorRegisterRead;
+			hardwarecommunication::Port8Bit colorRegisterWrite;
+			hardwarecommunication::Port8Bit colorDataPort;
 			
 			hardwarecommunication::Port8Bit graphicsControllerIndexPort;
 			hardwarecommunication::Port8Bit graphicsControllerDataPort;
@@ -49,11 +59,12 @@ namespace os {
 
 				virtual bool SupportsMode(common::uint32_t width, common::uint32_t height, common::uint32_t colordepth);
 				virtual bool SetMode(common::uint32_t width, common::uint32_t height, common::uint32_t colordepth);
-				
+				virtual void PaletteUpdate(common::uint8_t index, common::uint8_t r, common::uint8_t g, common::uint8_t b);	
 
-				virtual void PutPixel(common::int32_t x, common::int32_t y, common::uint8_t colorIndex);
-				virtual void PutPixelRaw(common::int32_t x, common::int32_t y, common::uint8_t colorIndex);
-				virtual common::uint8_t ReadPixel(common::int32_t x, common::int32_t y);
+				void PutPixel(common::int32_t x, common::int32_t y, common::uint8_t colorIndex);
+				void PutPixelRaw(common::int32_t x, common::int32_t y, common::uint8_t colorIndex);
+				void DarkenPixel(common::int32_t x, common::int32_t y);
+				common::uint8_t ReadPixel(common::int32_t x, common::int32_t y);
 
 				virtual void PutText(char* str, common::int32_t x, common::int32_t y, common::uint8_t color);
 
@@ -101,16 +112,21 @@ namespace os {
 				
 				void DrawToScreen();
 		};	
-
+		
+		
 		//default ega palette light to dark
 		static common::uint8_t light2dark[] = {
 		
 			0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38, 0x40, 0x01, 0x18, 0x19, 0x04, 0x21, 0x30, 0x31, 
 			0x40, 0x01, 0x22, 0x23, 0x20, 0x12, 0x06, 0x2a, 0x40, 0x11, 0x02, 0x03, 0x04, 0x0d, 0x16, 0x23, 
 			0x40, 0x28, 0x30, 0x31, 0x04, 0x0c, 0x34, 0x2e, 0x40, 0x21, 0x10, 0x23, 0x0c, 0x05, 0x14, 0x35,
-			0x40, 0x38, 0x02, 0x0a, 0x14, 0x2c, 0x06, 0x0e, 0x40, 0x11, 0x1a, 0x1b, 0x24, 0x2d, 0x36, 0x37,
+			0x40, 0x38, 0x02, 0x0a, 0x14, 0x2c, 0x06, 0x0e, 0x40, 0x11, 0x1a, 0x1b, 0x24, 0x2d, 0x36, 0x07,
 			0x40
 		};
+		
+
+		//default ega palette light to dark
+		//static common::uint8_t light2dark[128];
 	}
 }
 

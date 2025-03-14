@@ -3,6 +3,7 @@
 
 #include <common/types.h>
 #include <hardwarecommunication/port.h>
+#include <drivers/pit.h>
 
 namespace os {
 
@@ -27,6 +28,9 @@ namespace os {
 				hardwarecommunication::Port8Bit ReadCMOS;
 		
 				RTCData timeData;
+
+				//here purely for conveniency in sum else
+				PIT* pit;
 			public:
 				CMOS();
 				~CMOS();
