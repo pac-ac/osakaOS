@@ -34,13 +34,7 @@ InterruptHandler::~InterruptHandler() {
 }
 
 
-
-uint32_t InterruptHandler::HandleInterrupt(uint32_t esp) {
-
-
-	return esp;
-}
-
+uint32_t InterruptHandler::HandleInterrupt(uint32_t esp) { return esp; }
 
 
 InterruptManager::GateDescriptor InterruptManager::interruptDescriptorTable[256];
@@ -48,13 +42,8 @@ InterruptManager* InterruptManager::ActiveInterruptManager = 0;
 
 
 
-void InterruptManager::SetInterruptDescriptorTableEntry (
-
-	uint8_t interruptNumber,
-        uint16_t codeSegmentSelectorOffset,
-        void (*handler)(),
-        uint8_t DescriptorPrivilegeLevel,
-        uint8_t DescriptorType) {
+void InterruptManager::SetInterruptDescriptorTableEntry (uint8_t interruptNumber, uint16_t codeSegmentSelectorOffset, 
+		void (*handler)(), uint8_t DescriptorPrivilegeLevel, uint8_t DescriptorType) {
 
 	const uint8_t IDT_DESC_PRESENT = 0x80;
 
@@ -143,7 +132,6 @@ InterruptManager::InterruptManager(uint16_t hardwareInterruptOffset, GlobalDescr
 	picMasterCommand.Write(0x11);
 	picSlaveCommand.Write(0x11);
 
-
 	picMasterData.Write(hardwareInterruptOffset);
 	picSlaveData.Write(hardwareInterruptOffset+8);
 	
@@ -164,10 +152,8 @@ InterruptManager::InterruptManager(uint16_t hardwareInterruptOffset, GlobalDescr
 	asm volatile("lidt %0" : : "m" (idt));
 }
 
-InterruptManager::~InterruptManager() {
 
-	Deactivate();
-}
+InterruptManager::~InterruptManager() { Deactivate(); }
 
 
 uint16_t InterruptManager::HardwareInterruptOffset() {
@@ -218,24 +204,21 @@ uint32_t InterruptManager::DoHandleInterrupt(uint8_t interruptNumber, uint32_t e
 	
 		esp = handlers[interruptNumber]->HandleInterrupt(esp);
 	
-							         //??????? qemu pata driver problems
 	} else if (interruptNumber != hardwareInterruptOffset && interruptNumber != 0x2e) {
 	//} else if (interruptNumber != hardwareInterruptOffset) {
 	
-		
 		printf("UNHANDLED INTERRUPT ");
 		printfHex(interruptNumber);
 		printf(" probably not important lol\n");
 	}	
 
-
+	//compute tasks
 	if (interruptNumber == hardwareInterruptOffset) {
 		
 		asm volatile("cli");
 		esp = (uint32_t)taskManager->Schedule((CPUState*)esp);
 		asm volatile("sti");
 	}
-
 
 	if (hardwareInterruptOffset <= interruptNumber && interruptNumber < hardwareInterruptOffset+16) {
 	
@@ -246,7 +229,6 @@ uint32_t InterruptManager::DoHandleInterrupt(uint8_t interruptNumber, uint32_t e
 			picSlaveCommand.Write(0x20);
 		}
 	}
-	
 	return esp;
 }
 
