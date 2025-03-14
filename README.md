@@ -1,7 +1,7 @@
-# osakaOS v2.0
+# osakaOS v2.1
 ![](cube.gif)
 
-<h2>The Osaka Operating System v2.0.</h2>
+<h2>The Osaka Operating System v2.1.</h2>
 
 osakaOS is a 32 bit, (optionally) multitasking, megalithic operating system that is made with a focus on unconventional/ridiculous design choices. It is meant to emulate the experience of a videogame or demo software rather than a traditional desktop operating system. It uses different text modes and graphical programs to edit files using the <b>Osaka FileSystem</b> and create programs using the <b>AyumuScript</b> scripting language.
 
