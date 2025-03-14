@@ -24,6 +24,8 @@ namespace os {
 			
 			virtual void Close();
 			
+			//virtual void CreateButton();
+			
 			virtual void SaveOutput(char* fileName, gui::CompositeWidget* widget, os::filesystem::FileSystem* filesystem);
 			virtual void ReadInput(char* fileName, gui::CompositeWidget* widget, os::filesystem::FileSystem* filesystem);
 

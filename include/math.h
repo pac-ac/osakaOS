@@ -15,6 +15,8 @@ namespace os {
 		
 		double power(double x, double power);
 		
+		common::uint8_t log2(common::int32_t x);
+		
 		double factorial(double x);
 
 
@@ -47,6 +49,41 @@ namespace os {
 		common::uint16_t LineFillArray(common::int32_t x0, common::int32_t y0,
 						common::int32_t x1, common::int32_t y1,
 						struct point arr[]);
+		
+		typedef struct {
+		
+			float A;
+			float B;
+			float C;
+			
+			float cubeWidth;
+			int width;
+			int height;
+			
+			float zBuffer[160*44];
+			char buffer[160*44];
+
+			int distanceFromCam;
+			float horizontalOffset;
+			float K1;
+
+			float x;
+			float y;
+			float z;
+			float ooz;
+			int xp;
+			int yp;
+			int idx;
+
+		} Cube;
+
+
+		float calculateX(int i, int j, int k, Cube* data);
+		float calculateY(int i, int j, int k, Cube* data);
+		float calculateZ(int i, int j, int k, Cube* data);
+		void calculateForSurface(float cubeX, float cubeY, float cubeZ, 
+				int ch,  Cube* data);
+		void calculateCube(float incrementSpeed, Cube* data);
 	}
 }
 

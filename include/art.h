@@ -2,26 +2,18 @@
 #define __OS__ART_H
 
 #include <common/types.h>
+#include <math.h>
 
 namespace os {
 
-	class Funny {
+	void cubeScreen(int backgroundASCIICode, float incrementSpeed, math::Cube* data);
 
-		public:
-			Funny();
-			~Funny();
-
-			void osakaFace();
-			void osakaHead();
-			void osakaKnife();
-	
-			void cat();
-			void god();
-			
-			void osakaAscii();
-			
-			void cubeAscii(os::common::uint16_t cubeCount);
-	};
+	void osakaFace();
+	void osakaHead();
+	void osakaKnife();
+	void cat();
+	void god();
+	void osakaAscii();
 }
 
 #endif

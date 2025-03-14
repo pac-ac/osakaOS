@@ -7,11 +7,14 @@
 #include <drivers/speaker.h>
 #include <drivers/ata.h>
 #include <drivers/cmos.h>
+#include <drivers/vga.h>
 #include <filesys/ofs.h>
 #include <gui/window.h>
 #include <net/network.h>
 #include <multitasking.h>
+#include <code/asm.h>
 #include <memorymanagement.h>
+#include <list.h>
 #include <gdt.h>
 #include <art.h>
 #include <app.h>
@@ -21,7 +24,6 @@ namespace os {
 
 	class CommandLine : public App {
 
-		//private:
 		public:
 			//input and other things
 			common::uint8_t index = 0;
@@ -40,6 +42,13 @@ namespace os {
 			bool scriptKillSwitch = false;
 			common::uint32_t varTable[1024];
 			common::uint32_t argTable[10];
+			
+			//might change later
+			//float floatTable[1024];
+			
+			//list of lists
+			List* lists;
+			
 			bool conditionIf = true;
 			bool conditionLoop = true;
 			common::uint32_t returnVal = 0;
@@ -62,14 +71,18 @@ namespace os {
 			gui::CompositeWidget* appWindow = nullptr;
 			gui::CompositeWidget* userWindow = nullptr;
 
+			//binary code
+			common::uint8_t code[2048];
 
 			//drivers and hardware
 			GlobalDescriptorTable* gdt;
 			TaskManager* tm;
+			Compiler* compiler;
 			Task* userTask = nullptr;
 			MemoryManager* mm;
 			drivers::DriverManager* drvManager;
 			filesystem::FileSystem* filesystem;
+			drivers::VideoGraphicsArray* vga;
 			drivers::CMOS* cmos = 0;
 			net::Network* network = 0;
 		public:
@@ -77,6 +90,8 @@ namespace os {
 					TaskManager* tm, 
 					MemoryManager* mm,
 					filesystem::FileSystem* filesystem,
+					Compiler* compiler,
+					drivers::VideoGraphicsArray* vga,
 					drivers::CMOS* cmos,
 					drivers::DriverManager* drvManager);
 			~CommandLine();
@@ -90,7 +105,11 @@ namespace os {
 			
 			void ScriptMouseDown();
 			void ScriptKeyDown();
-		
+	
+			void SaveOutput(char* filename, gui::CompositeWidget* widget, 
+					filesystem::FileSystem* filesystem);	
+			void ReadInput(char* filename, gui::CompositeWidget* widget, 
+					filesystem::FileSystem* filesystem);	
 
 			void PrintCommand(char* str, common::uint16_t color = 0);
 

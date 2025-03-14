@@ -5,8 +5,6 @@
 #include <memorymanagement.h>
 #include <common/types.h>
 
-//#include <app.h>
-
 
 namespace os {
 
@@ -49,9 +47,13 @@ namespace os {
 		
 			char taskname[33];
 			bool kill = false;
+			
+			common::uint32_t instructionCount = 0;
+			common::uint32_t currentCount = 0;
+			common::uint32_t intPtr = 0;
 		public:
 			//Task(GlobalDescriptorTable *gdt, void(*entrypoint)(CommandLine* cli), CommandLine* cli, char name[33]);
-			Task(GlobalDescriptorTable *gdt, void entrypoint(), char name[33]);
+			Task(GlobalDescriptorTable *gdt, void entrypoint(), char name[33], common::uint32_t intCount);
 			~Task();
 
 	};
@@ -65,7 +67,14 @@ namespace os {
 			common::uint8_t taskPriority[256];
 			int numTasks;
 			int currentTask;
-
+		
+			common::uint32_t eaxPrint = 0;
+			common::uint32_t ebxPrint = 0;
+			common::uint32_t ecxPrint = 0;
+			common::uint32_t edxPrint = 0;
+			
+			common::uint32_t espPrint = 0;
+			common::uint32_t ebpPrint = 0;
 		public:
 			TaskManager(GlobalDescriptorTable* gdt);
 			~TaskManager();
