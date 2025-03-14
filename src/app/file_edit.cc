@@ -12,7 +12,7 @@ Journal::Journal() {
 	this->appType = 3;
 
 	//init block
-	for (uint16_t i = 0; i < 1920; i++) {
+	for (uint16_t i = 0; i < OFS_BLOCK_SIZE; i++) {
 	
 		this->LBA[i] = 0x00;
 		this->LBA2[i] = 0x00;
@@ -56,25 +56,24 @@ void Journal::DrawAppMenu(GraphicsContext* gc, CompositeWidget* widget) {
 
 void Journal::SaveOutput(char* fileName, CompositeWidget* widget, FileSystem* filesystem) {
 
-	if (filesystem->FileIf(fnv1a(fileName))) {
+	if (filesystem->FileIf(filesystem->GetFileSector(fileName))) {
 
 		//write to first block for now
 		filesystem->WriteLBA(fileName, LBA, 0);
 	} else {
-		filesystem->NewFile(fileName, LBA, fnv1a(fileName), 1920);
+		filesystem->NewFile(fileName, LBA, OFS_BLOCK_SIZE);
 	}
 }
 
 
 void Journal::ReadInput(char* fileName, CompositeWidget* widget, FileSystem* filesystem) {
 
-	if (filesystem->FileIf(fnv1a(fileName))) {
+	if (filesystem->FileIf(filesystem->GetFileSector(fileName))) {
 	
-		//numOfBlocks = GetSize(fileName) / 1920;
 		filesystem->ReadLBA(fileName, LBA, 0);
 	} else {
 		//fill in with empty zeros
-		for (uint16_t i = 0; i < 1920; i++) { LBA[i] = 0x00; }
+		for (uint16_t i = 0; i < OFS_BLOCK_SIZE; i++) { LBA[i] = 0x00; }
 		
 		//write little error message
 		const char* error = "file not found";
@@ -102,7 +101,7 @@ void Journal::OnKeyDown(char ch, CompositeWidget* widget) {
 
 	//change to next block
 	//looks like thats not finished lol
-	if (index >= 1920) {
+	if (index >= OFS_BLOCK_SIZE) {
 	
 		return;
 	}

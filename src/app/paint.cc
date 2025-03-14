@@ -16,8 +16,8 @@ KasugaPaint::KasugaPaint() {
 	this->appType = 2;
 }
 
-KasugaPaint::~KasugaPaint() {
-}
+
+KasugaPaint::~KasugaPaint() {}
 
 void KasugaPaint::ComputeAppState(GraphicsContext* gc, CompositeWidget* widget) {
 
@@ -54,6 +54,7 @@ void KasugaPaint::ComputeAppState(GraphicsContext* gc, CompositeWidget* widget) 
 		gc->PutText(" \x81 | \x87", menuX+3, menuY+43, 0x38);
 		gc->PutText(" \xa1 | \xa2", menuX+3, menuY+51, 0x38);
 			
+		if (this->compress) { gc->PutText("RLE on", menuX+3, menuY+165, 0x38); }
 		
 		switch (menuTarget) {
 			
@@ -105,21 +106,29 @@ void KasugaPaint::SaveOutput(char* file, CompositeWidget* widget, FileSystem* fi
 			tmp[index] = widget->ReadPixel(index);
 		}
 	}
-	filesystem->Write13H(file, tmp, this->width, this->height);
+	filesystem->Write13H(file, tmp, this->width, this->height, this->compress);
 }
 
 
 
 void KasugaPaint::ReadInput(char* file, CompositeWidget* widget, FileSystem* filesystem) {
 
-	if (filesystem->FileIf(fnv1a(file)) == false) { return; }
+	if (filesystem->FileIf(filesystem->GetFileSector(file)) == false) { return; }
 
 	uint8_t tmp[64000];
 
 	uint16_t inputw = 320;
 	uint8_t inputh = 200;
 
-	filesystem->Read13H(file, tmp, &inputw, &inputh);
+	//filesystem->Read13H(file, tmp, &inputw, &inputh, false);
+	uint8_t* ptr = nullptr;
+
+	if (filesystem->GetTagFile("compressed", filesystem->GetFileSector(file), ptr)) {
+	
+		filesystem->Read13H(file, tmp, &inputw, &inputh, true);
+	} else {
+		filesystem->Read13H(file, tmp, &inputw, &inputh, false);
+	}
 
 	this->width = inputw;
 	this->height = inputh;
@@ -138,10 +147,7 @@ void KasugaPaint::ReadInput(char* file, CompositeWidget* widget, FileSystem* fil
 void KasugaPaint::OnKeyDown(char ch, CompositeWidget* widget) {
 
 	//f# keys deciding color offset	
-	if (ch < 4) {
-	
-		colorOffset = ch * 16;	
-	}
+	if (ch < 4) { colorOffset = ch * 16; }
 
 	switch (ch) {
 	
@@ -185,6 +191,8 @@ void KasugaPaint::OnKeyDown(char ch, CompositeWidget* widget) {
 		//draw tools
 		case 'F': this->Fill(widget); break;
 		
+		//compress image
+		case 'C': this->compress ^= 1; break;
 		
 		default:
 			break;
@@ -303,11 +311,11 @@ void KasugaPaint::DrawSize(bool increase) {
 void KasugaPaint::Dimensions(bool width, bool increase) {
 
 	if (width) { 
-		if (increase) { this->width += 1 * (width < 320); 
-		} else { 	this->width -= 1 * (width > 10); }
+		if (increase) { this->width += 1 * (this->width < 320); 
+		} else { 	this->width -= 1 * (this->width > 10); }
 	} else {
-		if (increase) { this->height += 1 * (height < 200); 
-		} else { 	this->height -= 1 * (height > 10); }
+		if (increase) { this->height += 1 * (this->height < 200); 
+		} else { 	this->height -= 1 * (this->height > 10); }
 	}
 }
 
@@ -365,6 +373,8 @@ void KasugaPaint::OnMouseDown(int32_t x, int32_t y, uint8_t button, CompositeWid
 			uint8_t colory = (y-(menuY+51))/6;
 			
 			this->paintColor = (4*colory+colorx);
+
+			if (!paintColor) { this->paintColor = 0x40; }
 		}
 	} else {
 		//drawing
