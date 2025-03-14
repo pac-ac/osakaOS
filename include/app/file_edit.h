@@ -15,8 +15,8 @@ namespace os {
 			common::uint32_t fileOffset = 0;
 			common::uint16_t numOfBlocks = 0;
 
-			common::uint8_t LBA[1920];
-			common::uint8_t LBA2[1920];
+			common::uint8_t LBA[OFS_BLOCK_SIZE];
+			common::uint8_t LBA2[OFS_BLOCK_SIZE];
 
 			common::uint16_t cursorx = 0;
 			common::uint8_t cursory = 0;

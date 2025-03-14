@@ -5,7 +5,6 @@
 #include <gui/window.h>
 #include <filesys/ofs.h>
 
-
 namespace os {
 
 	class KasugaPaint : public App {
@@ -28,6 +27,7 @@ namespace os {
 		bool fileMenu = false;
 		bool searchFile = false;
 		bool paintMenu = false;
+		bool compress = false;
 
 		char fileName[33];
 		common::uint8_t drawOption = 0;
