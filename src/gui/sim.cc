@@ -7,7 +7,7 @@ using namespace os::math;
 
 
 char* int2str(uint32_t);
-void sleep(uint32_t);
+//void sleep(uint32_t);
 uint16_t prng();
 void reboot();
 
@@ -467,7 +467,7 @@ void Simulator::ComputeGameState() {
 	this->ticks++;
 
 	//60 frames
-	sleep(15);
+	this->cmos->pit->sleep(15);
 }
 
 

@@ -9,12 +9,108 @@ uint16_t strlen(char* str);
 void sleep(uint32_t);
 
 
+Widget::Widget(int32_t x, int32_t y, int32_t w, int32_t h) 
+: KeyboardEventHandler() {
+
+	this->x = x;
+	this->y = y;
+	this->w = w;
+	this->h = h;
+}
+
+
+Widget::~Widget() {
+}
+
+
+bool Widget::ContainsCoordinate(int32_t x, int32_t y) {
+
+	return this->x <= x && x < this->x + this->w
+	    && this->y <= y && y < this->y + this->h;
+}
+
+void Widget::PutPixel(int32_t x, int32_t y, uint8_t color) {
+
+	if (x < this->x+w && y < this->y+h && 
+	    x >= this->x && y >= this->y) {
+	
+		//this->buf[this->w*(y-this->y)+(x-this->x)] = color;
+		this->buf[WIDTH_13H*(y-this->y)+(x-this->x)] = color;
+	}
+}
+
+void Widget::PutText(char* str, int32_t x, int32_t y, uint8_t color) {
+
+	uint16_t length = strlen(str);
+
+	if ((WIDTH_13H - x) < (length * 5)) { return; }
+
+	uint8_t* charArr = charset[0];
+
+	for (int i = 0; str[i] != '\0'; i++) {
+	
+		charArr = charset[str[i]-32];
+
+		for (uint8_t w = 0; w < font_width; w++) {
+			for (uint8_t h = 0; h < font_height; h++) {
+			
+				if (charArr[w] && ((charArr[w] >> h) & 1)) {
+				
+					this->PutPixel(x+w, y+h, color);
+				}
+			}
+		}
+		x += font_width;
+	}
+}
+
+
+
+
+WindowButton::WindowButton(CompositeWidget* window, 
+		int32_t x, int32_t y, int32_t w, int32_t h, 
+		uint8_t buttonType,
+		bool offsetX, bool offsetY, 
+		bool offsetW, bool offsetH) 
+: Widget(x, y, w, h) {
+
+	this->window = window;
+	this->buttonType = buttonType;
+	
+	this->savex = x;
+	this->savey = y;
+
+	this->offsetX = offsetX;
+	this->offsetY = offsetY;
+	this->offsetW = offsetW;
+	this->offsetH = offsetH;
+}
+
+WindowButton::~WindowButton() {}
+
+void WindowButton::Draw(GraphicsContext* gc) {
+
+	if (this->offsetX) { this->x = window->w - this->savex; }
+	if (this->offsetY) { this->x = window->h - this->savey; }
+
+	//draw to buffer
+	gc->FillBufferFull(this->x+window->x, this->y+window->y, 
+			this->w, this->h, this->buf);
+}
+
+void OnMouseDown(int32_t x, int32_t y, uint8_t button) {}
+
+
+
+
+
+
 CompositeWidget::CompositeWidget(CompositeWidget* parent,  int32_t x, int32_t y, 
 						int32_t w, int32_t h, 
 						char* name,
 						uint8_t color,
 						bool window) 
-: KeyboardEventHandler() {
+: Widget(x, y, w, h) {
 
 	this->parent = parent;
 	this->x = x;
@@ -23,8 +119,12 @@ CompositeWidget::CompositeWidget(CompositeWidget* parent,  int32_t x, int32_t y,
 	this->h = h;
 	
 	this->windowOffset = 0;
-	
+
+	this->buf = this->windowBuffer;
+
 	//orignial resolution	
+	this->xo = x;
+	this->yo = y;
 	this->wo = w;
 	this->ho = h;
 
@@ -37,16 +137,14 @@ CompositeWidget::CompositeWidget(CompositeWidget* parent,  int32_t x, int32_t y,
 	this->Resizable = window;
 	this->Menu = false;
 
-
-
 	focussedChild = 0;
 	numChildren = 0;
 	outx = 0;
 	outy = 0;
 }
 
-CompositeWidget::~CompositeWidget() {
-}
+CompositeWidget::~CompositeWidget() {}
+
 
 
 void CompositeWidget::GetFocus(CompositeWidget* widget) {
@@ -72,17 +170,13 @@ void CompositeWidget::GetFocus(CompositeWidget* widget) {
 }                 
 
 
-bool CompositeWidget::ContainsCoordinate(int32_t x, int32_t y) {
-
-	return this->x <= x && x < this->x + this->w
-	    && this->y <= y && y < this->y + this->h;
-}
 
 
 uint8_t CompositeWidget::ContainsCoordinateButton(int32_t x, int32_t y) {
 
 	if (this->x <= x && x < this->x + this->w
-	    && this->y <= y && y < this->y + 10) {
+	    && this->y <= y && y < this->y + 10 
+	    && this->Fullscreen == false) {
 
 		uint8_t buttonDistance = this->w - (x - this->x);
 
@@ -97,8 +191,8 @@ uint8_t CompositeWidget::ContainsCoordinateButton(int32_t x, int32_t y) {
 
 
 
-CompositeWidget* CompositeWidget::CreateChild(uint8_t appType, char* name, App* app) {
-}
+CompositeWidget* CompositeWidget::CreateChild(uint8_t appType, char* name, App* app) {}
+void CompositeWidget::CreateButton(char* file, uint8_t appType, char* imageFile) {}
 
 
 bool CompositeWidget::AddChild(CompositeWidget* child) {
@@ -135,16 +229,16 @@ bool CompositeWidget::DeleteChild() {
 
 bool CompositeWidget::Maximize() {
 
-	if (	children[0]->w >= 320 && 
-		children[0]->h >= 200 &&
+	if (	children[0]->w >= WIDTH_13H && 
+		children[0]->h >= HEIGHT_13H &&
 		children[0]->x > 0    &&
 		children[0]->y > 0) {
 	
 		return false;
 	}
 	
-	children[0]->w = 320;
-	children[0]->h = 200;
+	children[0]->w = WIDTH_13H;
+	children[0]->h = HEIGHT_13H;
 	children[0]->x = 0;
 	children[0]->y = 0;
 
@@ -153,10 +247,17 @@ bool CompositeWidget::Maximize() {
 
 bool CompositeWidget::Minimize() {
 	
-	children[0]->Min = true;
-	children[0]->x = 320;
-	children[0]->y = 200;
-	children[0]->parent->minWindows++;
+	CompositeWidget* widget = children[0];
+
+	widget->xo = widget->x;
+	widget->yo = widget->y;
+	widget->wo = widget->w;
+	widget->ho = widget->h;
+	
+	widget->Min = true;
+	widget->x = WIDTH_13H;
+	widget->y = HEIGHT_13H;
+	widget->parent->minWindows++;
 	focussedChild = 0;
 
 	return true;
@@ -198,9 +299,7 @@ void CompositeWidget::Draw(GraphicsContext* gc) {
 }
 
 
-void CompositeWidget::MenuDraw(GraphicsContext* gc) {
-}
-
+void CompositeWidget::MenuDraw(GraphicsContext* gc) {}
 
 
 void CompositeWidget::ButtonAction(uint8_t button) {
@@ -223,23 +322,13 @@ void CompositeWidget::ButtonAction(uint8_t button) {
 	}
 }
 
-
-uint8_t CompositeWidget::ReturnAppType() {
-}
+uint8_t CompositeWidget::ReturnAppType() {}
 
 
-void CompositeWidget::PutPixel(int32_t x, int32_t y, uint8_t color) {
-
-	if (x < this->x+w && y < this->y+h && 
-	    x >= this->x && y >= this->y) {
-	
-		this->buf[320*(y-this->y)+(x-this->x)] = color;
-	}
-}
 
 void CompositeWidget::WritePixel(int32_t x, int32_t y, uint8_t color) {
 
-	if (x < 320 && y < 200) { this->buf[320*y+x] = color; }
+	if (x < WIDTH_13H && y < HEIGHT_13H) { this->buf[WIDTH_13H*y+x] = color; }
 }
 
 uint8_t CompositeWidget::ReadPixel(uint32_t i) { return this->buf[i]; }
@@ -273,14 +362,14 @@ void CompositeWidget::DrawLine(int32_t x0, int32_t y0,
 			       int32_t x1, int32_t y1, 
 			       uint8_t color) {
 	
-	struct math::point pointArr[320];
+	struct math::point pointArr[WIDTH_13H];
 	uint16_t pixelNum = LineFillArray(x0, y0, x1, y1, pointArr);
 
 	int32_t index = 0;
 
 	for (int i = 0; i < pixelNum; i++) {
 			
-		index = (320*(pointArr[i].y - this->y)+(pointArr[i].x - this->x));
+		index = (WIDTH_13H*(pointArr[i].y - this->y)+(pointArr[i].x - this->x));
 
 		/*
 		if (pointArr[i].x < this->x+w && pointArr[i].y < this->y+h
@@ -289,7 +378,7 @@ void CompositeWidget::DrawLine(int32_t x0, int32_t y0,
 		*/
 		if (pointArr[i].x >= this->x && pointArr[i].y >= this->y && index < 64000 && index >= 0) {
 		
-			this->buf[320*(pointArr[i].y - this->y)+(pointArr[i].x - this->x)] = color;
+			this->buf[WIDTH_13H*(pointArr[i].y - this->y)+(pointArr[i].x - this->x)] = color;
 		}
 	}
 }
@@ -359,7 +448,7 @@ void CompositeWidget::FillBuffer(int32_t x, int32_t y,
 
 			if (pixelColor) {
 			
-				this->buf[320*Y+X] = pixelColor; 
+				this->buf[WIDTH_13H*Y+X] = pixelColor; 
 			}
 		}
 	}
@@ -451,31 +540,6 @@ void CompositeWidget::OnMouseMove(int32_t oldx, int32_t oldy, int32_t newx, int3
 
 
 
-void CompositeWidget::PutText(char* str, int32_t x, int32_t y, uint8_t color) {
-
-	uint16_t length = strlen(str);
-
-	if ((320 - x) < (length * 5)) { return; }
-
-	uint8_t* charArr = charset[0];
-
-	for (int i = 0; str[i] != '\0'; i++) {
-	
-		charArr = charset[str[i]-32];
-
-		for (uint8_t w = 0; w < font_width; w++) {
-			for (uint8_t h = 0; h < font_height; h++) {
-			
-				if (charArr[w] && ((charArr[w] >> h) & 1)) {
-				
-					this->PutPixel(x+w, y+h, color);
-				}
-			}
-		}
-		x += font_width;
-	}
-}
-
 
 void CompositeWidget::PutChar(char ch) {
 
@@ -513,11 +577,11 @@ void CompositeWidget::PutChar(char ch) {
 	//scrolling
 	if (outy >= adjustedTextHeight) {
 	
-		for (uint8_t y = 0; y < 200; y++) {
-			for (uint16_t x = 0; x < 320; x++) {
+		for (uint8_t y = 0; y < HEIGHT_13H; y++) {
+			for (uint16_t x = 0; x < WIDTH_13H; x++) {
 	
-				if (y < 189) {  this->buf[320*y+x] = this->buf[320*(y+font_height)+x];
-				} else { 	this->buf[320*y+x] = this->color; }
+				if (y < 189) {  this->buf[WIDTH_13H*y+x] = this->buf[WIDTH_13H*(y+font_height)+x];
+				} else { 	this->buf[WIDTH_13H*y+x] = this->color; }
 			}
 		}
 		outx = 0;
@@ -533,7 +597,7 @@ void CompositeWidget::PutChar(char ch) {
 		
 			if (charArr[i] && ((charArr[i] >> j) & 1)) {
 			
-				this->buf[320*((outy*9)+j)+((outx*6)+i)] = pixelColor;
+				this->buf[WIDTH_13H*((outy*9)+j)+((outx*6)+i)] = pixelColor;
 			}
 		}
 	}		
@@ -586,11 +650,11 @@ void CompositeWidget::Print(char* str) {
 				//scrolling
 				if (outy >= adjustedTextHeight) {
 	
-					for (uint8_t y = 0; y < 200; y++) {
-						for (uint16_t x = 0; x < 320; x++) {
+					for (uint8_t y = 0; y < HEIGHT_13H; y++) {
+						for (uint16_t x = 0; x < WIDTH_13H; x++) {
 	
-							if (y < 189) {  this->buf[320*y+x] = this->buf[320*(y+font_height)+x];
-							} else {	this->buf[320*y+x] = this->color; }
+							if (y < 189) {  this->buf[WIDTH_13H*y+x] = this->buf[WIDTH_13H*(y+font_height)+x];
+							} else {	this->buf[WIDTH_13H*y+x] = this->color; }
 						}
 					}
 					outx = 0;
@@ -605,7 +669,7 @@ void CompositeWidget::Print(char* str) {
 		
 						if (charArr[i] && ((charArr[i] >> j) & 1)) {
 			
-							this->buf[320*((outy*9)+j)+((outx*6)+i)] = pixelColor;
+							this->buf[WIDTH_13H*((outy*9)+j)+((outx*6)+i)] = pixelColor;
 						}
 					}
 				}

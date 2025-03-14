@@ -8,6 +8,8 @@ using namespace os::math;
 using namespace os::filesystem;
 
 
+
+
 Window::Window(CompositeWidget* parent, 
 int32_t x, int32_t y,
 int32_t w, int32_t h,
@@ -34,6 +36,11 @@ FileSystem* filesystem)
 
 	this->app = app;
 	this->winColor = 0x19;
+
+	//init buttons
+	this->buttons = (List*)(filesystem->memoryManager->malloc(sizeof(List))); 
+	new (buttons) List(filesystem->memoryManager);
+
 
 	//fill buffer with some color
 	for (int i = 0; i < 64000; i++) { this->buf[i] = color; }
@@ -84,16 +91,12 @@ void Window::Draw(GraphicsContext* gc) {
 		gc->PutText("<", x+w-37, y+2, 0x40);
 		gc->PutText("<", x+w-38, y+1, 0x07);
 	
-
 		//name of window
 		gc->PutText(this->name, x+2, y+2, 0x40);
 		gc->PutText(this->name, x+1, y+1, this->textColor);
 	
-
 		//draw menu if active
 		if (this->Menu) { this->MenuDraw(gc); }
-
-
 
 		//outer rectangle
 		gc->DrawRectangle(x, y, w, 10, 0x38);
@@ -102,7 +105,23 @@ void Window::Draw(GraphicsContext* gc) {
 		gc->DrawRectangle(x, y, w, h, 0x38);
 		gc->DrawLineFlat(x, y, x+w, y+h, 0x07, false);
 		gc->DrawLineFlat(x, y, x+w, y+h, 0x07, true);
-	
+
+		//create shadow effect
+		uint16_t darkx = x+w;
+		uint16_t darky = y+h;
+
+		for (int i = darky; i < darky+4; i++) {
+			for (int j = x+4; j < darkx+4; j++) {
+		
+				gc->DarkenPixel(j, i);
+			}
+		}
+		for (int i = y+4; i < darky; i++) {
+			for (int j = darkx; j < darkx+4; j++) {
+		
+				gc->DarkenPixel(j, i);
+			}
+		}
 	} else {
 		gc->FillBufferFull(x, y, w, h, this->buf);
 		if (this->Menu) { this->MenuDraw(gc); }
@@ -117,12 +136,17 @@ void Window::Draw(GraphicsContext* gc) {
 	}
 	
 
+	//draw buttons
+	for (int i = 0; i < this->buttons->numOfNodes; i++) {
+	
+		WindowButton* button = (WindowButton*)(this->buttons->Read(i));
+		button->Draw(gc);
+	}
+
+
 	//windows need to read/save
 	//buffer or text to file
-	if (this->FileWindow) {
-	
-		this->FileDraw(gc);
-	}
+	if (this->FileWindow) { this->FileDraw(gc); }
 }
 
 void Window::MenuDraw(GraphicsContext* gc) {
@@ -155,7 +179,6 @@ void Window::FileDraw(GraphicsContext* gc) {
 	uint8_t c = 0x09;
 
 	gc->FillRectangle(x, y, w, h, os::drivers::light2dark[c]);
-	
 
 	if (this->Save) {
 		
@@ -177,7 +200,6 @@ void Window::FileDraw(GraphicsContext* gc) {
 }
 
 
-
 void Window::FullScreen() {
 
 	this->Fullscreen ^= 1;
@@ -186,31 +208,35 @@ void Window::FullScreen() {
 	
 		x = 0;
 		y = 0;
-		w = 320;
-		h = 200;
+		w = WIDTH_13H;
+		h = HEIGHT_13H;
 		this->Dragging = false;
 	} else {
+		x = xo;
+		y = yo;
 		w = wo;
 		h = ho;
 	}
 }
 
 
+uint8_t Window::ReturnAppType() { return this->app->appType; }
 
 
-uint8_t Window::ReturnAppType() {
+void Window::DestroyWindow() {
 
-	return this->app->appType;
+	MemoryManager* mm = buttons->memoryManager;
+	this->buttons->DestroyList();
+	mm->free(this->buttons);
+	mm->free(this->app);
 }
-
-
 
 
 void Window::OnMouseDown(int32_t x, int32_t y, uint8_t button) {
 
-	if (x == this->x || y == this->y 
-	 || x == this->x + this->w - 1 
-	 || y == this->y + this->h - 1) {
+	if (x <= this->x+1 || y <= this->y+1 
+	 || x >= this->x+this->w-2 
+	 || y >= this->y+this->h-2) {
 	
 		Resize = true;
 		Dragging = false;
@@ -271,7 +297,6 @@ void Window::OnMouseMove(int32_t oldx, int32_t oldy,
 	
 	//resizing window
 	if (Resize) {
-	
 		this->w += (newx - oldx) * (this->w >= 70);
 		this->h += (newy - oldy) * (this->h >= 35);
 	} else {
@@ -364,3 +389,24 @@ void Window::OnKeyUp(char str) {
 	this->app->OnKeyUp(str, this);
 	CompositeWidget::OnKeyUp(str);
 }
+
+
+
+/*
+//window button class
+WindowButton::WindowButton(Window* window, 
+int32_t x, int32_t y, 
+int32_t w, int32_t h, uint8_t buttonType,
+bool offsetX, bool offsetY, bool offsetW, bool offsetH) 
+: Widget(x, y, w, h, offsetX, offsetY, offsetW, offsetH) {
+
+	this->buttonType = buttonType;
+	this->buf = (uint8_t*)(window->filesystem->memoryManager->malloc(sizeof(w*h)));
+	new (this->buf) uint8_t;
+}
+
+WindowButton::~WindowButton() {
+}
+
+void OnMouseDown(int32_t x, int32_t y, uint8_t button) {}
+*/
