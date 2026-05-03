@@ -4,6 +4,7 @@
 
 #include <common/types.h>
 #include <memorymanagement.h>
+#include <string.h>
 
 
 namespace os {
@@ -25,11 +26,11 @@ namespace os {
 		public:
 			MemoryManager* memoryManager;
 
-			common::uint32_t numOfNodes;
-			Node* entryNode;
-			Node* lastNode;
+			common::uint32_t numOfNodes = 0;
 			
-			Node* indexNode;
+			Node* entryNode = nullptr;
+			Node* lastNode = nullptr;
+			Node* indexNode = nullptr;
 		public:
 			List(MemoryManager* memoryManager);
 			~List();
@@ -52,8 +53,8 @@ namespace os {
 			void AddByte(common::uint8_t value, common::int32_t index = -1);
 			void RemoveByte(common::uint8_t value);
 			
-			void AddInt(common::uint32_t value);
-			void RemoveInt(common::uint32_t value);
+			void AddInt(common::int32_t value);
+			void RemoveInt(common::int32_t value);
 			
 			void AddString(char* str);
 			void RemoveString(char* str);

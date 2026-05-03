@@ -6,8 +6,6 @@
 
 namespace os {
 
-	void cubeScreen(int backgroundASCIICode, float incrementSpeed, math::Cube* data);
-
 	void osakaFace();
 	void osakaHead();
 	void osakaKnife();

@@ -24,6 +24,16 @@ namespace os {
 		common::uint32_t fs;
 		common::uint32_t es;
 		common::uint32_t ds;
+		
+		common::uint32_t edi;
+		common::uint32_t esi;
+		common::uint32_t ebp;
+		common::uint32_t useless_esp;
+		
+		common::uint32_t ebx;
+		common::uint32_t edx;
+		common::uint32_t ecx;
+		common::uint32_t eax;
 		*/
 
 		common::uint32_t error;
@@ -46,6 +56,7 @@ namespace os {
 			CPUState* cpustate;
 		
 			char taskname[33];
+			bool binary = false;
 			bool kill = false;
 			
 			common::uint32_t instructionCount = 0;
@@ -62,6 +73,7 @@ namespace os {
 		
 		public:
 			GlobalDescriptorTable* gdt;
+			MemoryManager* mm;
 
 			Task* tasks[256];
 			common::uint8_t taskPriority[256];
@@ -76,7 +88,7 @@ namespace os {
 			common::uint32_t espPrint = 0;
 			common::uint32_t ebpPrint = 0;
 		public:
-			TaskManager(GlobalDescriptorTable* gdt);
+			TaskManager(GlobalDescriptorTable* gdt, MemoryManager* mm);
 			~TaskManager();
 
 			bool AddTask(Task* task);

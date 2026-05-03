@@ -29,6 +29,7 @@ namespace os {
 			~MemoryManager();
 
 			void* malloc(common::size_t size);
+			void* realloc(void* ptr, common::size_t newSize);
 			void free(void* ptr);
 
 			void BufferShift(common::uint8_t* buffer, common::uint32_t bufsize, 

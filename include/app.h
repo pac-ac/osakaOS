@@ -5,6 +5,14 @@
 #include <drivers/vga.h>
 #include <gui/widget.h>
 #include <filesys/ofs.h>
+#include <string.h>
+
+
+#define APP_TYPE_SCRIPT 0
+#define APP_TYPE_TERMINAL 1
+#define APP_TYPE_KASUGAPAINT 2
+#define APP_TYPE_JOURNAL 3
+#define APP_TYPE_SHINOSAKA 4
 
 
 namespace os {
