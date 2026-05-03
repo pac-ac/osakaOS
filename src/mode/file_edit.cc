@@ -11,7 +11,6 @@ void putcharTUI(unsigned char, unsigned char, unsigned char, uint8_t, uint8_t);
 void TUI(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, bool);
 void printfTUI(char*, uint8_t, uint8_t, uint8_t, uint8_t);
 
-char* int2str(uint32_t);
 void sleep(uint32_t);
 
 
