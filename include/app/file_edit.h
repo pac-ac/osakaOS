@@ -5,6 +5,7 @@
 #include <common/types.h>
 #include <gui/window.h>
 #include <filesys/ofs.h>
+#include <script.h>
 
 
 namespace os {
@@ -13,19 +14,23 @@ namespace os {
 
 		public:
 			common::uint32_t fileOffset = 0;
+			
+			common::uint8_t* fileBuffer = nullptr;
+			common::uint8_t LBA[OFS_BLOCK_SIZE];
 			common::uint16_t numOfBlocks = 0;
 
-			common::uint8_t LBA[OFS_BLOCK_SIZE];
-			common::uint8_t LBA2[OFS_BLOCK_SIZE];
+			common::uint32_t cursorx = 0;
+			common::uint32_t cursory = 0;
 
-			common::uint16_t cursorx = 0;
-			common::uint8_t cursory = 0;
-
-			common::uint16_t index = 0;
-			common::uint16_t cursor = 0;
+			common::uint32_t index = 0;
+			common::uint32_t cursor = 0;
 			bool init = false;
+		
+			List* degreePoints = nullptr;
+
+			MemoryManager* mm = nullptr;
 		public:
-			Journal();
+			Journal(MemoryManager* mm);
 			~Journal();
 
 			virtual void ComputeAppState(common::GraphicsContext* gc, gui::CompositeWidget* widget);

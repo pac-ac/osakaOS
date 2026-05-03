@@ -3,26 +3,50 @@
 
 #include <common/types.h>
 #include <gui/window.h>
+#include <gui/sim.h>
 #include <filesys/ofs.h>
+
+
+
+#define DRAW_OPTION_DEFAULT 0
+#define DRAW_OPTION_CIRCLE 1
+
+#define DRAW_OPTION_BRUSH 2
+#define DRAW_OPTION_BUCKET 3
+
+#define DRAW_OPTION_TEXT 4
+#define DRAW_OPTION_TEXT_STYLE 5
+
+
 
 namespace os {
 
 	class KasugaPaint : public App {
 
-		common::uint8_t backup[64000];
+		public:
+		common::uint8_t* backup;
+		bool initBuffer = false;
+		//common::uint8_t backup[64000];
 
 		bool drawing = false;
-		common::uint8_t paintColor = 0x40;
+		common::uint8_t paintColor = 0x10;
+		common::uint8_t replaceColor = 0xff;
 		common::uint8_t colorOffset = 0;
 		common::uint8_t size = 0;
 		common::uint8_t zoomSize = 1;
 	
-		common::uint16_t width = 320;
-		common::uint8_t height = 200;
+		common::uint16_t width = WIDTH_13H;
+		common::uint16_t height = HEIGHT_13H;
 
 		common::uint16_t menuX = 0;
-		common::uint8_t menuY = 0;
+		common::uint16_t menuY = 0;
 		common::uint8_t menuTarget = 0;
+
+		char textDrawStr[64];
+		common::uint16_t textDrawIndex = 0;
+		common::uint16_t textDrawX = 0;
+		common::uint16_t textDrawY = 0;
+		common::uint8_t textDrawFlags = TEXT_BASIC;
 
 		bool fileMenu = false;
 		bool searchFile = false;
@@ -45,7 +69,7 @@ namespace os {
 			
 			//perspective
 			void Zoom(gui::CompositeWidget* widget, bool increase);
-			void Dimensions(bool width, bool increase);
+			void Dimensions(bool width, bool increase, gui::CompositeWidget* widget);
 
 			//draw tools
 			void DrawSize(bool increase);
