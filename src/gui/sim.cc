@@ -2,18 +2,18 @@
 
 using namespace os::common;
 using namespace os::drivers;
+using namespace os::filesystem;
 using namespace os::gui;
 using namespace os::math;
 
 
-char* int2str(uint32_t);
 //void sleep(uint32_t);
 uint16_t prng();
 void reboot();
+uint8_t* memset(uint8_t*, int, size_t);
 
 
-
-Simulator::Simulator(CMOS* cmos) {
+Simulator::Simulator(GraphicsContext* gc, FileSystem* ofs, CMOS* cmos) {
 
 	this->lastOsakaX = 155;
 	this->lastOsakaY = 65;
@@ -27,18 +27,215 @@ Simulator::Simulator(CMOS* cmos) {
 	this->walkCycle = 1;
 
 
-	for (int i = 0; i < 320; i++) {
+	for (int i = 0; i < WIDTH_13H; i++) {
 		
 		if (i < 16) { keylog[i] = 0x00; }
 		walkPixels[i].x = 0;
 		walkPixels[i].y = 0;
 	}
 
+	this->gc = gc;
+	this->ofs = ofs;
 	this->cmos = cmos;
 	cmos->ReadRTC();
+
+
+	//set object coordinates
+	for (int i = 0; i < 16; i++) {
+	
+		this->ObjectLocations[i].x = 0;
+		this->ObjectLocations[i].y = 0;
+	}
+
+	this->objectTarget = 0x00;
+
+
+	if (ofs->FileIf(ofs->GetFileSector("*ROOM"))) {
+
+		this->LoadRoom();
+	} else {
+		this->ObjectLocations[tvVal].x = 141;
+		this->ObjectLocations[tvVal].y = 33;
+	
+		this->ObjectLocations[gameConsoleVal].x = 122;
+		this->ObjectLocations[gameConsoleVal].y = 73;
+	
+		this->ObjectLocations[computerVal].x = 30;
+		this->ObjectLocations[computerVal].y = 78;
+	
+		this->ObjectLocations[crtPCVal].x = 27;
+		this->ObjectLocations[crtPCVal].y = 53;
+	
+		this->ObjectLocations[bongDirtyVal].x = 6;
+		this->ObjectLocations[bongDirtyVal].y = 84;
+
+		this->ObjectLocations[dresserVal].x = 184;
+		this->ObjectLocations[dresserVal].y = 63;
+
+		this->ObjectLocations[photoFrameVal].x = 192;
+		this->ObjectLocations[photoFrameVal].y = 58;
+	
+		this->ObjectLocations[lampVal].x = 237;
+		this->ObjectLocations[lampVal].y = 33;
+	
+		this->ObjectLocations[bedVal].x = 241;
+		this->ObjectLocations[bedVal].y = 79;
+	}
+
+	this->GenObjectPositions(gc);
 }
 
 Simulator::~Simulator() {
+}
+
+
+
+void Simulator::LoadRoom() {
+
+	if (ofs->FileIf(ofs->GetFileSector("*ROOM"))) {
+
+		uint8_t objectVals[] = { tvVal, gameConsoleVal, computerVal, 
+					 crtPCVal, bongDirtyVal, dresserVal, 
+					 photoFrameVal, lampVal, bedVal };	
+		uint8_t LBA[OFS_BLOCK_SIZE];
+		ofs->ReadLBA("*ROOM", LBA, 0);
+		
+		for (int i = 0; i < 9; i++) {
+		
+			this->ObjectLocations[objectVals[i]].x = (LBA[16+(i*4)] << 8) | LBA[17+(i*4)];
+			this->ObjectLocations[objectVals[i]].y = (LBA[18+(i*4)] << 8) | LBA[19+(i*4)];
+		}
+	}
+}
+
+
+
+void Simulator::SaveRoom() {
+		
+	uint8_t objectVals[] = { tvVal, gameConsoleVal, computerVal, 
+				 crtPCVal, bongDirtyVal, dresserVal, 
+				 photoFrameVal, lampVal, bedVal };	
+	uint8_t LBA[OFS_BLOCK_SIZE];
+	memset(LBA, 0x00, OFS_BLOCK_SIZE);
+
+	for (int i = 0; i < 9; i++) {
+	
+		LBA[16+(i*4)] = this->ObjectLocations[objectVals[i]].x >> 8;
+		LBA[17+(i*4)] = this->ObjectLocations[objectVals[i]].x & 0xff;
+		LBA[18+(i*4)] = this->ObjectLocations[objectVals[i]].y >> 8;
+		LBA[19+(i*4)] = this->ObjectLocations[objectVals[i]].y & 0xff;
+	}
+
+	
+	if (ofs->FileIf(ofs->GetFileSector("*ROOM"))) {
+		
+		ofs->WriteLBA("*ROOM", LBA, 0);
+	} else {
+		ofs->NewFile("*ROOM", LBA, OFS_BLOCK_SIZE);
+		ofs->NewTag("sys", ofs->GetFileSector("*ROOM"));
+	}
+}
+
+
+
+void Simulator::LoadSkin(char* file) {
+	
+	if (ofs->FileIf(ofs->GetFileSector(file))) {
+	
+		uint8_t LBA[OFS_BLOCK_SIZE];
+		uint8_t skin[114*49];
+
+		for (int i = 0; i < 4; i++) {
+		
+			ofs->ReadLBA(file, LBA, i);
+		
+			for (int j = 0; j < OFS_BLOCK_SIZE; j++) {
+			
+				if ((OFS_BLOCK_SIZE*i)+j < 114*49) {
+				
+					skin[(OFS_BLOCK_SIZE*i)+j] = LBA[j];
+				}
+			}
+		}
+
+		
+		uint8_t* sprites[] = { 	customFrontRight,     customBackRight, 
+					customFrontRightWalk1,customFrontRightWalk2,
+					customBackRightWalk1, customBackRightWalk2 };
+		
+		int widths[] = { 16, 15, 16, 25, 21, 21 };
+		int offset = 0;
+
+		for (int w = 0; w < 6; w++) {
+			for (int x = 0; x < widths[w]; x++) {
+				for (int y = 0; y < 49; y++) {
+				
+					uint8_t* sprite = sprites[w];
+					sprite[(widths[w]*y+x)] = skin[(114*y+x+offset)];
+				}
+			}
+			offset += widths[w];
+		}
+	}
+}
+
+
+void Simulator::GenObjectPositions(GraphicsContext* gc) {
+	//posters
+	/* 
+	gc->FillBufferCoordinate(208, 15, 20, 30, catPoster, false, ObjectPositionMap, catPosterVal);
+	gc->FillBufferCoordinate(267, 26, 20, 30, awakeningPoster, false, ObjectPositionMap, awakeningPosterVal);
+	gc->FillBufferCoordinate(9, 29, 20, 30, brazilPoster, true, ObjectPositionMap, brazilPosterVal);
+	*/
+	memset(this->ObjectPositionMap, 0x00, BUFFER_SIZE_13H);
+
+	for (int i = 0; i < 16; i++) {
+
+		int x = this->ObjectLocations[i].x;
+		int y = this->ObjectLocations[i].y;
+
+		switch (i) {
+
+			case tvVal:
+				gc->FillBufferCoordinate(x, y, 38, 33, crtTV, false, ObjectPositionMap, tvVal);
+				break;
+			
+			case computerVal:
+				gc->FillBufferCoordinate(x, y, 20, 23, computer, false, ObjectPositionMap, computerVal);
+				break;
+
+			case crtPCVal:
+				gc->FillBufferCoordinate(x, y, 22, 18, crtPC, false, ObjectPositionMap, crtPCVal);
+				break;
+		
+			case bongDirtyVal:
+				gc->FillBufferCoordinate(x, y, 11, 18, bongDirty, false, ObjectPositionMap, bongDirtyVal);
+				break;
+
+			case dresserVal:
+				gc->FillBufferCoordinate(x, y, 49, 26, dresser, true, ObjectPositionMap, dresserVal);
+				gc->FillBufferCoordinate(x, y-7, 49, 26, dresser, true, ObjectPositionMap, dresserVal);
+				break;
+			
+			case gameConsoleVal:
+				gc->FillBufferCoordinate(x, y, 17, 15, gameConsole, false, ObjectPositionMap, gameConsoleVal);
+				break;
+			
+			case photoFrameVal:
+				gc->FillBufferCoordinate(x, y, 10, 10, photoFrame, false, ObjectPositionMap, photoFrameVal);
+				break;
+
+			case lampVal:
+				gc->FillBufferCoordinate(x, y, 17, 59, lamp, false, ObjectPositionMap, lampVal);
+				break;
+
+			case bedVal:
+				gc->FillBufferCoordinate(x, y, 76, 61, bed, false, ObjectPositionMap, bedVal);
+				break;
+			default:
+				break;
+		}
+	}
 }
 
 
@@ -112,57 +309,70 @@ void Simulator::OnMouseDown(int32_t newMouseX, int32_t newMouseY, uint8_t button
 		this->MenuSelect(newMouseX, newMouseY, button);
 		return;
 	}
-	
-	//tv select
-	if (newMouseX > 142 && newMouseX < 179 
-	&& newMouseY > 40 && newMouseY < 70) {
-	
-		this->menu = true;
-		this->menuType = 1;
-	
-	//dresser	
-	} else if (newMouseX > 184 && newMouseX <= 233 
-		&& newMouseY > 46 && newMouseY <= 88) {
-	
-		this->menu = true;
-		this->menuType = 2;
 
-	//bed select
-	} else if ((newMouseX > 241 && newMouseX < 281 && newMouseY > 105 && newMouseY < 140) || 
-		   (newMouseX > 270 && newMouseX < 317 && newMouseY > 79 && newMouseY < 106)) {
+	uint8_t objectValue = this->ObjectPositionMap[WIDTH_13H*newMouseY+newMouseX];
+
+
+	if (button == LEFT_CLICK) {
 	
-		this->sleeping ^= 1;
-		this->ticks = 0;
-	//lamp
-	} else if (newMouseX > 235 && newMouseX <= 252 && newMouseY > 34 && newMouseY <= 50) {
+		switch (objectValue) {
+	
+			case tvVal:
+				this->menu = true;
+				this->menuType = 1;
+				break;
+
+			case gameConsoleVal:
+				this->SaveRoom();
+				break;
 		
-		this->lampOn ^= 1;
-		if (lampOn) { darkLevel = 0; }
-		else {	      darkLevel = 1; }
-
-	//computer
-	} else if (newMouseX > 31 && newMouseX <= 49 && newMouseY > 54 && newMouseY <= 70) {
-	
-		this->sim = false;
-	//bong	
-	} else if (newMouseX > 6 && newMouseX <= 17 && newMouseY > 84 && newMouseY <= 102) {
-	
-		this->waveLength ^= 20;
-	//walking
-	} else {
-		if (walkCycle == 1 && flying == false 
-			&& (newMouseY > 70 || 
-			(newMouseX > 80 && newMouseX < 240 && newMouseY > 35))) {	
+			case crtPCVal:
+				this->sim = false;
+				break;
 		
-			mousePress = true;
-			stepsNum = LineFillArray(mouseX, mouseY, newMouseX, newMouseY, walkPixels);
+			case bongDirtyVal:
+				this->waveLength ^= 20;
+				break;
+		
+			case dresserVal:
+				this->menu = true;
+				this->menuType = 2;
+				break;
+		
+			case windowVal:
+				break;
+		
+			case lampVal:
+				this->lampOn ^= 1;
+				if (lampOn) { darkLevel = 0; }
+				else {	      darkLevel = 1; }
+				break;
+		
+			case bedVal:
+				this->sleeping ^= 1;
+				this->ticks = 0;
+				break;
+		
+			default:
+				if (walkCycle == 1 && flying == false && (newMouseY > 70 || 
+					(newMouseX > 80 && newMouseX < 240 && newMouseY > 35))) {	
+		
+					mousePress = true;
+					stepsNum = LineFillArray(mouseX, mouseY, newMouseX, newMouseY, walkPixels);
 
-			backwardsX = mouseX > newMouseX;
-			backwardsY = mouseY > newMouseY;
-			direction = abs(mouseX - newMouseX) > abs(mouseY - newMouseY);
-			this->mouseX = newMouseX;
-			this->mouseY = newMouseY;
+					backwardsX = mouseX > newMouseX;
+					backwardsY = mouseY > newMouseY;
+					direction = abs(mouseX - newMouseX) > abs(mouseY - newMouseY);
+					this->mouseX = newMouseX;
+					this->mouseY = newMouseY;
+				}
+				break;
 		}
+
+	} else if (button == 2 && objectValue != 0x00) {
+
+		//this->objectTarget = ObjectLocations[objectValue];
+		this->objectTarget = objectValue;
 	}
 }
 
@@ -171,10 +381,22 @@ void Simulator::OnMouseMove(int32_t MouseX, int32_t MouseY, int32_t newMouseX, i
 
 	this->moveMouseX = newMouseX - MouseX;
 	this->moveMouseY = newMouseY - MouseY;
-	//this->moveMouseX = newMouseX;
-	//this->moveMouseY = newMouseY;
+	
+	if (this->objectTarget != 0x00) {
+	
+		this->ObjectLocations[objectTarget].x = newMouseX;
+		this->ObjectLocations[objectTarget].y = newMouseY;
+	}
 }
 
+void Simulator::OnMouseUp(int32_t newMouseX, int32_t newMouseY, uint8_t button) {
+
+	if (this->objectTarget != 0x00 && button == 2) {
+	
+		this->GenObjectPositions(this->gc);
+		this->objectTarget = 0x00;
+	}
+}
 
 
 
@@ -209,8 +431,16 @@ uint8_t Simulator::MenuSelect(int32_t newMouseX, int32_t newMouseY, uint8_t butt
 	
 		switch (select) {
 		
-			//cable
+			//home network media
 			case 1:
+				this->net->activateServerHNM ^= 1;
+				
+				if (this->HNM_Socket != nullptr) {
+				
+					this->net->udp->Disconnect(this->HNM_Socket);
+				}
+				this->HNM_Socket = this->net->udp->Listen(HNM_PORT);
+				this->net->udp->Bind(this->HNM_Socket, this->net);
 				break;
 			//platformer
 			case 2:
@@ -229,6 +459,21 @@ uint8_t Simulator::MenuSelect(int32_t newMouseX, int32_t newMouseY, uint8_t butt
 	} else if (menuType == 2) {
 
 		this->outfit = select - 1;
+		
+		switch (this->outfit) {
+		
+			case 0:break;
+			case 1:break;
+			
+			case 4:this->LoadSkin("*OSAKA_SIM_0");break;
+			case 5:this->LoadSkin("*OSAKA_SIM_1");break;
+			case 6:this->LoadSkin("*OSAKA_SIM_2");break;
+			case 7:this->LoadSkin("*OSAKA_SIM_3");break;
+
+			default:
+			       this->LoadSkin("*OSAKA_SIM_0");
+			       break;
+		}
 	}
 
 	//turn off menu
@@ -245,9 +490,9 @@ uint8_t Simulator::MenuSelect(int32_t newMouseX, int32_t newMouseY, uint8_t butt
 void Simulator::DrawMenuSelect(GraphicsContext* gc) {
 
 	//background
-	gc->FillRectangle(0, 0, 320, 200, 0x09);
-	gc->FillRectangle(60, 50, 200, 100, 0x08);
-	gc->DrawRectangle(60, 50, 200, 100, 0x07);
+	gc->FillRectangle(0, 0, WIDTH_13H, HEIGHT_13H, W5555FF);
+	gc->FillRectangle(60, 50, HEIGHT_13H, 100, W000041);
+	gc->DrawRectangle(60, 50, HEIGHT_13H, 100, WAAAAAA);
 	
 	char* str1 = "null"; char* str2 = "null"; 
 	char* str3 = "null"; char* str4 = "null"; 
@@ -258,7 +503,7 @@ void Simulator::DrawMenuSelect(GraphicsContext* gc) {
 	
 		//tv
 		case 1:
-			str1 = "TBA";
+			str1 = "HNM";
 			str2 = "WIP 1";
 			str3 = "WIP 2";
 			break;
@@ -266,6 +511,10 @@ void Simulator::DrawMenuSelect(GraphicsContext* gc) {
 		case 2:
 			str1 = "Winter";
 			str2 = "Summer";
+			str5 = "Cstm.0";
+			str6 = "Cstm.1";
+			str7 = "Cstm.2";
+			str8 = "Cstm.3";
 			break;
 		default:
 			break;
@@ -278,11 +527,11 @@ void Simulator::DrawMenuSelect(GraphicsContext* gc) {
 		for (uint8_t j = 0; j < 4; j++) {
 	
 			//draw boxes
-			gc->FillRectangle(84+(44*j), 70+(40*i), 20, 20, 0x40);
-			gc->DrawRectangle(84+(44*j), 70+(40*i), 20, 20, 0x38);
+			gc->FillRectangle(84+(44*j), 70+(40*i), 20, 20, W000000);
+			gc->DrawRectangle(84+(44*j), 70+(40*i), 20, 20, W555555);
 	
 			//print name
-			gc->PutText(strArr[strIndex], 77+(44*j), 94+(40*i), 0x3f);
+			gc->PutText(strArr[strIndex], 77+(44*j), 94+(40*i), WFFFFFF);
 			strIndex++;
 		}
 	}
@@ -326,37 +575,38 @@ void Simulator::TimeAndDate(char* timeDateString) {
 
 void Simulator::Dream(GraphicsContext* gc) {
 
-
-	//gc->FillBuffer(241, 79, 76, 61, bed, false);
+	int x = this->ObjectLocations[bedVal].x;
+	int y = this->ObjectLocations[bedVal].y;
+	bool mirror = x <= 160;
 
 	//first dream bubble
-	gc->FillBuffer(275, 73, 4, 4, dreamBubbleMini1, false);
+	gc->FillBuffer(x+34, y-6, 4, 4, dreamBubbleMini1, mirror);
 
 	//second dream bubble	
 	if (ticks > 780) {
 	
-		gc->FillBuffer(264, 67, 5, 5, dreamBubbleMini2, false);
+		gc->FillBuffer(x+23, y-12, 5, 5, dreamBubbleMini2, mirror);
 	}
 	
 	//third dream bubble	
 	if (ticks > 900) {
 	
-		gc->FillBuffer(220, 40, 21, 29, dreamBubbleHalf, false);
-		gc->FillBuffer(240, 40, 21, 29, dreamBubbleHalf, true);
+		gc->FillBuffer(x-21, y-39, 21, 29, dreamBubbleHalf, mirror);
+		gc->FillBuffer(x-1, y-39, 21, 29, dreamBubbleHalf, !mirror);
 
 		switch (this->ticks / (3600)) {
 	
 			case 0:
-				gc->FillBuffer(224, 44, 17, 19, cursorChiChi, false);
-				gc->FillBuffer(242, 44, 13, 20, osakaPlatSprite1, true);
+				gc->FillBuffer(x+17, y+35, 17, 19, cursorChiChi, mirror);
+				gc->FillBuffer(x+1, y+35, 13, 20, osakaPlatSprite1, !mirror);
 				break;
 			case 1:
-				gc->PutText("=D", 230, 50, 0x40);
+				gc->PutText("=D", x-11, y-29, W000000);
 				break;
 			case 2:
 				break;
 			case 3:
-				gc->PutText("fuck\nC++", 225, 50, 0x40);
+				gc->PutText("fuck\nC++", x+16, y-29, W000000);
 				break;
 			default:
 				break;
@@ -371,14 +621,14 @@ void Simulator::Fly(GraphicsContext* gc, uint16_t osakaSpriteNum) {
 	switch (osakaSpriteNum) {
 	
 		case 1:
-			for (uint8_t i = 9; i < 14; i++) { gc->PutPixel(osakaX+4, osakaY+i, 0x2b); }
-			for (uint8_t i = 9; i < 15; i++) { gc->PutPixel(osakaX+9, osakaY+i, 0x2b); }
-			for (uint8_t i = 5; i < 9; i++) { gc->PutPixel(osakaX+i, osakaY+12, 0x37);}
+			for (uint8_t i = 9; i < 14; i++) { gc->PutPixel(osakaX+4, osakaY+i, W829EFF); }
+			for (uint8_t i = 9; i < 15; i++) { gc->PutPixel(osakaX+9, osakaY+i, W829EFF); }
+			for (uint8_t i = 5; i < 9; i++) { gc->PutPixel(osakaX+i, osakaY+12, WFFFFBA);}
 			break;
 		case 0:
-			for (uint8_t i = 9; i < 15; i++) { gc->PutPixel(osakaX+6, osakaY+i, 0x2b); }
-			for (uint8_t i = 9; i < 14; i++) { gc->PutPixel(osakaX+11, osakaY+i, 0x2b); }
-			for (uint8_t i = 7; i < 11; i++) { gc->PutPixel(osakaX+i, osakaY+12, 0x37);}
+			for (uint8_t i = 9; i < 15; i++) { gc->PutPixel(osakaX+6, osakaY+i, W829EFF); }
+			for (uint8_t i = 9; i < 14; i++) { gc->PutPixel(osakaX+11, osakaY+i, W829EFF); }
+			for (uint8_t i = 7; i < 11; i++) { gc->PutPixel(osakaX+i, osakaY+12, WFFFFBA);}
 			break;
 		default:
 			break;
@@ -432,7 +682,7 @@ void Simulator::Walk() {
 	} else {	
 		if (mousePress) {
 		
-			for (int i = 0; i < 320; i++) {
+			for (int i = 0; i < WIDTH_13H; i++) {
 		
 				walkPixels[i].x = 0;
 				walkPixels[i].y = 0;
@@ -488,8 +738,8 @@ void Simulator::DrawRoom(GraphicsContext* gc) {
 		switch (event) {
 		
 			case 1:
-				gc->FillRectangle(0, 0, 320, 200, 0x40);
-				if (ticks >= 360) { gc->PutText("GAME OVER", 133, 96, 0x24); }
+				gc->FillRectangle(0, 0, WIDTH_13H, HEIGHT_13H, W000000);
+				if (ticks >= 360) { gc->PutText("GAME OVER", 133, 96, WFF0000); }
 				if (ticks >= 720) { reboot(); }
 				ticks++;
 				break;
@@ -524,50 +774,49 @@ void Simulator::DrawRoom(GraphicsContext* gc) {
 
 
 	//background
-	gc->FillRectangle(0, 0, 320, 200, 0x08);
+	gc->FillRectangle(0, 0, WIDTH_13H, HEIGHT_13H, W000041);
 	
 	//floor
-	gc->FillRectangle(0, 95, 320, 200, 0x14);
-	uint16_t xFloor[] = {0, 160, 320};
+	gc->FillRectangle(0, 95, WIDTH_13H, HEIGHT_13H, WAA5500);
+	uint16_t xFloor[] = {0, 160, WIDTH_13H};
 	uint16_t yFloor[] = {95, 65, 95};
-	gc->FillPolygon(xFloor, yFloor, 3, 0x14);
+	gc->FillPolygon(xFloor, yFloor, 3, WAA5500);
 
 
 	//rug
 	uint16_t xRug[] = {90, 160, 230, 160};
 	uint16_t yRug[] = {120, 100, 120, 140};
-	gc->FillPolygon(xRug, yRug, 4, 0x3f);
+	gc->FillPolygon(xRug, yRug, 4, WFFFFFF);
 	uint16_t xRug2[] = {105, 160, 215, 160};
 	uint16_t yRug2[] = {120, 105, 120, 135};
-	gc->FillPolygon(xRug2, yRug2, 4, 0x23);
+	gc->FillPolygon(xRug2, yRug2, 4, W00AAAA);
 
 	
 	//walls
 	//brown
-	uint16_t xWall1[] = {0, 160, 320, 320, 160, 0};
+	uint16_t xWall1[] = {0, 160, WIDTH_13H, WIDTH_13H, 160, 0};
 	uint16_t yWall1[] = {95, 65, 95, 80, 50, 80};
-	gc->FillPolygon(xWall1, yWall1, 6, 0x20);
+	gc->FillPolygon(xWall1, yWall1, 6, W410000);
 
 	//green
 	uint16_t yWall2[] = {80, 50, 80, 70, 40, 70};
-	gc->FillPolygon(xWall1, yWall2, 6, 0x2a);
+	gc->FillPolygon(xWall1, yWall2, 6, W397145);
 
 	//beige
 	uint16_t yWall3[] = {70, 40, 70, 20, 0, 20};
-	gc->FillPolygon(xWall1, yWall3, 6, 0x37);
+	gc->FillPolygon(xWall1, yWall3, 6, WFFFFBA);
 	
 	//outlines	
-	gc->DrawLine(0, 95, 160, 65, 0x40);
-	gc->DrawLine(160, 65, 320, 95, 0x40);
-	gc->DrawLine(0, 80, 160, 50, 0x40);
-	gc->DrawLine(160, 50, 320, 80, 0x40);
-	gc->DrawLine(160, 50, 320, 80, 0x40);
-	gc->DrawLine(160, 40, 0, 70, 0x40);
-	gc->DrawLine(160, 40, 320, 70, 0x40);
-	gc->DrawLine(160, 0, 160, 65, 0x40);
-	gc->DrawLine(0, 20, 160, 0, 0x40);
-	gc->DrawLine(160, 0, 320, 20, 0x40);
-
+	gc->DrawLine(0, 95, 160, 65, W000000);
+	gc->DrawLine(160, 65, WIDTH_13H, 95, W000000);
+	gc->DrawLine(0, 80, 160, 50, W000000);
+	gc->DrawLine(160, 50, WIDTH_13H, 80, W000000);
+	gc->DrawLine(160, 50, WIDTH_13H, 80, W000000);
+	gc->DrawLine(160, 40, 0, 70, W000000);
+	gc->DrawLine(160, 40, WIDTH_13H, 70, W000000);
+	gc->DrawLine(160, 0, 160, 65, W000000);
+	gc->DrawLine(0, 20, 160, 0, W000000);
+	gc->DrawLine(160, 0, WIDTH_13H, 20, W000000);
 
 
 
@@ -580,87 +829,126 @@ void Simulator::DrawRoom(GraphicsContext* gc) {
 
 	//wall outlets
 	gc->FillBuffer(127, 59, 7, 10, wallOutlet, false);
-	gc->FillBuffer(25, 78, 7, 10, wallOutlet, false);
+	//gc->FillBuffer(25, 78, 7, 10, wallOutlet, false);
 	gc->FillBuffer(263, 73, 7, 10, wallOutlet, true);
-
-
-	//tv stand
-	gc->FillRectangle(141, 68, 38, 7, 0x20);
-	gc->DrawRectangle(141, 68, 38, 7, 0x40);
-	gc->FillRectangle(138, 61, 44, 7, 0x20);
-	gc->DrawRectangle(138, 61, 44, 7, 0x40);
-	gc->DrawLine(158, 71, 162, 71, 0x38);
-	//tv
-	gc->FillBuffer(141, 33, 38, 33, crtTV, false);
-	gc->DrawLine(130, 62, 138, 65, 0x40);
-	//tv flash
-	gc->FillRectangle(145, 37, 30, 22, (((ticks/5)%2)*8)+1);
-	
-	//game console
-	gc->FillBuffer(122, 73, 17, 15, gameConsole, false);
-	gc->DrawLine(131, 75, 130, 65, 0x40);
 	
 	
-	//computer
-	gc->FillBuffer(30, 78, 20, 23, computer, false);
-	//desk
-	gc->FillBuffer(18, 60, 49, 46, desk, false);
 	
-	//monitor
-	gc->FillBuffer(27, 53, 22, 18, crtPC, false);
-	//keyboard
-	gc->FillBuffer(35, 69, 16, 7, keyboard, false);
-	//keyboard cable
-	gc->FillBuffer(26, 66, 9, 8, keyboardCable, false);
-	//mouse
-	gc->FillBuffer(51, 62, 7, 9, mouse, false);
-	//bong
-	gc->FillBuffer(6, 84, 11, 18, bongDirty, false);
 	
-
-
-	//chair
-	gc->FillBuffer(43, 71, 30, 40, chair, false);
-
-
-	//dresser
-	gc->FillBuffer(184, 63, 49, 26, dresser, true);
-	gc->FillBuffer(184, 56, 49, 26, dresser, true);
-
-	//photo frame
-	gc->FillBuffer(192, 58, 10, 10, photoFrame, false);
-
-
 	//blinds
 	for (uint8_t i = 15; i < 42; i += 3) {
 		gc->FillBuffer(65, i, 35, 8, blindsRepeat, false);
 	}
-	gc->DrawLine(67, 23, 67, 42, 0x40);
-	gc->DrawLine(68, 23, 68, 42, 0x07);
-	gc->DrawLine(69, 23, 69, 42, 0x40);
-	gc->PutPixel(68, 41, 0x40);
+	gc->DrawLine(67, 23, 67, 42, W000000);
+	gc->DrawLine(68, 23, 68, 42, WAAAAAA);
+	gc->DrawLine(69, 23, 69, 42, W000000);
+	gc->PutPixel(68, 41, W000000);
 	gc->FillBuffer(64, 42, 38, 9, windowShelf, false);
 
 
-	//lamp
-	gc->FillBuffer(237, 33, 17, 59, lamp, false);
-	//bed
-	gc->FillBuffer(241, 79, 76, 61, bed, false);
+
+	for (int i = 0; i < 16; i++) {
+
+		int x = this->ObjectLocations[i].x;
+		int y = this->ObjectLocations[i].y;
+		bool mirror = x > 160;
 	
-	/*
-	//files
-	for (uint16_t i = 0; i < fileNum; i++) {
-	
-		switch (i%6) {
-		
-			case 0:
-				gc->FillBuffer(false);
+		switch(i) {
+
+			case lampVal:
+				gc->FillBuffer(x, y, 17, 59, lamp, !mirror);
 				break;
+			
+			case dresserVal:
+				gc->FillBuffer(x, y, 49, 26, dresser, mirror);
+				gc->FillBuffer(x, y-7, 49, 26, dresser, mirror);
+				break;
+
+			case tvVal:
+	
+				//tv stand
+				gc->DrawLine(x-3, y+28, 130, 62, W000000);
+				gc->FillRectangle(x, y+35, 38, 7, W410000);
+				gc->DrawRectangle(x, y+35, 38, 7, W000000);
+				gc->FillRectangle(x-3, y+28, 44, 7, W410000);
+				gc->DrawRectangle(x-3, y+28, 44, 7, W000000);
+				gc->DrawLine(x+17, y+38, x+21, y+38, W555555);
+				
+				gc->FillBuffer(x, y, 38, 33, crtTV, false);
+		
+
+				if (this->net->activateServerHNM == true) {
+					
+					gc->DrawLine(x+14, y-8, x+19, y, W000000);
+					gc->DrawLine(x+24, y-8, x+19, y, W000000);
+				}	
+
+				
+				//tv flash
+				gc->FillRectangle(x+4, y+4, 30, 22, (((ticks/5)%2)*8)+1);
+				break;
+			
+			case bedVal:
+				gc->FillBuffer(x, y, 76, 61, bed, !mirror);
+
+				if (this->sleeping) {
+		
+					//gc->FillBuffer(241, 79, 76, 61, bed, false);
+					//gc->FillBuffer(284, 82, 17, 10, osakaSleep, false);
+					//gc->FillBuffer(x+43, y+3, 17, 10, osakaSleep, !mirror);
+					gc->FillBuffer(x+43, y+3, 17, 10, osakaSleep, !mirror);
+					
+					if (this->ticks > 600) { this->Dream(gc); }
+				}
+				break;
+			
+			//case computerVal:
+				//gc->FillBuffer(x, y, 20, 23, computer, false);
+			//	break;
+
+			case crtPCVal:
+				mirror = x+24 > 148;
+	
+				//outlet	
+				gc->FillBuffer(x-2, y+25, 7, 10, wallOutlet, mirror);
+				//computer
+				gc->FillBuffer(x+3, y+25, 20, 23, computer, mirror);
+				//desk
+				gc->FillBuffer(x-9, y+7, 49, 46, desk, mirror);
+				//monitor
+				gc->FillBuffer(x, y, 22, 18, crtPC, mirror);
+				//keyboard
+				gc->FillBuffer(x+8, y+16, 16, 7, keyboard, mirror);
+				//keyboard cable
+				gc->FillBuffer(x-1, y+13, 9, 8, keyboardCable, mirror);
+				//mouse
+				gc->FillBuffer(x+24, y+9, 7, 9, mouse, mirror);
+				//chair
+				gc->FillBuffer(x+16, y+18, 30, 40, chair, mirror);
+				break;
+		
+			case bongDirtyVal:
+				gc->FillBuffer(x, y, 11, 18, bongDirty, mirror);
+				break;
+			
+			case gameConsoleVal:
+				gc->DrawLine(x+6, y+4, 130, 65, W000000);
+				gc->FillBuffer(x, y, 17, 15, gameConsole, false);
+				//gc->FillBuffer(122, 73, 17, 15, gameConsole, false);
+				//gc->DrawLine(131, 75, 130, 65, W000000);
+				break;
+
+			case photoFrameVal:
+				gc->FillBuffer(x, y, 10, 10, photoFrame, !mirror);
+				break;
+
 			default:
 				break;
 		}
 	}
-	*/
+
+	
+
 
 	//walking
 	uint8_t walkFrames = 0;
@@ -674,9 +962,10 @@ void Simulator::DrawRoom(GraphicsContext* gc) {
 	//draw osaka
 	if (this->sleeping) {
 	
-		gc->FillBuffer(284, 82, 17, 10, osakaSleep, false);
-		if (this->ticks > 600) { this->Dream(gc); }
+		//gc->FillBuffer(284, 82, 17, 10, osakaSleep, false);
+		//if (this->ticks > 600) { this->Dream(gc); }
 	} else {
+		//walking and standing around
 		bool facingLeft = false;
 
 		if (walkFrames == 1 || walkFrames == 3 || 
@@ -685,15 +974,24 @@ void Simulator::DrawRoom(GraphicsContext* gc) {
 		
 			facingLeft = true;
 		}
-		gc->FillBuffer(osakaX, osakaY, osakaWidths[walkFrames], 49, osakaSprites[walkFrames], facingLeft);
 
 		switch (this->outfit) {
-		
+			
+			//normal outfit
+			case 0:
+				gc->FillBuffer(osakaX, osakaY, osakaWidths[walkFrames], 49, osakaSprites[walkFrames], facingLeft);
+				break;
+			//draw normal outfit then summer overlay on top
 			case 1:
+				gc->FillBuffer(osakaX, osakaY, osakaWidths[walkFrames], 49, osakaSprites[walkFrames], facingLeft);
 				gc->FillBuffer(osakaX, osakaY+18, osakaWidths[walkFrames], 19, osakaSummerSprites[walkFrames], facingLeft);
 				break;
+
+			//draw custom outfits
 			default:
+				gc->FillBuffer(osakaX, osakaY, osakaWidths[walkFrames], 49, this->osakaCustomSprites[walkFrames], facingLeft);
 				break;
+			
 		}
 		if (this->flying) { this->Fly(gc, walkFrames); }
 	}
@@ -701,6 +999,17 @@ void Simulator::DrawRoom(GraphicsContext* gc) {
 	//draw ui stuff
 	char* timeDateString = "00/00/00 - 00:00:00";
 	TimeAndDate(timeDateString);
-	gc->PutText(timeDateString, 6, 191, 0x40);
-	gc->PutText(timeDateString, 5, 190, 0x3f);
+	gc->PutText(timeDateString, 6, 191, W000000);
+	gc->PutText(timeDateString, 5, 190, WFFFFFF);
+
+
+	//home network media
+	if (this->net->activateServerHNM == true) {
+
+		for (int i = 0; i < BUFFER_SIZE_13H; i++) {
+		
+			this->net->HNM_Buffer[i] = gc->pixels[i];
+		}	
+		gc->PutText("Sending HNM", 0, 0, WFFFFFF);
+	}
 }

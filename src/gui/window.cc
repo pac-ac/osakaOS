@@ -8,6 +8,7 @@ using namespace os::math;
 using namespace os::filesystem;
 
 
+void sleep(uint32_t);
 
 
 Window::Window(CompositeWidget* parent, 
@@ -16,13 +17,14 @@ int32_t w, int32_t h,
 char* name,
 uint8_t color,
 App* app,
+int8_t ID,
 FileSystem* filesystem) 
 : CompositeWidget(parent, x, y, w, h, name, color, true) {
 
 	this->filesystem = filesystem;
 
 	this->Dragging = false;
-	this->Resize = false;
+	this->Resizable = false;
 
 	//for dumping buffer/text into file	
 	this->FileWindow = false;
@@ -32,10 +34,13 @@ FileSystem* filesystem)
 	for (int i = 0; i < 33; i++) { fileName[i] = '\0'; }
 
 	this->name = name;
-	this->textColor = 0x3f;
+	//this->UpdateName(name);
+	
+	this->textColor = WFFFFFF;
 
 	this->app = app;
-	this->winColor = 0x19;
+	this->ID = ID;
+	this->winColor = W0041FF;
 
 	//init buttons
 	this->buttons = (List*)(filesystem->memoryManager->malloc(sizeof(List))); 
@@ -43,7 +48,11 @@ FileSystem* filesystem)
 
 
 	//fill buffer with some color
-	for (int i = 0; i < 64000; i++) { this->buf[i] = color; }
+	for (int i = 0; i < Widget::gc->gfxBufferSize; i++) { this->buf[i] = color; }
+
+	//this->Blue = true;
+	//this->Pixelize = true;
+	//this->Wave = true;
 }
 
 
@@ -53,6 +62,24 @@ Window::~Window() {
 
 
 void Window::Draw(GraphicsContext* gc) {
+
+
+	uint8_t saveBackground[(this->w+2)*(this->h+2)];
+
+	//only really needed for this effect
+	if (this->Wave) {
+		for (int i = 0; i < h+2; i++) {
+			for (int j = 0; j < w+2; j++) {
+	
+				uint32_t pixelsIndex = ((y-1+i)<<(8+gc->vesa))+((y-1+i)<<(6+gc->vesa))+(x-1+j);
+			
+				if (gc->pixels[pixelsIndex] >= 0 && gc->pixels[pixelsIndex] < Widget::gc->gfxBufferSize) {	
+			
+					saveBackground[(w+2)*i+j] = gc->pixels[pixelsIndex];
+				}
+			}
+		}
+	}
 
 	if (!Fullscreen) {
 	
@@ -74,41 +101,56 @@ void Window::Draw(GraphicsContext* gc) {
 		}
 
 		//delete button
-		gc->DrawLine(x+w-7, y+9, x+w-2, y+4, 0x40);
-		gc->DrawLine(x+w-6, y+4, x+w-1, y+9, 0x40);
-		gc->DrawLine(x+w-8, y+8, x+w-3, y+3, 0x07);
-		gc->DrawLine(x+w-7, y+3, x+w-2, y+8, 0x07);
+		gc->DrawLine(x+w-7, y+9, x+w-2, y+4, W000000);
+		gc->DrawLine(x+w-6, y+4, x+w-1, y+9, W000000);
+		gc->DrawLine(x+w-8, y+8, x+w-3, y+3, WAAAAAA);
+		gc->DrawLine(x+w-7, y+3, x+w-2, y+8, WAAAAAA);
 
 		//max button
-		gc->DrawRectangle(x+w-17, y+3, 6, 6, 0x40);
-		gc->DrawRectangle(x+w-18, y+2, 6, 6, 0x07);
+		gc->DrawRectangle(x+w-17, y+3, 6, 6, W000000);
+		gc->DrawRectangle(x+w-18, y+2, 6, 6, WAAAAAA);
 
 		//min button
-		gc->DrawLine(x+w-27, y+8, x+w-21, y+8, 0x40);
-		gc->DrawLine(x+w-28, y+7, x+w-22, y+7, 0x07);
+		gc->DrawLine(x+w-27, y+8, x+w-21, y+8, W000000);
+		gc->DrawLine(x+w-28, y+7, x+w-22, y+7, WAAAAAA);
 
 		//menu button
-		gc->PutText("<", x+w-37, y+2, 0x40);
-		gc->PutText("<", x+w-38, y+1, 0x07);
+		gc->PutText("<", x+w-37, y+2, W000000);
+		gc->PutText("<", x+w-38, y+1, WAAAAAA);
+		
+		//window ID
+		gc->PutText(int2str(this->ID), x+w-47, y+2, W000000);
+		gc->PutText(int2str(this->ID), x+w-48, y+1, WAAAAAA);
 	
 		//name of window
-		gc->PutText(this->name, x+2, y+2, 0x40);
-		gc->PutText(this->name, x+1, y+1, this->textColor);
+		if (this->altName == nullptr) {
+			gc->PutText(this->name, x+2, y+2, W000000);
+			gc->PutText(this->name, x+1, y+1, WFFFFFF);
+		} else {
+			gc->PutText(this->altName, x+2, y+2, W000000);
+			gc->PutText(this->altName, x+1, y+1, WFFFFFF);
+		}
+		//gc->PutText(this->name, x+1, y+1, this->textColor);
 	
 		//draw menu if active
-		if (this->Menu) { this->MenuDraw(gc); }
+		if (this->MenuOpen) { this->WindowMenuDraw(gc); }
 
 		//outer rectangle
-		gc->DrawRectangle(x, y, w, 10, 0x38);
+		gc->DrawRectangle(x, y, w, 10, W555555);
 
 		//window border
-		gc->DrawRectangle(x, y, w, h, 0x38);
-		gc->DrawLineFlat(x, y, x+w, y+h, 0x07, false);
-		gc->DrawLineFlat(x, y, x+w, y+h, 0x07, true);
+		gc->DrawRectangle(x, y, w, h, W555555);
+		gc->DrawLineFlat(x, y, x+w, y+h, WAAAAAA, false);
+		gc->DrawLineFlat(x, y, x+w, y+h, WAAAAAA, true);
+	
+		gc->DrawRectangle(x-1, y-1, w+2, h+2, W202020);
+		gc->DrawLineFlat(x-1, y-1, x+w+1, y+h+1, W656565, false);
+		gc->DrawLineFlat(x-1, y-1, x+w+1, y+h+1, W656565, true);
 
 		//create shadow effect
-		uint16_t darkx = x+w;
-		uint16_t darky = y+h;
+		uint16_t darkx = x+w+1;
+		uint16_t darky = y+h+1;
+
 
 		for (int i = darky; i < darky+4; i++) {
 			for (int j = x+4; j < darkx+4; j++) {
@@ -124,15 +166,14 @@ void Window::Draw(GraphicsContext* gc) {
 		}
 	} else {
 		gc->FillBufferFull(x, y, w, h, this->buf);
-		if (this->Menu) { this->MenuDraw(gc); }
+		if (this->MenuOpen) { this->WindowMenuDraw(gc); }
 	}
 
 	
-	if (this->app != nullptr) {	
+	if (this->app != nullptr) {
 	
-		//compute program associated with window
 		this->app->ComputeAppState(gc, this);
-		this->app->DrawAppMenu(gc, this);
+		if (this->MenuOpen) { this->app->DrawAppMenu(gc, this); }
 	}
 	
 
@@ -142,19 +183,48 @@ void Window::Draw(GraphicsContext* gc) {
 		WindowButton* button = (WindowButton*)(this->buttons->Read(i));
 		button->Draw(gc);
 	}
+	
+	
+	//graphical effects
+	if (this->Rainbow) { gc->Rainbowize(x, y, w, h); }
+	if (this->Pixelize) { gc->Pixelize(x, y, w, h, 2, 2); }
+	
+	
+	if (this->Fire) { 
+		
+		for (int i = 0; i < h/14; i++) {
+		
+			gc->Burn(x, y, w, h, i%2);
+			this->h--;
+			sleep(2);
 
+			if (h <= 16) {
+			
+				this->DestroyWindow();
+				this->DeleteChild();
+			}
+		}
+	}
+
+	static uint8_t waveInc = 0;
+	if (this->Wave) {
+	
+		gc->MakeWave(x-1, y-1, w+2, h+2, 16, 32, waveInc, saveBackground);
+		//gc->MakeWave(x, y, w, h, 16, 32, waveInc, saveBackground);
+		sleep(2);
+		waveInc++;
+	}
 
 	//windows need to read/save
 	//buffer or text to file
 	if (this->FileWindow) { this->FileDraw(gc); }
 }
 
-void Window::MenuDraw(GraphicsContext* gc) {
+void Window::WindowMenuDraw(GraphicsContext* gc) {
 
 	//draw box for menu
 	uint8_t menuDrawOffset = 10 * (this->Fullscreen == false);	
-	//uint8_t c0 = light2dark[this->winColor];
-	uint8_t c0 = light2dark[0x09];
+	uint8_t c0 = light2dark[W0041FF];
 	uint8_t c1 = light2dark[c0];
 	uint8_t c2 = light2dark[c1];
 	uint8_t c3 = light2dark[c2];
@@ -162,41 +232,41 @@ void Window::MenuDraw(GraphicsContext* gc) {
 	gc->FillRectangle(x, y+menuDrawOffset+2, w, 2, c1);
 	gc->FillRectangle(x, y+menuDrawOffset+4, w, 2, c2);
 	gc->FillRectangle(x, y+menuDrawOffset+6, w, 2, c3);
-	gc->DrawRectangle(x, y+menuDrawOffset-1, w, 10, 0x38);
+	gc->DrawRectangle(x, y+menuDrawOffset-1, w, 10, W555555);
 
 
 	//draw words
-	gc->PutText("Read - Save - Tool", x+2, y+menuDrawOffset+1, 0x40);
-	gc->PutText("Read - Save - Tool", x+1, y+menuDrawOffset, 0x3f);
+	gc->PutText("Read - Save - Tool", x+2, y+menuDrawOffset+1, W000000);
+	gc->PutText("Read - Save - Tool", x+1, y+menuDrawOffset, WFFFFFF);
 }
 
 void Window::FileDraw(GraphicsContext* gc) {
 	
 	uint16_t x = 67;
-	uint8_t y = 75;
+	uint16_t y = 75;
 	uint16_t w = 187;
-	uint8_t h = 40;
+	uint16_t h = 40;
 	uint8_t c = 0x09;
 
 	gc->FillRectangle(x, y, w, h, os::drivers::light2dark[c]);
 
 	if (this->Save) {
 		
-		gc->PutText("Enter file name below. (Save)", x+7, y+9, 0x40);
-		gc->PutText("Enter file name below. (Save)", x+6, y+8, 0x3f);
+		gc->PutText("Enter file name below. (Save)", x+7, y+9, W000000);
+		gc->PutText("Enter file name below. (Save)", x+6, y+8, WFFFFFF);
 	} else {
-		gc->PutText("Enter file name below. (Read)", x+7, y+9, 0x40);
-		gc->PutText("Enter file name below. (Read)", x+6, y+8, 0x3f);
+		gc->PutText("Enter file name below. (Read)", x+7, y+9, W000000);
+		gc->PutText("Enter file name below. (Read)", x+6, y+8, WFFFFFF);
 	}
 	
 	gc->FillRectangle(x+6, y+22, 175, 12, os::drivers::light2dark[os::drivers::light2dark[c]]);
-	gc->PutText(this->fileName, x+7, y+25, 0x40);
-	gc->PutText(this->fileName, x+6, y+24, 0x3f);
+	gc->PutText(this->fileName, x+7, y+25, W000000);
+	gc->PutText(this->fileName, x+6, y+24, WFFFFFF);
 
 
-	gc->DrawRectangle(x, y, w, h, 0x38);
-	gc->DrawLineFlat(x, y, x+w, y+h, 0x07, false);
-	gc->DrawLineFlat(x, y, x+w, y+h, 0x07, true);
+	gc->DrawRectangle(x, y, w, h, W555555);
+	gc->DrawLineFlat(x, y, x+w, y+h, WAAAAAA, false);
+	gc->DrawLineFlat(x, y, x+w, y+h, WAAAAAA, true);
 }
 
 
@@ -208,15 +278,51 @@ void Window::FullScreen() {
 	
 		x = 0;
 		y = 0;
-		w = WIDTH_13H;
-		h = HEIGHT_13H;
+		w = Widget::gc->gfxWidth;
+		h = Widget::gc->gfxHeight;
+		this->currentTextWidth = Widget::gc->gfxWidth / (FONT_WIDTH-1);
+		this->currentTextHeight = Widget::gc->gfxHeight / (FONT_HEIGHT-1);
 		this->Dragging = false;
 	} else {
 		x = xo;
 		y = yo;
 		w = wo;
 		h = ho;
+		this->currentTextWidth = wo / (FONT_WIDTH-1);
+		this->currentTextHeight = ho / (FONT_HEIGHT-1);
 	}
+}
+
+
+void Window::WindowResize(int32_t oldx, int32_t oldy, 
+			  int32_t newx, int32_t newy) {
+
+	this->w += (newx - oldx) * (this->w >= MIN_WINDOW_WIDTH);
+	this->h += (newy - oldy) * (this->h >= MIN_WINDOW_HEIGHT);
+
+	//if (this->app->appType != APP_TYPE_SHINOSAKA) {	
+	
+		this->currentTextWidth = this->w / FONT_WIDTH-1;
+		this->currentTextHeight = this->h / FONT_HEIGHT-1;
+	//}
+}
+
+
+void Window::UpdateName(char* newName) {
+
+	if (this->altName != nullptr) {
+	
+		buttons->memoryManager->free(this->altName);
+	}
+
+	this->altName = (char*)buttons->memoryManager->malloc(strlen(newName)+1);
+
+	int i = 0;
+	for (i; newName[i] != '\0'; i++) {
+	
+		this->altName[i] = newName[i];
+	}
+	this->altName[i] = '\0';
 }
 
 
@@ -229,30 +335,32 @@ void Window::DestroyWindow() {
 	this->buttons->DestroyList();
 	mm->free(this->buttons);
 	mm->free(this->app);
+	mm->free(this->windowBuffer);
 }
 
 
 void Window::OnMouseDown(int32_t x, int32_t y, uint8_t button) {
 
-	if (x <= this->x+1 || y <= this->y+1 
+	if (x <= this->x+1 
+	 || y <= this->y+1 
 	 || x >= this->x+this->w-2 
 	 || y >= this->y+this->h-2) {
 	
-		Resize = true;
+		Resizable = true;
 		Dragging = false;
 	
 	//always allow dragging if pressing
 	//on window border/ui thingy
-	} else if (Fullscreen == false && y < this->y + 10) {
+	} else if (Fullscreen == false && y < this->y+10) {
 
-		Resize = false;
+		Resizable = false;
 		Dragging = true;
-	
+		
 		//this is fucked up but it works
 		if (x >= this->x+w-10) { this->app->Close(); }
 
 	//click on menu below border
-	} else if (this->Menu && y < this->y + 20 - (10 * Fullscreen)) {
+	} else if (this->MenuOpen && y < this->y + 20 - (10 * Fullscreen)) {
 
 
 		if (x < this->x + 30) {
@@ -275,7 +383,7 @@ void Window::OnMouseDown(int32_t x, int32_t y, uint8_t button) {
 	}
 
 	uint16_t offsetx = 1 * !Fullscreen;
-	uint8_t offsety = 10 * !Fullscreen;
+	uint16_t offsety = 10 * !Fullscreen;
 
 	CompositeWidget::OnMouseDown(x, y, button);
 	this->app->OnMouseDown(x-offsetx, y-offsety, button, this);
@@ -284,21 +392,31 @@ void Window::OnMouseDown(int32_t x, int32_t y, uint8_t button) {
 void Window::OnMouseUp(int32_t x, int32_t y, uint8_t button) {
 	
 	uint16_t offsetx = 1 * !Fullscreen;
-	uint8_t offsety = 10 * !Fullscreen;
+	uint16_t offsety = 10 * !Fullscreen;
 
 	Dragging = false;
-	Resize = false;
+	Resizable = false;
 	CompositeWidget::OnMouseUp(x, y, button);
 	this->app->OnMouseUp(x-offsetx, y-offsety, button, this);
 }
 
+
+
+
 void Window::OnMouseMove(int32_t oldx, int32_t oldy,
 		 	 int32_t newx, int32_t newy) {
-	
+			
+	this->parent->actionDetected =  (newx <= this->x+1 
+					|| newy <= this->y+1 
+					|| newx >= this->x+this->w-2 
+					|| newy >= this->y+this->h-2);
+
+
 	//resizing window
-	if (Resize) {
-		this->w += (newx - oldx) * (this->w >= 70);
-		this->h += (newy - oldy) * (this->h >= 35);
+	if (Resizable) {
+		//this->w += (newx - oldx) * (this->w >= 70);
+		//this->h += (newy - oldy) * (this->h >= 35);
+		this->WindowResize(oldx, oldy, newx, newy);
 	} else {
 		if (Dragging) {
 	
@@ -307,7 +425,7 @@ void Window::OnMouseMove(int32_t oldx, int32_t oldy,
 		}
 	
 		uint16_t offsetx = 1 * !Fullscreen;
-		uint8_t offsety = 10 * !Fullscreen;
+		uint16_t offsety = 10 * !Fullscreen;
 		this->app->OnMouseMove(oldx-offsetx, oldy-offsety, newx-offsetx, newy-offsety, this);
 	}
 	CompositeWidget::OnMouseMove(oldx, oldy, newx, newy);
@@ -362,6 +480,12 @@ void Window::OnKeyDown(char str) {
 	} else {
 		switch (str) {
 
+			case '\v':
+				if (this->app->appType != APP_TYPE_JOURNAL) {
+					
+						this->MenuOpen ^= 1;
+				} else {	this->app->OnKeyDown(str, this); }
+				break;
 			//f3
 			case 0x02:
 				this->FullScreen();
@@ -376,7 +500,7 @@ void Window::OnKeyDown(char str) {
 				this->FileWindow = true;
 				this->Save = false;
 				break;
-			default:		
+			default:
 				this->app->OnKeyDown(str, this);
 				break;
 		}

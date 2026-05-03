@@ -23,39 +23,37 @@ RaycastSpace::RaycastSpace() {
 
 	//generate textures
 	for (int i = 0; i < 8; i++) {
+
 		for (int x = 0; x < texW; x++) {
 			for (int y = 0; y < texH; y++) {
 		
 				uint16_t texCoord = texW*y+x;
 
-				if (i == 2) {
+
+				switch (i) {
+
+					case TEXTURE_FLOOR:
+						textures[i][texCoord] = WAA5500;
+						break;
 				
-					switch (texCoord % 8) {
-					
-						case 0:textures[i][texCoord] = 0x31;break;
-						default:textures[i][texCoord] = 0x0f;break;
-					}
-
-				} else if (i == 3) {
-					
-					switch (texCoord % 8) {
-					
-						case 0:textures[i][texCoord] = 0x38;break;
-						default:textures[i][texCoord] = 0x07;break;
-					}
-				} else {
-					switch (y) {
-
-						case 0:case 1:case 56:case 57:case 62:case 63:
-							textures[i][texCoord] = 0x39;break;
-						
-						case 3:textures[i][texCoord] = 0x0f;break;
-						
-						case 58:case 59:case 60:case 61:
-							textures[i][texCoord] = 0x03;break;
-						
-						default:textures[i][texCoord] = 0x1f;break;
-					}
+					case TEXTURE_WALL:
+						if (y < texH/2) { 		    textures[i][texCoord] = WFFEFBA;
+						} else if (y == texH/2) { 	    textures[i][texCoord] = W000000;
+						} else if (y < (texH - (texH/4))) { textures[i][texCoord] = W411000;
+						} else if (y == (texH - (texH/4))) {textures[i][texCoord] = W000000;
+						} else {			    textures[i][texCoord] = W397139; }
+						break;
+				
+					case TEXTURE_CEILING:
+						if (y % 2) { textures[i][texCoord] = W411000;
+						} else {     textures[i][texCoord] = W000000; }
+						break;
+					case TEXTURE_CARPET:
+						textures[i][texCoord] = WFFFFFF;
+						break;
+					default:
+						textures[i][texCoord] = W000071;
+						break;
 				}
 			}
 		}
@@ -66,6 +64,9 @@ RaycastSpace::~RaycastSpace() {
 }
 
 
+void RaycastSpace::SortSprites(common::int32_t* order, double* dist, common::int32_t amount) {
+}
+
 
 void RaycastSpace::ComputeSpace(GraphicsContext* gc, char keylog[16], uint8_t logIndex, int32_t mouseX) {
 
@@ -73,10 +74,10 @@ void RaycastSpace::ComputeSpace(GraphicsContext* gc, char keylog[16], uint8_t lo
 	double time = 0;
 	double oldTime = 0;
 
-	const uint16_t w = 320;
-	const uint8_t h = 200;
+	const uint16_t w = WIDTH_13H;
+	const uint8_t h = HEIGHT_13H;
 
-	gc->FillRectangle(0, 0, 320, 200, 0x40);
+	gc->FillRectangle(0, 0, WIDTH_13H, HEIGHT_13H, W000000);
 
 
 	//floor casting
@@ -117,23 +118,21 @@ void RaycastSpace::ComputeSpace(GraphicsContext* gc, char keylog[16], uint8_t lo
 			floorY += floorStepY;
 
 			//choose textures and color
-			int floorTexture = 2;
-			int ceilingTexture = 3;
 			uint8_t color;
 
 			//draw floor
-			color = textures[floorTexture][texW*ty+tx];
+			color = textures[TEXTURE_FLOOR][texW*ty+tx];
 			gc->PutPixel(x, y, color);
 
 			//draw ceiling
-			color = textures[ceilingTexture][texW*ty+tx];
+			color = textures[TEXTURE_CEILING][texW*ty+tx];
 			gc->PutPixel(x, h-y-1, color);
 		}
 	}
 
 
 	//draw frame and walls
-	for (double x = 0; x < w; x++) {
+	for (int x = 0; x < w; x++) {
 	
 		//calculate ray position and direction
 		double cameraX = 2.0 * x / w - 1.0;
@@ -243,7 +242,69 @@ void RaycastSpace::ComputeSpace(GraphicsContext* gc, char keylog[16], uint8_t lo
 			if (side == 1) { color = light2dark[color]; }
 			gc->PutPixel(x, y, color);
 		}
+
+		ZBuffer[x] = perpWallDist;
 	}
+
+
+	//render sprites
+	for (int i = 0; i < NUM_SPRITES; i++) {
+	
+		spriteOrder[i] = i;
+		spriteDistance[i] = ((posX - sprite[i].x) * (posX - sprite[i].x) + (posY - sprite[i].y) * (posY - sprite[i].y));
+	}
+
+	SortSprites(spriteOrder, spriteDistance, NUM_SPRITES);
+
+
+	for (int i = 0; i < NUM_SPRITES; i++) {
+	
+		double spriteX = sprite[spriteOrder[i]].x - posX;
+		double spriteY = sprite[spriteOrder[i]].y - posY;
+		int uDiv = sprite[spriteOrder[i]].uDiv;
+		int vDiv = sprite[spriteOrder[i]].vDiv;
+		double vMove = sprite[spriteOrder[i]].vMove;
+
+
+		double invDet = 1.0 / (planeX * dirY - dirX * planeY);
+		double transformX = invDet * (dirY * spriteX - dirX * spriteY);
+		double transformY = invDet * (-planeY * spriteX + planeX * spriteY);
+
+		int spriteScreenX = (int)((w / 2) * (1 + transformX / transformY));
+		
+
+		int vMoveScreen = (int)(vMove / transformY);
+		
+		int spriteHeight = abs((int)(h / transformY)) / vDiv;
+		int drawStartY = -spriteHeight / 2 + h / 2 + vMoveScreen;
+		if (drawStartY < 0) { drawStartY = 0; }
+		int drawEndY = spriteHeight / 2 + h / 2 + vMoveScreen;
+		if (drawEndY >= h) { drawEndY = h - 1; }
+
+		int spriteWidth = abs((int)(h / transformY)) / uDiv;
+		int drawStartX = -spriteWidth / 2 + spriteScreenX;
+		if (drawStartX < 0) { drawStartX = 0; }
+		int drawEndX = spriteWidth / 2 + spriteScreenX;
+		if (drawEndX >= w) { drawEndX = w - 1; }
+
+		for (int stripe = drawStartX; stripe < drawEndX; stripe++) {
+		
+			int texX = (int)(256 * (stripe - (-spriteWidth / 2 + spriteScreenX)) * texW / spriteWidth) / 256;
+
+			if (transformY > 0 && stripe > 0 && stripe < w && transformY < ZBuffer[stripe]) {
+			
+				for (int y = drawStartY; y < drawEndY; y++) {
+				
+					int d = (y - vMoveScreen) * 256 - h * 128 + spriteHeight * 128;
+					int texY = ((d * texH) / spriteHeight) / 256;
+					uint8_t color = textures[sprite[spriteOrder[i]].texture][texW * texY + texX];
+					
+					gc->PutPixel(stripe, y, color);
+				}
+			}
+		}
+	}
+
 	oldTime = time;
 	time = getTicks() / 40.0;
 	double frameTime = (time - oldTime) / 1000.0;
@@ -251,8 +312,6 @@ void RaycastSpace::ComputeSpace(GraphicsContext* gc, char keylog[16], uint8_t lo
 	//speed modifiers
 	double moveSpeed = frameTime * 3.0;
 	double rotSpeed = frameTime * (double)(mouseX/4);
-
-
 
 	//input
 	if (this->keyDown) {
