@@ -29,15 +29,13 @@ InternetProtocolHandler::~InternetProtocolHandler() {
 
 bool InternetProtocolHandler::OnInternetProtocolReceived(uint32_t srcIP_BE, uint32_t dstIP_BE,
                                                 uint8_t* internetprotocolPayload, uint32_t size) {
-
 	return false;
 }
 
 
 void InternetProtocolHandler::Send(uint32_t dstIP_BE, uint8_t* internetprotocolPayload, uint32_t size) {
 
-	backend->Send(dstIP_BE, ip_protocol, internetprotocolPayload, size);
-
+	backend->Send(dstIP_BE, this->ip_protocol, internetprotocolPayload, size);
 }               
 
 
@@ -49,11 +47,8 @@ InternetProtocolProvider::InternetProtocolProvider(EtherFrameProvider* backend,
                                                    uint32_t gatewayIP, 
                                                    uint32_t subnetMask) 
 						   : EtherFrameHandler(backend, 0x800) {
-
-	for (int i = 0; i < 255; i++) {
 	
-		handlers[i] = 0;
-	}
+	for (int i = 0; i < 255; i++) { handlers[i] = 0; }
 
 	this->arp = arp;
 	this->gatewayIP = gatewayIP;
@@ -80,21 +75,17 @@ bool InternetProtocolProvider::OnEtherFrameReceived(uint8_t* etherframePayload, 
 	if (ipmessage->dstIP == backend->GetIPAddress()) {
 	
 		int length = ipmessage->totalLength;
-		if (length > size) {
-		
-			length = size;
-		}
+		if (length > size) { length = size; }
 
 		if (handlers[ipmessage->protocol] != 0) {
 		
 			sendBack = handlers[ipmessage->protocol]->
 				OnInternetProtocolReceived(ipmessage->srcIP, 
 							   ipmessage->dstIP, 
-							   etherframePayload + 4*ipmessage->headerLength,
-							   length - 4*ipmessage->headerLength);
+							   etherframePayload + (ipmessage->headerLength * 4),
+							   length - (ipmessage->headerLength * 4));
 		}
 	}
-
 
 	if (sendBack) {
 	
@@ -104,10 +95,8 @@ bool InternetProtocolProvider::OnEtherFrameReceived(uint8_t* etherframePayload, 
 	
 		ipmessage->timeToLive = 64;
 		ipmessage->checksum = 0;
-		ipmessage->checksum = Checksum((uint16_t*)ipmessage, 4*ipmessage->headerLength);
+		ipmessage->checksum = Checksum((uint16_t*)ipmessage, ipmessage->headerLength * 4);
 	}
-
-
 	return sendBack;
 }
 
@@ -115,7 +104,7 @@ bool InternetProtocolProvider::OnEtherFrameReceived(uint8_t* etherframePayload, 
 
 void InternetProtocolProvider::Send(uint32_t dstIP_BE, uint8_t protocol, uint8_t* data, uint32_t size) {
 
-	uint8_t* buffer = (uint8_t*)MemoryManager::activeMemoryManager->malloc(sizeof(InternetProtocolV4Message) + size);
+	uint8_t* buffer = (uint8_t*)this->backend->memoryManager->malloc(sizeof(InternetProtocolV4Message) + size);
 	InternetProtocolV4Message* message = (InternetProtocolV4Message*)buffer;
 
 	message->version = 4;
@@ -143,7 +132,6 @@ void InternetProtocolProvider::Send(uint32_t dstIP_BE, uint8_t protocol, uint8_t
 	
 		databuffer[i] = data[i];
 	}
-
 	uint32_t route = dstIP_BE;
 
 
@@ -155,7 +143,7 @@ void InternetProtocolProvider::Send(uint32_t dstIP_BE, uint8_t protocol, uint8_t
 
 	backend->Send(arp->Resolve(route), this->etherType_BE, buffer, sizeof(InternetProtocolV4Message) + size);
 	
-	MemoryManager::activeMemoryManager->free(buffer);
+	this->backend->memoryManager->free(buffer);
 }
 
 
@@ -168,8 +156,6 @@ uint16_t InternetProtocolProvider::Checksum(uint16_t* data, uint32_t lengthInByt
 	
 		temp += ((data[i] & 0xff00) >> 8) |
 			((data[i] & 0x00ff) << 8);
-
-		
 	}
 
 	if (lengthInBytes % 2) {

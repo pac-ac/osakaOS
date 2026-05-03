@@ -5,7 +5,7 @@ using namespace os::common;
 using namespace os::net;
 using namespace os::drivers;
 
-
+void printf(char* str);
 
 EtherFrameHandler::EtherFrameHandler(EtherFrameProvider* backend, uint16_t etherType) { 
 
@@ -27,7 +27,6 @@ EtherFrameHandler::~EtherFrameHandler() {
 }	
 
 
-
 bool EtherFrameHandler::OnEtherFrameReceived(uint8_t* etherframePayload, uint32_t size) {
 
 	//for now
@@ -40,14 +39,21 @@ void EtherFrameHandler::Send(uint64_t dstMAC_BE, uint8_t* data, uint32_t size) {
 }
 
 
+uint32_t EtherFrameHandler::GetIPAddress() {
+
+	return backend->GetIPAddress();
+}
+
+
                 
-EtherFrameProvider::EtherFrameProvider(amd_am79c973* backend) 
+EtherFrameProvider::EtherFrameProvider(amd_am79c973* backend, MemoryManager* mm) 
 : RawDataHandler(backend) {
 
 	for (uint32_t i = 0; i < 65535; i++) {
 	
 		handlers[i] = 0;
 	}
+	this->memoryManager = mm;
 }
 
 
@@ -71,7 +77,7 @@ bool EtherFrameProvider::OnRawDataReceived(uint8_t* buffer, uint32_t size) {
 	    || frame->dstMAC_BE == backend->GetMACAddress()) {
 	
 		if (handlers[frame->etherType_BE] != 0) {
-		
+	
 			sendBack = handlers[frame->etherType_BE]->
 			OnEtherFrameReceived(buffer + sizeof(EtherFrameHeader), size - sizeof(EtherFrameHeader));
 		}
@@ -82,8 +88,6 @@ bool EtherFrameProvider::OnRawDataReceived(uint8_t* buffer, uint32_t size) {
 		frame->dstMAC_BE = frame->srcMAC_BE;
 		frame->srcMAC_BE = backend->GetMACAddress();
 	}
-
-
 	return sendBack;
 }
 
@@ -91,7 +95,8 @@ bool EtherFrameProvider::OnRawDataReceived(uint8_t* buffer, uint32_t size) {
 
 void EtherFrameProvider::Send(uint64_t dstMAC_BE, uint16_t etherType_BE, uint8_t* buffer, uint32_t size) {
 
-	uint8_t* buffer2 = (uint8_t*)MemoryManager::activeMemoryManager->malloc(sizeof(EtherFrameHeader) + size);
+	uint8_t* buffer2 = (uint8_t*)this->memoryManager->malloc(sizeof(EtherFrameHeader) + size);
+	//uint8_t* buffer2 = (uint8_t*)MemoryManager::activeMemoryManager->malloc(sizeof(EtherFrameHeader) + size);
 	EtherFrameHeader* frame = (EtherFrameHeader*)buffer2;
 
 	frame->dstMAC_BE = dstMAC_BE;
@@ -108,9 +113,8 @@ void EtherFrameProvider::Send(uint64_t dstMAC_BE, uint16_t etherType_BE, uint8_t
 
 	backend->Send(buffer2, size + sizeof(EtherFrameHeader));
 
-
-
-	MemoryManager::activeMemoryManager->free(buffer2);
+	this->memoryManager->free(buffer2);
+	//MemoryManager::activeMemoryManager->free(buffer2);
 }
 
 uint64_t EtherFrameProvider::GetMACAddress() {
