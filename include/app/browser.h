@@ -7,7 +7,6 @@
 #include <filesys/ofs.h>
 #include <drivers/amd_am79c973.h>
 #include <net/network.h>
-#include <net/hnm.h>
 #include <list.h>
 
 
