@@ -3,7 +3,6 @@
 
 
 GPPPARAMS = -m32 -Iinclude -fno-use-cxa-atexit -nostdlib -fno-pie -fno-stack-protector -fno-builtin -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-leading-underscore -Wno-write-strings
-#GPPPARAMS = -m32 -Iinclude -fno-use-cxa-atexit -nostdlib -fno-stack-protector -fno-builtin -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-leading-underscore -Wno-write-strings
 ASPARAMS = --32
 LDPARAMS = -melf_i386
 
@@ -23,6 +22,7 @@ objects = obj/loader.o \
 	  obj/drivers/vga.o \
 	  obj/drivers/ata.o \
 	  obj/drivers/amd_am79c973.o \
+	  obj/drivers/ac97.o \
 	  obj/drivers/pit.o \
 	  obj/drivers/cmos.o \
 	  obj/drivers/speaker.o \
@@ -38,13 +38,19 @@ objects = obj/loader.o \
 	  obj/net/arp.o \
 	  obj/net/ipv4.o \
 	  obj/net/icmp.o \
+	  obj/net/udp.o \
+	  obj/net/tcp.o \
 	  obj/filesys/ofs.o \
 	  obj/cli.o \
 	  obj/app.o \
 	  obj/list.o \
+	  obj/tree.o \
+	  obj/string.o \
 	  obj/app/paint.o \
+	  obj/app/browser.o \
 	  obj/app/file_edit.o \
 	  obj/app/file_browse.o \
+	  obj/functiontypes.o \
 	  obj/script.o \
 	  obj/math.o \
 	  obj/mode/piano.o \
@@ -73,14 +79,30 @@ osakaOS.iso: osakaOS.bin
 	mkdir iso/boot
 	mkdir iso/boot/grub
 	cp osakaOS.bin iso/boot/osakaOS.bin
-	echo 'set timeout=0' >> iso/boot/grub/grub.cfg
+	echo 'set timeout=5' >> iso/boot/grub/grub.cfg
 	echo 'set default=0' >> iso/boot/grub/grub.cfg
+	echo 'insmod normal' >> iso/boot/grub/grub.cfg
+	echo 'insmod multiboot' >> iso/boot/grub/grub.cfg
+	echo 'insmod all_video' >> iso/boot/grub/grub.cfg
 	echo '' >> iso/boot/grub/grub.cfg
 	echo 'menuentry "osakaOS" {' >> iso/boot/grub/grub.cfg
 	echo '	multiboot /boot/osakaOS.bin' >> iso/boot/grub/grub.cfg
 	echo '	boot' >> iso/boot/grub/grub.cfg
 	echo '}' >> iso/boot/grub/grub.cfg
+	echo '' >> iso/boot/grub/grub.cfg
+	echo 'submenu "Resolution Options" {' >> iso/boot/grub/grub.cfg
+	echo '	menuentry "default VGA (320x200x8)" {' >> iso/boot/grub/grub.cfg
+	echo '		multiboot /boot/osakaOS.bin' >> iso/boot/grub/grub.cfg
+	echo '		boot' >> iso/boot/grub/grub.cfg
+	echo '	}' >> iso/boot/grub/grub.cfg
+	echo '	menuentry "multiboot VBE (640x480x8)" {' >> iso/boot/grub/grub.cfg
+	echo '		multiboot /boot/osakaOS.bin' >> iso/boot/grub/grub.cfg
+	echo '		set gfxpayload=640x480x8' >> iso/boot/grub/grub.cfg
+	echo '		boot' >> iso/boot/grub/grub.cfg
+	echo '	}' >> iso/boot/grub/grub.cfg
+	echo '}' >> iso/boot/grub/grub.cfg
 	grub-mkrescue --output=osakaOS.iso iso
+	#grub-mkrescue --compress=lzo --output=osakaOS.iso iso
 	rm -rf iso
 	
 	qemu-img create -f qcow2 Image.img 128M
@@ -91,11 +113,19 @@ run: osakaOS.iso
 		-boot menu=on \
 		-drive id=disk,file=Image.img,format=raw,if=none \
 		-device piix4-ide,id=piix4 -device ide-hd,drive=disk,bus=piix4.0 \
-		-cpu 486 -smp 1 -m 8M \
-		-net nic,model=pcnet \
-		-vga virtio
+		-audiodev alsa,id=snd0 -device ac97,audiodev=snd0 \
+		-cpu 486 -smp 1 -m 16M \
+		-netdev user,id=net0 -device pcnet,netdev=net0 \
+		-machine kernel_irqchip=off \
+		-vga qxl
+		
+		#-net nic,model=pcnet \
 		#-audiodev pa,id=pa0,server=unix:/tmp/pulse-socket \
 		#-machine pcspk-audiodev=pa0
+		
+		#-audiodev alsa,id=snd0 -device ac97,audiodev=snd0 \
+		
+		#-audiodev pa,id=snd0 -device ac97,audiodev=snd0 \
 		
 		#only use '-soundhw' option if your qemu is 
 		#old and doesnt support '-audiodev'
