@@ -101,8 +101,8 @@ osakaOS.iso: osakaOS.bin
 	echo '		boot' >> iso/boot/grub/grub.cfg
 	echo '	}' >> iso/boot/grub/grub.cfg
 	echo '}' >> iso/boot/grub/grub.cfg
-	grub-mkrescue --output=osakaOS.iso iso
-	#grub-mkrescue --compress=lzo --output=osakaOS.iso iso
+	#grub-mkrescue --output=osakaOS.iso iso
+	grub-mkrescue --compress=lzo --output=osakaOS.iso iso
 	rm -rf iso
 	
 	qemu-img create -f qcow2 Image.img 128M
