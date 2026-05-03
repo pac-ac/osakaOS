@@ -187,7 +187,7 @@ void InterruptManager::Deactivate() {
 
 
 
-uint32_t InterruptManager::handleInterrupt(uint8_t interruptNumber, uint32_t esp) {
+uint32_t InterruptManager::HandleInterrupt(uint8_t interruptNumber, uint32_t esp) {
 
 	if (ActiveInterruptManager != 0) {
 
@@ -195,7 +195,6 @@ uint32_t InterruptManager::handleInterrupt(uint8_t interruptNumber, uint32_t esp
 	}
 	return esp;
 }
-	
 
 
 uint32_t InterruptManager::DoHandleInterrupt(uint8_t interruptNumber, uint32_t esp) {
@@ -203,7 +202,7 @@ uint32_t InterruptManager::DoHandleInterrupt(uint8_t interruptNumber, uint32_t e
 	if (handlers[interruptNumber] != 0) {
 	
 		esp = handlers[interruptNumber]->HandleInterrupt(esp);
-	
+
 	} else if (interruptNumber != hardwareInterruptOffset && interruptNumber != 0x2e) {
 	//} else if (interruptNumber != hardwareInterruptOffset) {
 	
@@ -215,9 +214,9 @@ uint32_t InterruptManager::DoHandleInterrupt(uint8_t interruptNumber, uint32_t e
 	//compute tasks
 	if (interruptNumber == hardwareInterruptOffset) {
 		
-		asm volatile("cli");
+		//asm volatile("cli");
 		esp = (uint32_t)taskManager->Schedule((CPUState*)esp);
-		asm volatile("sti");
+		//asm volatile("sti");
 	}
 
 	if (hardwareInterruptOffset <= interruptNumber && interruptNumber < hardwareInterruptOffset+16) {

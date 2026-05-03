@@ -4,7 +4,7 @@
 
 .section .text
 
-.extern _ZN2os21hardwarecommunication16InterruptManager15handleInterruptEhj
+.extern _ZN2os21hardwarecommunication16InterruptManager15HandleInterruptEhj
 
 .global _ZN2os21hardwarecommunication16InterruptManager22IgnoreInterruptRequestEv
 
@@ -91,9 +91,10 @@ int_bottom:
 	pushl %eax
 	
 	#call C++ handler
+	#cld
 	pushl %esp
 	push (interruptnumber)
-	call _ZN2os21hardwarecommunication16InterruptManager15handleInterruptEhj
+	call _ZN2os21hardwarecommunication16InterruptManager15HandleInterruptEhj
 	# addl $5, %esp	
 	mov %eax, %esp # switch the stack
 
@@ -123,4 +124,5 @@ _ZN2os21hardwarecommunication16InterruptManager22IgnoreInterruptRequestEv:
 
 .data
 	interruptnumber: .byte 0
+	#interruptnumber: .long 0
 	
