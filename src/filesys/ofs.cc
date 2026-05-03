@@ -7,10 +7,9 @@ using namespace os::filesystem;
 
 
 void printf(char*);
-bool strcmp(char* one, char* two);
-uint16_t strlen(char*);
-char* int2str(uint32_t);
 void sleep(uint32_t);
+uint8_t* memset(uint8_t*, int, size_t);
+
 
 
 File::File(uint32_t location, uint32_t size, char name[33]) {
@@ -26,8 +25,9 @@ File::~File() {}
 
 
 FileSystem::FileSystem(AdvancedTechnologyAttachment* ata0m, 
-		MemoryManager* memoryManager, OFS_Table* table) {
+		MemoryManager* memoryManager, GraphicsContext* gc, OFS_Table* table) {
 
+	this->gc = gc;
 	this->ata0m = ata0m;
 	this->table = table;
 	this->memoryManager = memoryManager;
@@ -518,8 +518,8 @@ bool FileSystem::NewFile(char* name, uint8_t* file, uint32_t size) {
 	
 	//byte 124 to 128 for image resolution
 	//default is full resolution
-	sectorData[124] = 255; sectorData[125] = 65;
-	sectorData[126] = 200; sectorData[127] = 0;
+	sectorData[124] = gc->gfxWidth >> 8; sectorData[125] = gc->gfxWidth & 0xff;
+	sectorData[126] = gc->gfxHeight >> 8; sectorData[127] = gc->gfxHeight & 0xff;
 
 
 	//byte 256 to end for tag strings
@@ -799,20 +799,12 @@ bool FileSystem::ReadLBA(char* name, uint8_t* file, uint32_t lba) {
 //buffer will contain data from file to compress
 void FileSystem::Compress(char* name, uint8_t* buffer, uint32_t bufsize) {
 
-	//uint16_t blockNum = bufsize / OFS_BLOCK_SIZE;
-	
 	//write compressed data here
-	//List newBuffer(this->memoryManager);
-	uint8_t newBuffer[bufsize];
-	uint8_t instructionBuffer[OFS_BLOCK_SIZE*8];
+	uint8_t compressBuffer[bufsize];
+	uint8_t instructionBuffer[OFS_BLOCK_SIZE*10];
 	
-	uint32_t newBufIndex = 0;
+	uint32_t compressBufIndex = 0;
 	uint32_t intBufIndex = 2;
-
-	//run length
-	uint8_t runLengthVal = 0;
-	uint16_t runLength = 0;
-	uint32_t runLengthIndex = 0;
 	uint16_t runLengthInstructionNum = 0;
 
 	/*
@@ -826,24 +818,29 @@ void FileSystem::Compress(char* name, uint8_t* buffer, uint32_t bufsize) {
 	}
 	*/
 
-		
-	//2 indexes, i for old buf
-	//newBufIndex for new buf
-	for (int i = 0; i < bufsize; i++) {
+	//run length format
+	
+	//first 2 bytes = num of run length instructions
+	//all instructions follow, then followed by uncompressed data after
 
-		//write uncompressed data to new buffer
-		newBuffer[newBufIndex] = buffer[i];
+	//instruction format
+	//byte 0, 1, 2 = 24 bit index of file where compressed data
+
+		
+	for (uint32_t i = 0; i < bufsize; i++) {
 
 		if (i < (bufsize-6)) {
 		
-			int j = i+1;
+			uint16_t searchRunIndex = i+1;
 			
-			while (buffer[i] == buffer[j] && j < bufsize) { j++; }
+			while (buffer[i] == buffer[searchRunIndex] && searchRunIndex < bufsize) { searchRunIndex++; }
 
-			if (j > 6) {
-				runLengthIndex = i;
-				runLengthVal = buffer[i];
-				runLength = j-i;
+			//add as compressed instruction
+			if (searchRunIndex-i > 6) {
+			//if (j > 6) {
+				uint32_t runLengthIndex = i;
+				uint8_t  runLengthVal = buffer[i];
+				uint16_t runLength = searchRunIndex-i;
 
 				instructionBuffer[intBufIndex] = (runLengthIndex >> 16) & 0xff;
 				instructionBuffer[intBufIndex+1] = (runLengthIndex >> 8) & 0xff;
@@ -854,29 +851,43 @@ void FileSystem::Compress(char* name, uint8_t* buffer, uint32_t bufsize) {
 				
 				intBufIndex += 6;
 				runLengthInstructionNum++;
-				
-				i += j;
+			
+			//write uncompressed data of short run
+			} else {
+				for (int j = i; j < searchRunIndex; j++) {
+		
+					//compressBuffer[compressBufIndex+(j-i)] = buffer[j];
+					compressBuffer[compressBufIndex] = buffer[i];
+					compressBufIndex++;
+				}
+				//compressBufIndex += searchRunIndex-i;
 			}
+			i = searchRunIndex-1;
+		} else {
+			//write remaining uncompressed data
+			compressBuffer[compressBufIndex] = buffer[i];
+			compressBufIndex++;
 		}
-		newBufIndex++;
 	}
+
+
 	//add num of run length instructions encoded
 	instructionBuffer[0] = runLengthInstructionNum >> 8;
 	instructionBuffer[1] = runLengthInstructionNum & 0xff;
-
 
 	//done with compression, now we write data
 
 
 	//write list data to disk
 	uint8_t data[OFS_BLOCK_SIZE];
-	for (int j = 0; j < OFS_BLOCK_SIZE; j++) { data[j] = 0x00; }
+	memset(data, 0x00, OFS_BLOCK_SIZE);
 
 	bool setSize = false;
 	uint32_t dataIndex = 0;
 	
 	//write file with compressed data
-	for (int i = 0; i < ((newBufIndex+intBufIndex)/OFS_BLOCK_SIZE)+1; i++) {
+	for (int i = 0; i < ((compressBufIndex+intBufIndex)/OFS_BLOCK_SIZE)+1; i++) {
+	
 	
 		for (int j = 0; j < OFS_BLOCK_SIZE; j++) {
 		
@@ -884,9 +895,9 @@ void FileSystem::Compress(char* name, uint8_t* buffer, uint32_t bufsize) {
 			
 				data[j] = instructionBuffer[dataIndex];
 			
-			} else if (dataIndex < intBufIndex+newBufIndex) {
+			} else if (dataIndex < intBufIndex+compressBufIndex) {
 			
-				data[j] = newBuffer[dataIndex-intBufIndex];
+				data[j] = compressBuffer[dataIndex-intBufIndex];
 			} else {
 				data[j] = 0x00;
 				setSize = true;
@@ -909,100 +920,84 @@ void FileSystem::Compress(char* name, uint8_t* buffer, uint32_t bufsize) {
 //buffer have uncompressed data written to it
 void FileSystem::Decompress(char* name, uint8_t* buffer, uint32_t bufsize) {
 
-	uint8_t oldBuffer[bufsize];
-	uint32_t oldBufIndex = 0;
+	uint8_t compressBuffer[bufsize];
+	uint32_t compressBufIndex = 0;
+	memset(compressBuffer, 0x00, bufsize);
 	
 	uint8_t readData[OFS_BLOCK_SIZE];
 
-	for (int i = 0; i < GetFileSize(name)/OFS_BLOCK_SIZE; i++) {
+	//read compressed data into oldBuffer
+	for (int i = 0; i < (GetFileSize(name)/OFS_BLOCK_SIZE); i++) {
 	
 		this->ReadLBA(name, readData, i);
 		
 		for (int j = 0; j < OFS_BLOCK_SIZE; j++) {
 		
-			oldBuffer[oldBufIndex] = readData[j];
-			oldBufIndex++;
+			compressBuffer[compressBufIndex] = readData[j];
+			compressBufIndex++;
 		}
 	}
 
-	//run length
-	uint8_t runLengthInstructionNum = (oldBuffer[0] << 8) | oldBuffer[1];
+	//calculate run length data size
+	uint8_t runLengthInstructionNum = (compressBuffer[0] << 8) | compressBuffer[1];
 	uint32_t encodingInstructionBytes = (runLengthInstructionNum*6)+2;
 	
-
-	uint32_t newBufIndex = 0;
+	uint32_t nonRunDataIndex = encodingInstructionBytes;
+	
+	uint32_t location = (compressBuffer[2] << 16) 
+			  | (compressBuffer[3] << 8) 
+			   | compressBuffer[4];
+	
+	uint8_t runLengthVal = compressBuffer[5];
+	uint16_t runLength = (compressBuffer[6] << 8) 
+			   | (compressBuffer[7]);
 	uint16_t locationIndex = 1;
-	
-	uint32_t location = (oldBuffer[2] << 16) 
-			  | (oldBuffer[3] << 8) 
-			   | oldBuffer[4];
-	
-	uint8_t runLengthVal = oldBuffer[5];
-	uint16_t runLength = (oldBuffer[6] << 8) 
-			   | (oldBuffer[7]);
 
 	//the more run length instructions there are, 
 	//there more memory corruption at top of image
 
 		
 	//start from after instructions to actual data
-	for (int i = encodingInstructionBytes; i < oldBufIndex; i++) {
+	//for (int i = 0; i < (compressBufIndex-encodingInstructionBytes); i++) {
+	for (int i = 0; i < bufsize; i++) {
 			
-		
-		//add uncompressed data to file
-		if (newBufIndex < bufsize) {
-
-			buffer[newBufIndex] = oldBuffer[i];
-			newBufIndex++;
-		} else {
-			return;
-		}
-	
-		
 		//add compressed data to file
-		if (i == location+encodingInstructionBytes) {
+		if (i == location) {
 			
 			for (int j = 0; j < runLength; j++) {
 			
-				if (newBufIndex < bufsize) {
-					buffer[newBufIndex] = runLengthVal;
-					newBufIndex++;
-				} else {
-					return;
-				}
+				if (i+j < bufsize) { buffer[i+j] = runLengthVal; }
 			}
-				
-			location = (oldBuffer[(locationIndex*6)+2] << 16) 
-				 | (oldBuffer[(locationIndex*6)+3] << 8) 
-				  | oldBuffer[(locationIndex*6)+4];
-				
-			runLengthVal = oldBuffer[(locationIndex*6)+5];
-				
-			runLength = (oldBuffer[(locationIndex*6)+6] << 8) 
-				  | (oldBuffer[(locationIndex*6)+7]);
-				
-			locationIndex++;
+			i += runLength-1;
 			
-			/*
 			//update location
 			if (locationIndex < runLengthInstructionNum) {
 				
-				location = (oldBuffer[(locationIndex*6)+2] << 16) 
-					 | (oldBuffer[(locationIndex*6)+3] << 8) 
-					  | oldBuffer[(locationIndex*6)+4];
+				location = (compressBuffer[(locationIndex*6)+2] << 16) 
+					 | (compressBuffer[(locationIndex*6)+3] << 8) 
+					  | compressBuffer[(locationIndex*6)+4];
 				
-				runLengthVal = oldBuffer[(locationIndex*6)+5];
+				runLengthVal = compressBuffer[(locationIndex*6)+5];
 				
-				runLength = (oldBuffer[(locationIndex*6)+6] << 8) 
-					  | (oldBuffer[(locationIndex*6)+7]);
+				runLength = (compressBuffer[(locationIndex*6)+6] << 8) 
+					  | (compressBuffer[(locationIndex*6)+7]);
 				
 				locationIndex++;
 			} else {
 				location = 0xffffffff;
 			}
-			*/
+		} else {
+			//add uncompressed data to file
+			if (nonRunDataIndex < compressBufIndex) {
+
+				//buffer[i] = 0x55;
+				buffer[i] = compressBuffer[nonRunDataIndex];
+				nonRunDataIndex++;
 			
-			runLength = 0x00;
+			} else if (locationIndex >= runLengthInstructionNum) {
+			
+				return;
+			}
 		}
 	}
 }
@@ -1027,6 +1022,7 @@ void FileSystem::EncryptBlock(uint8_t data[16], uint8_t key[16]) {
 		for (int j = 0; j < 16; j++) { data[j] ^= key[j]; }
 	}
 }
+
 void FileSystem::DecryptBlock(uint8_t data[16], uint8_t key[16]) {
 	
 	uint8_t copyData[16];
@@ -1125,8 +1121,8 @@ uint32_t FileSystem::GetImageResolution(char* name) {
 	uint8_t data[512];
 	ata0m->Read28(this->GetFileSector(name), data, 256, 0);
 	
-	uint16_t width = data[124] + data[125];
-	uint16_t height = data[126] + data[127];
+	uint16_t width = (data[124] << 8) | data[125];
+	uint16_t height = (data[126] << 8) | data[127];
 
 	return (width << 16) | height;
 }
@@ -1136,19 +1132,20 @@ uint32_t FileSystem::GetImageResolution(char* name) {
 
 //read and write VGA mode 13H buffer 
 //from disk to memory and vice versa
-bool FileSystem::Read13H(char* name, uint8_t* buffer, uint16_t* retWidth, uint8_t* retHeight, bool compress) {
+bool FileSystem::Read13H(char* name, uint8_t* buffer, uint16_t* retWidth, uint16_t* retHeight, bool compress) {
 
 	if (FileIf(this->GetFileSector(name)) == false) { return false; }
 
 	uint8_t file[OFS_BLOCK_SIZE];
 	uint16_t x = 0;
-	uint8_t y = 0;
+	uint16_t y = 0;
 	uint32_t lba = 0;
 
 	//retrieve and save res data
 	uint32_t res = GetImageResolution(name);
 	uint16_t width = res >> 16;
 	uint16_t height = res & 0xffff;
+	uint32_t size = width*height;
 
 	*retWidth = width;
 	*retHeight = height;
@@ -1156,27 +1153,24 @@ bool FileSystem::Read13H(char* name, uint8_t* buffer, uint16_t* retWidth, uint8_
 
 	if (compress) {
 
-		this->Decompress(name, buffer, width*height);
-		//this->Decompress(name, buffer, 320*200);
+		this->Decompress(name, buffer, size);
 		
 	//read bitmap
 	} else {
-		
 		//read file and write buffer
-		for (lba; lba < ((width*height)/OFS_BLOCK_SIZE)+1; lba++) {
+		for (lba; lba < (size/OFS_BLOCK_SIZE)+1; lba++) {
 
 			ReadLBA(name, file, lba);
 
 			for (uint16_t j = 0; j < OFS_BLOCK_SIZE; j++) {
 	
 				//leave if buffer already full	
-				if ((lba*OFS_BLOCK_SIZE)+j >= width*height) { return true; }
+				if (lba*OFS_BLOCK_SIZE+j >= size) { return true; }
 
-				buffer[width*y+x] = file[j];
+				buffer[gc->gfxWidth*y+x] = file[j];
+				
 				x++;
-
 				if (x >= width) {
-
 					y++;
 					x = 0;
 				}
@@ -1190,9 +1184,11 @@ bool FileSystem::Read13H(char* name, uint8_t* buffer, uint16_t* retWidth, uint8_
 bool FileSystem::Write13H(char* name, uint8_t* buffer, uint16_t width, uint16_t height, bool compress) {
 
 	uint32_t lba = 0;
+	uint16_t x = 0;
+	uint16_t y = 0;
 	uint32_t size = width*height;
 	uint8_t file[OFS_BLOCK_SIZE];
-	for (uint32_t i = 0; i < OFS_BLOCK_SIZE; i++) { file[i] = 0x00; }
+	memset(file, 0x00, OFS_BLOCK_SIZE);
 
 	//make new file if it doesn't exist
 	if (FileIf(this->GetFileSector(name)) == false) {
@@ -1202,21 +1198,15 @@ bool FileSystem::Write13H(char* name, uint8_t* buffer, uint16_t width, uint16_t 
 	}
 
 	//write width and height of image
-	if (width < 320 && height < 200) {
+	if (width < gc->gfxWidth && height < gc->gfxHeight) {
 	
 		uint8_t data[512];
 		ata0m->Read28(this->GetFileSector(name), data, 512, 0);
 
-		if (width < 256) {
-		
-			data[124] = width; 
-			data[125] = 0;
-		} else {
-			data[124] = 255; 
-			data[125] = width % 256;
-		}
-		data[126] = height; 
-		data[127] = 0;
+		data[124] = width >> 8; 
+		data[125] = width & 0xff;
+		data[126] = height >> 8; 
+		data[127] = height & 0xff;
 		
 		ata0m->Write28(this->GetFileSector(name), data, 512, 0);
 	}
@@ -1227,7 +1217,6 @@ bool FileSystem::Write13H(char* name, uint8_t* buffer, uint16_t width, uint16_t 
 
 		this->Compress(name, buffer, width*height);
 		this->NewTag("compressed", this->GetFileSector(name));
-		//this->Compress(name, buffer, 320*200);
 	
 	//write bitmap
 	} else {
@@ -1236,8 +1225,14 @@ bool FileSystem::Write13H(char* name, uint8_t* buffer, uint16_t width, uint16_t 
 		
 			for (uint16_t j = 0; j < OFS_BLOCK_SIZE; j++) {
 		
-				if ((lba*OFS_BLOCK_SIZE)+j < size) { file[j] = buffer[(lba*OFS_BLOCK_SIZE)+j];
-				} else { 		   file[j] = 0x00; }
+				if (lba*OFS_BLOCK_SIZE+j < size) { file[j] = buffer[gc->gfxWidth*y+x];
+				} else {			   file[j] = 0x00; }
+
+				x++;
+				if (x >= width) {
+					y++;
+					x = 0;
+				}
 			}
 			WriteLBA(name, file, lba);
 		}
