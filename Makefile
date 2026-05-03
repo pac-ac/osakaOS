@@ -113,7 +113,6 @@ run: osakaOS.iso
 		-boot menu=on \
 		-drive id=disk,file=Image.img,format=raw,if=none \
 		-device piix4-ide,id=piix4 -device ide-hd,drive=disk,bus=piix4.0 \
-		-audiodev alsa,id=snd0 -device ac97,audiodev=snd0 \
 		-cpu 486 -smp 1 -m 16M \
 		-netdev user,id=net0 -device pcnet,netdev=net0 \
 		-machine kernel_irqchip=off \
