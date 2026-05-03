@@ -6,11 +6,6 @@ using namespace os::filesystem;
 
 
 void printf(char* str);
-char* argparse(char* args, uint8_t num);
-bool strcmp(char* one, char* two);
-uint32_t str2int(char* str);
-char* int2str(uint32_t);
-
 
 Compiler::Compiler(FileSystem* filesystem) {
 
@@ -28,8 +23,6 @@ Compiler::~Compiler() {}
 void Compiler::Assemble(char* asmFile, char* outFile) {
 	
 	
-
-
 	uint8_t readData[OFS_BLOCK_SIZE];
 	this->filesystem->ReadLBA(asmFile, readData, 0);
 	
