@@ -3,6 +3,7 @@
 
 #include <common/types.h>
 #include <filesys/ofs.h>
+#include <string.h>
 
 void fileTUI();
 

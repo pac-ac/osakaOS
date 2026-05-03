@@ -2,6 +2,7 @@
 #define __OS__MODE__PIANO_H
 
 #include <drivers/speaker.h>
+#include <string.h>
 
 
 void pianoTUI();
