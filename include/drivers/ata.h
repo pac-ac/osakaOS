@@ -5,6 +5,7 @@
 #include <hardwarecommunication/port.h>
 #include <hardwarecommunication/interrupts.h>
 #include <common/types.h>
+#include <string.h>
 
 
 namespace os {

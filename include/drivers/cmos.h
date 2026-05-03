@@ -4,6 +4,7 @@
 #include <common/types.h>
 #include <hardwarecommunication/port.h>
 #include <drivers/pit.h>
+#include <string.h>
 
 namespace os {
 

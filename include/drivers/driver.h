@@ -16,6 +16,7 @@ namespace os {
 				virtual void Activate();
 				virtual int Reset();
 				virtual void Deactive();
+				int driverType = 0;
 		};
 
 		class DriverManager {

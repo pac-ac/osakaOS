@@ -6,6 +6,7 @@
 #include <drivers/driver.h>
 #include <hardwarecommunication/port.h>
 
+
 namespace os {
 
 	namespace drivers {

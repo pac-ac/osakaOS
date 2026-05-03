@@ -6,6 +6,7 @@
 #include <hardwarecommunication/pci.h>
 #include <hardwarecommunication/port.h>
 #include <hardwarecommunication/interrupts.h>
+#include <string.h>
 
 
 
@@ -51,7 +52,6 @@ namespace os {
 			} __attribute__((packed));
 
 
-
 			struct BufferDescriptor {
 		
 				common::uint32_t address;
@@ -60,16 +60,17 @@ namespace os {
 				common::uint32_t avail;
 			
 			} __attribute__((packed));
-		
 
+			
 			hardwarecommunication::Port16Bit MACAddress0Port;
 			hardwarecommunication::Port16Bit MACAddress2Port;
 			hardwarecommunication::Port16Bit MACAddress4Port;
 			hardwarecommunication::Port16Bit registerDataPort;
 			hardwarecommunication::Port16Bit registerAddressPort;
-			hardwarecommunication::Port16Bit resetPort;
+			hardwarecommunication::Port16Bit resetPort16;
+			hardwarecommunication::Port32Bit resetPort32;
 			hardwarecommunication::Port16Bit busControlRegisterDataPort;
-
+			
 			InitializationBlock initBlock;
 
 
@@ -86,10 +87,11 @@ namespace os {
 			
 			RawDataHandler* handler;
 
+			bool verbose;
+
 			public:
-				amd_am79c973(hardwarecommunication::PeripheralComponentInterconnectDeviceDescriptor 
-						*dev, hardwarecommunication::InterruptManager* interrupts);
-				
+				amd_am79c973(hardwarecommunication::PeripheralComponentInterconnectDeviceDescriptor *dev, 
+						hardwarecommunication::InterruptManager* interrupts);
 				~amd_am79c973();
 
 				void Activate();
