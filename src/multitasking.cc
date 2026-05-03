@@ -27,7 +27,7 @@ Task::Task(GlobalDescriptorTable *gdt, void(*entrypoint)(), char name[33], uint3
 	cpustate -> edi = 0;
 	cpustate -> ebp = 0;
 
-	/*	
+	/*
 	cpustate -> gs = 0;
 	cpustate -> fs = 0;
 	cpustate -> es = 0;
@@ -49,9 +49,10 @@ Task::Task(GlobalDescriptorTable *gdt, void(*entrypoint)(), char name[33], uint3
 Task::~Task() {}
 
 
-TaskManager::TaskManager(GlobalDescriptorTable* gdt) {
+TaskManager::TaskManager(GlobalDescriptorTable* gdt, MemoryManager* mm) {
 
 	this->gdt = gdt;
+	this->mm = mm;
 
 	numTasks = 0;
 	currentTask = -1;
@@ -82,10 +83,23 @@ bool TaskManager::DeleteTask(uint32_t taskNum) {
 	if (numTasks <= 0) { return false; }
 	
 	currentTask = -1;
-	numTasks--;
+	//tasks[taskNum]->kill = true;
+	numTasks -= (1 * (numTasks > 1));
 	
-	tasks[taskNum]->kill = true;
-	//tasks[taskNum] = 0;
+	//delete task
+	if (tasks[taskNum] != nullptr) {
+	
+		this->mm->free(tasks[taskNum]);
+		tasks[taskNum] = nullptr;
+	}
+	
+	//shift tasks down
+	for (int i = taskNum; i < numTasks; i++) {
+	
+		tasks[i] = tasks[i+1];
+	}
+	
+	//tasks[taskNum] = nullptr;
 
 	return true;
 }
@@ -98,9 +112,13 @@ CPUState* TaskManager::Schedule(CPUState* cpustate) {
 	
 	if (currentTask >= 0) {
 
-		tasks[currentTask]->kill = 
-			((cpustate->eip - tasks[currentTask]->intPtr) >= tasks[currentTask]->instructionCount 
-				&& tasks[currentTask]->instructionCount > 0);
+		//check if binary is to be killed
+		if (tasks[currentTask]->binary) {
+		
+			tasks[currentTask]->kill = ((cpustate->eip - tasks[currentTask]->intPtr) 
+						>= tasks[currentTask]->instructionCount 
+						&& tasks[currentTask]->instructionCount > 0);
+		}
 
 		//check if task is to be ended
 		if (tasks[currentTask]->kill == true) {

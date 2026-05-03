@@ -15,6 +15,26 @@ dataSegmentSelector(0, 64*1024*1024, 0x92) {
 	i[1] = sizeof(GlobalDescriptorTable) << 16;
 
 	asm volatile("lgdt (%0)": :"p" (((uint8_t *) i) + 2));
+
+	/*
+	asm volatile(
+    "lgdt %0\n"
+    "mov %2, %%ds\n"
+    "mov %2, %%es\n"
+    "mov %2, %%fs\n"
+    "mov %2, %%gs\n"
+    "mov %2, %%ss\n"
+    "push %1\n"
+    "push $1f\n"
+    "retf\n"
+    "1:\n"
+    :
+    : "m" (*(((uint8_t *) i)+2)),
+      "r"(CodeSegmentSelector()), 
+      "r"(DataSegmentSelector())
+    : "memory"
+  );
+  */
 }
 
 

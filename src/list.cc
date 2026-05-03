@@ -5,9 +5,6 @@ using namespace os::common;
 
 
 void printf(char*);
-uint16_t strlen(char*);
-bool strcmp(char* one, char* two);
-
 
 
 Node::Node(void* value) {
@@ -23,7 +20,12 @@ Node::~Node() {
 List::List(MemoryManager* memoryManager) {
 	
 	this->memoryManager = memoryManager;
+	
+	this->numOfNodes = 0;
+	
 	this->indexNode = nullptr;
+	this->entryNode = nullptr;
+	this->lastNode = nullptr;
 }
 
 
@@ -33,17 +35,10 @@ List::~List() {
 
 void List::DestroyList() {
 
-	Node* indexNode = this->entryNode;
-	Node* node;
-
 	for (int i = 0; i < this->numOfNodes; i++) {
-	
-		node = indexNode;
-		indexNode = indexNode->next;
-		this->DestroyNode(node);
-	}
 
-	this->numOfNodes = 0;
+		this->Pop();
+	}
 }
 
 
@@ -106,6 +101,7 @@ void List::Write(void* value, uint32_t index) {
 void List::Push(void* value) {
 	
 	Node* node = this->CreateNode(value);
+	node->next = nullptr;
 
 	if (this->numOfNodes == 0) {
 	
@@ -118,7 +114,7 @@ void List::Push(void* value) {
 		this->lastNode = node;
 	}
 	
-	this->lastNode->next = nullptr;
+	//this->lastNode->next = nullptr;
 	this->numOfNodes++;
 }
 
@@ -128,16 +124,23 @@ void List::Pop() {
 	if (this->numOfNodes <= 0) { return; }
 
 	Node* indexNode = this->entryNode;
-	
-	for (int i = 0; i < this->numOfNodes-1; i++) {
-	
-		indexNode = indexNode->next;
-	}
 
-	//delete and update last node
-	indexNode->next = nullptr;
-	this->DestroyNode(this->lastNode);
-	this->lastNode = indexNode;
+	if (this->numOfNodes == 1) {
+	
+		this->DestroyNode(this->lastNode);
+		this->entryNode = nullptr;
+		this->lastNode = nullptr;
+	} else {
+		for (int i = 0; i < this->numOfNodes-2; i++) {
+	
+			indexNode = indexNode->next;
+		}
+	
+		//delete and update last node
+		indexNode->next = nullptr;
+		this->DestroyNode(this->lastNode);
+		this->lastNode = indexNode;
+	}
 	
 	this->numOfNodes--;
 }
@@ -233,21 +236,21 @@ void List::RemoveByte(uint8_t value) {
 }
 
 
-void List::AddInt(uint32_t value) {
+void List::AddInt(int32_t value) {
 
-	uint32_t* newInt = (uint32_t*)(this->memoryManager->malloc(sizeof(uint32_t)));
-	new (newInt) uint32_t;
+	int32_t* newInt = (int32_t*)(this->memoryManager->malloc(sizeof(int32_t)));
+	new (newInt) int32_t;
 	*newInt = value;
 	this->Push(newInt);
 }
 
-void List::RemoveInt(uint32_t value) {
+void List::RemoveInt(int32_t value) {
 	
 	Node* indexNode = this->entryNode;
 
 	for (int i = 0; i < this->numOfNodes; i++) {
 
-		if (*((uint32_t*)(indexNode->value)) == value) {
+		if (*((int32_t*)(indexNode->value)) == value) {
 		
 			this->Remove(i);
 		}

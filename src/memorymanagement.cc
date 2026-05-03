@@ -74,6 +74,12 @@ void* MemoryManager::malloc(size_t size) {
 }
 
 
+void* MemoryManager::realloc(void* ptr, size_t newSize) {
+
+	MemoryChunk* chunk = (MemoryChunk*)((size_t)ptr - sizeof(MemoryChunk));
+}
+
+
 
 void MemoryManager::free(void* ptr) {
 

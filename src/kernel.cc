@@ -10,10 +10,12 @@
 #include <drivers/vga.h>
 #include <drivers/amd_am79c973.h>
 #include <drivers/ata.h>
+#include <drivers/ac97.h>
 #include <drivers/speaker.h>
 #include <drivers/pit.h>
 #include <drivers/cmos.h>
 #include <gui/desktop.h>
+#include <gui/button.h>
 #include <gui/window.h>
 #include <gui/widget.h>
 #include <gui/sim.h>
@@ -22,19 +24,23 @@
 #include <gui/pixelart.h>
 #include <multitasking.h>
 #include <code/asm.h>
-#include <net/network.h>
 #include <net/etherframe.h>
 #include <net/arp.h>
 #include <net/ipv4.h>
 #include <net/icmp.h>
+#include <net/udp.h>
+#include <net/tcp.h>
+#include <net/network.h>
 #include <filesys/ofs.h>
 #include <cli.h>
 #include <script.h>
 #include <app.h>
 #include <list.h>
+#include <string.h>
 #include <app/paint.h>
 #include <app/file_edit.h>
 #include <app/file_browse.h>
+#include <app/browser.h>
 #include <mode/piano.h>
 #include <mode/snake.h>
 #include <mode/file_edit.h>
@@ -257,158 +263,24 @@ void printfHex(uint8_t key) {
 }
 
 
+uint8_t* memset(uint8_t* buf, int value, size_t n) {
 
-uint16_t strlen(char* args) {
-
-	uint16_t length = 0;
-	for (length = 0; args[length] != '\0'; length++) {}
-	return length;
-}
-
-
-
-bool strcmp(char* one, char* two) {
-
-	uint16_t i = 0;
-
-	for (i; one[i] != '\0'; i++) {
+	for (size_t i = 0; i < n; i++) {
 	
-		if (one[i] != two[i]) { return false; }
+		buf[i] = value;
 	}
-	return true;
+	return buf;
 }
 
+uint32_t valCount(uint8_t* buf, uint8_t value, size_t n) {
 
-
-uint32_t str2int(char* args) {
-
-	uint32_t number = 0;
-	uint16_t i = 0;
-	bool gotNum = false;
-
-	for (uint16_t i = 0; args[i] != '\0'; i++) {
-		
-		if ((args[i] >= 58 || args[i] <= 47) && args[i] != ' ') {
-
-			return 0;
-		}
-
-		if (args[i] != ' ') {
-
-			number *= 10;
-			number += ((uint32_t)args[i] - 48);
-			gotNum = true;
-			args[i] = ' ';
-                } else {
-                        if (gotNum) { return number; }
-		}
+	uint32_t retVal = 0;
+	
+	for (size_t i = 0; i < n; i++) {
+	
+		retVal += (1 * (buf[i] == value));
 	}
-	return number;
-}
-
-
-char* int2str(uint32_t num) {
-
-	uint32_t numChar = 1;
-	uint8_t i = 1;
-
-	if (num % 10 != num) {
-
-		while ((num / (numChar)) >= 10) {
-
-			numChar *= 10;
-			i++;
-		}
-		char* str = "4294967296";
-		uint8_t strIndex = 0;
-
-		while (i) {
-
-			str[strIndex] = (char)(((num / (numChar)) % 10) + 48);
-
-			if (numChar >= 10) { numChar /= 10; }
-			strIndex++;
-			i--;
-		}
-		str[strIndex] = '\0';
-		return str;
-	}
-	char* str = " ";
-	str[0] = (num + 48);
-	
-	return str;
-}
-
-float str2float(char* str) {
-
-	char beforeDecimal[16];
-	char afterDecimal[16];
-
-	int i = 0;
-	for (i; str[i] != '.'; i++) { beforeDecimal[i] = str[i]; }
-	beforeDecimal[i] = '\0';
-	
-	int j = 0;
-	for (j = i; str[j] != '\0'; j++) { afterDecimal[j-i] = str[j]; }
-	afterDecimal[j-i] = '\0';
-
-	float val = 0.0;
-	val += (float)(str2int(beforeDecimal));
-	val += ((float)(str2int(beforeDecimal)))/((j-i)*10);
-
-	return val;
-}
-
-
-char* argparse(char* args, uint8_t num) {
-
-	char buffer[256];
-
-	bool valid = false;
-	uint8_t argIndex = 0;
-	uint8_t bufferIndex = 0;
-
-
-	for (int i = 0; i < (strlen(args) + 1); i++) {
-	
-		if (args[i] == ' ' || args[i] == '\0') {
-		
-			if (valid) {
-				if (argIndex == num) {
-				
-					buffer[bufferIndex] = '\0';
-					char* arg = buffer;
-					return arg;
-				}
-				argIndex++;
-			}
-			valid = false;
-		} else {
-			if (argIndex == num) {
-				
-				buffer[bufferIndex] = args[i];
-				bufferIndex++;
-			}
-			valid = true;
-		}
-	}
-	//       |
-	//this   v
-	return "wtf";
-}
-
-uint8_t argcount(char* args) {
-
-	uint8_t i = 0;
-	char* foo = argparse(args, i);
-	
-	//and this gotta be the same
-	while (foo != "wtf") {
-	
-		foo = argparse(args, i);
-		i++;
-	}	
-	return i-1;
+	return retVal;
 }
 
 
@@ -436,11 +308,12 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 					TaskManager* tm,
 					MemoryManager* mm,
 					FileSystem* filesystem,
+					Network* network,
 					Compiler* compiler,
 					VideoGraphicsArray* vga,
 					CMOS* cmos,
 					DriverManager* drvManager) 
-		: CommandLine(gdt, tm, mm, filesystem, compiler, vga, cmos, drvManager) {
+		: CommandLine(gdt, tm, mm, filesystem, network, compiler, vga, cmos, drvManager) {
 		
 			this->cli = true;
 		}
@@ -678,7 +551,41 @@ class CLIKeyboardEventHandler : public KeyboardEventHandler, public CommandLine 
 };
 
 
-void sleep(uint32_t ms) {}
+
+
+
+uint32_t readCount() {
+
+	uint32_t count = 0;
+	Port8Bit channel0(0x40);
+	Port8Bit commandPort(0x43);
+	
+	asm("cli");
+	commandPort.Write(0);
+	count = channel0.Read();
+	count |= channel0.Read() << 8;
+	asm("sti");
+	
+	return count;
+}
+
+void sleep(uint32_t ms) {
+	
+	Port8Bit channel0(0x40);
+
+	for (uint32_t i = 0; i < ms; i++) {
+	
+		asm("cli");
+		channel0.Write(1193182/1000);
+		channel0.Write((1193182/1000) >> 8);
+		asm("sti");
+		
+		uint32_t start = readCount();
+		while ((start - readCount() < 1000)) {}
+	}
+
+}
+
 
 double getTicks() {
 
@@ -724,35 +631,17 @@ uint32_t memRead(uint32_t memory) {
 
 void printOsaka(uint8_t num, bool cube) {
 
-
-	if (cube) {	
-		//osaka.cubeScreen('.', 0.6, &cubeData);
-		return;
-	} else {
-		printf("\v");
-	}
-
+	if (cube) {	return;
+	} else {	printf("\v"); }
 
 	switch (num) {
 	
-		case 0:
-			osakaFace();
-			break;
-		case 1:
-			osakaHead();
-			break;
-		case 2:
-			god();
-			break;
-		case 3:
-			osakaKnife();
-			break;
-		case 4:
-			osakaAscii();
-			break;
-		default:
-			osakaFace();
-			break;
+		case 0:	osakaFace();	break;
+		case 1:	osakaHead();	break;
+		case 2:	god();		break;
+		case 3:	osakaKnife();	break;
+		case 4:	osakaAscii();	break;
+		default:osakaFace();	break;
 	}
 }
 
@@ -796,6 +685,21 @@ uint16_t prng() {
 	
 
 	return lfsr;
+}
+
+
+uint16_t hash(char* str) {
+
+	uint32_t val = 0x811c9dc5;
+
+	for (int i = 0; str[i] != '\0'; i++) {
+	
+		val ^= str[i];
+		val *= 0x01000193;
+	}
+	val++;
+
+	return (val >> 16) ^ (val & 0xffff);
 }
 
 
@@ -857,43 +761,64 @@ uint32_t cmosDetectMemory() {
 }
 
 
+//find minimal difference in web values
+uint8_t Web2VGA(uint32_t color) {
 
-uint8_t Web2EGA(uint32_t color) {
+	float Rc = (color >> 16);
+	float Gc = (color >> 8) & 0xff;
+	float Bc = (color & 0xff);
 
-	uint8_t bytes[3];
-	bytes[2] = color >> 16;
-	bytes[1] = (color >> 8) & 0xff;
-	bytes[0] = color & 0xff;
+	float closest = (255.0*255.0)*3.0 + 1.0;
+	uint8_t index = 0;
 
-	uint8_t result = 0;
-
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < 256; i++) {
 	
-		if        (bytes[i] < 0x2b) { bytes[i] = 0x00;
-		} else if (bytes[i] < 0x80) { bytes[i] = 0x55; 
-		} else if (bytes[i] < 0xd5) { bytes[i] = 0xaa; 
-		} else {		      bytes[i] = 0xff; }
-	}
+		float Rp = (defaultPalette[i] >> 16);
+		float Gp = (defaultPalette[i] >> 8) & 0xff;
+		float Bp = (defaultPalette[i] & 0xff);
 
-	for (int i = 0; i < 3; i++) {
-	
-		switch (bytes[i]) {
+		float euclidDist = ((Rp-Rc)*(Rp-Rc)) + 
+				   ((Gp-Gc)*(Gp-Gc)) +
+				   ((Bp-Bc)*(Bp-Bc));
+
+		if (closest > euclidDist) {
 		
-			//both sets of
-			//3 bits
-			case 0xff:
-				result |= (1 << (i+3));
-				result |= (1 << i);
-				break;
-			//most sig 3 bits
-			case 0x55: result |= (1 << (i+3)); break;
-			//least sig 3 bits
-			case 0xaa: result |= (1 << i); break;
-			default: break;
+			closest = euclidDist;
+			index = i;
+		
+		} else if (euclidDist < 0.05) {
+		
+			index = i;
+			break;
 		}
 	}
-	return result;
+	
+	if (index == W_EMPTY) { index = W000000; }
+	
+	return index;
 }
+
+
+class PrintfTCPHandler : public TransmissionControlProtocolHandler {
+
+	public:
+		bool HandleTransmissionControlProtocolMessage(TransmissionControlProtocolSocket* socket, 
+							uint8_t* data, uint16_t size) {
+	
+			printf("received message: ");
+
+			char* foo = " ";
+			for (int i = 0; i < size; i++) {
+			
+				foo[0] = data[i];
+				printf(foo);
+			}
+			printf("\n");
+			
+			return true;
+		}
+};
+
 
 
 TaskManager* LoadTaskManager(bool set, TaskManager* tm = 0) {
@@ -920,7 +845,6 @@ Desktop* LoadDesktopForTask(bool set, Desktop* desktop = 0) {
 void DrawDesktopTask() {
 
 	Desktop* desktop = LoadDesktopForTask(false);
-	desktop->gc->SetMode(320, 200, 8);
 
 	while (1) { desktop->Draw(desktop->gc); }
 }
@@ -930,8 +854,6 @@ typedef void (*constructor)();
 extern "C" constructor start_ctors;
 extern "C" constructor end_ctors;
 
-
-
 extern "C" void callConstructors() {
 
 	for (constructor* i = &start_ctors; i != &end_ctors; i++) {
@@ -940,37 +862,86 @@ extern "C" void callConstructors() {
 }
 
 
-//extern "C" void kmain(void* multiboot_structure, uint32_t magicnumber) {
+struct MultibootInfo {
+
+	uint32_t flags;
+	uint32_t memLower;
+	uint32_t memUpper;
+	uint32_t bootDevice;
+	uint32_t commandLine;
+	uint32_t moduleCount;
+	uint32_t moduleAddress;
+	uint32_t syms[4];
+	uint32_t memMapLength;
+	uint32_t memMapAddress;
+	uint32_t drivesLength;
+	uint32_t drivesAddress;
+	uint32_t configTable;
+	uint32_t bootLoaderName;
+	uint32_t apmTable;
+	uint32_t vbeControlInfo;
+	uint32_t vbeModeInfo;
+	uint16_t vbeMode;
+	uint16_t vbeInterfaceSeg;
+	uint16_t vbeInterfaceOff;
+	uint16_t vbeInterfaceLength;
+	
+	//gfx
+	uint64_t frameBufferAddress;
+	uint32_t frameBufferPitch;
+	uint32_t frameBufferWidth;
+	uint32_t frameBufferHeight;
+	uint8_t frameBufferBPP;
+	uint8_t frameBufferType;
+
+} __attribute__((packed));
+
+
+
 extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 
 	printf("Hello :^)\n");
 
 	GlobalDescriptorTable* gdt;
-	TaskManager taskManager(gdt);
+	
+	struct MultibootInfo* mbi = (struct MultibootInfo*)multiboot_structure;
 	
 	//heap manager
-	uint32_t* memupper = (uint32_t*)(((size_t)multiboot_structure) + 8);
-	size_t heap = 4*1024*1024;
-	MemoryManager memoryManager(heap, (*memupper)*1024 - heap - 10*1024);
-
+	size_t heap = 8*1024*1024;
+	MemoryManager memoryManager(heap, mbi->memUpper*1024 - heap - 10*1024);
+	
+	TaskManager taskManager(gdt, &memoryManager);
 	
 	InterruptManager interrupts(0x20, gdt, &taskManager);
 	printf("Initializing Hardware, Stage 1\n");
 
 	DriverManager drvManager;
 	
+	//graphics
+	uint32_t graphicsWidth = WIDTH_13H;
+	uint32_t graphicsHeight = HEIGHT_13H;
+	uint8_t* graphicsAddress = nullptr;
+	
+	//vbe is set and not text mode
+	if ((mbi->flags & 0x1000) && mbi->frameBufferAddress != 0xb8000) {
+	
+		graphicsWidth = mbi->frameBufferWidth;
+		graphicsHeight = mbi->frameBufferHeight;
+		graphicsAddress = (uint8_t*)mbi->frameBufferAddress;
+	}
+	
 	//drivers and command line
 	AdvancedTechnologyAttachment ata0m(0x1F0, true);
-	VideoGraphicsArray vga;
+	VideoGraphicsArray vga(&memoryManager, graphicsAddress, graphicsWidth, graphicsHeight);
 	OFS_Table table;
-	FileSystem osakaFileSystem(&ata0m, &memoryManager, &table);
+	FileSystem osakaFileSystem(&ata0m, &memoryManager, &vga, &table);
 	Compiler compiler(&osakaFileSystem);
 	PIT pit(&interrupts);
 	CMOS cmos;
 	cmos.pit = &pit;
 
 	CLIKeyboardEventHandler* kbhandler = (CLIKeyboardEventHandler*)memoryManager.malloc(sizeof(CLIKeyboardEventHandler));
-	new (kbhandler) CLIKeyboardEventHandler(gdt, &taskManager, &memoryManager, &osakaFileSystem, &compiler, &vga, &cmos, &drvManager);
+	new (kbhandler) CLIKeyboardEventHandler(gdt, &taskManager, &memoryManager, &osakaFileSystem, nullptr, &compiler, &vga, &cmos, &drvManager);
 	kbhandler->hash_cli_init(); //init command line
 	
 	KeyboardDriver keyboard(&interrupts, kbhandler);
@@ -980,8 +951,10 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 
 
 	//gui driver stuff
-	Simulator osaka(&cmos);
-	Desktop desktop(320, 200, 0x01, &vga, gdt, &taskManager, 
+	Simulator osaka(&vga, &osakaFileSystem, &cmos);
+	Widget setGC(0,0,0,0);
+	setGC.gc = &vga;
+	Desktop desktop(graphicsWidth, graphicsHeight, 0x7f, &vga, gdt, &taskManager, 
 			&memoryManager, &osakaFileSystem, &compiler, 
 			&cmos, &drvManager, &osaka);
 	MouseDriver mouse(&interrupts, &desktop);
@@ -997,28 +970,48 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 	PCIController.SelectDrivers(&drvManager, &interrupts);
 
 
-	//network
-	amd_am79c973* eth0 = (amd_am79c973*)(drvManager.drivers[3]);
-	//amd_am79c973 eth0(PCIController.PCIdev, &interrupts);
-	//drvManager.drivers[3] = &eth0;
-
-
 	printf("\nInitializing Hardware, Stage 2\n");
 	drvManager.ActivateAll();
 	
+	//AC97* ac97 = (AC97*)(drvManager.drivers[4]);
+
+	//sort pci drivers
+	AC97* ac97 = nullptr;
+	amd_am79c973* eth0 = nullptr;
+
+	for (int i = 0; i < drvManager.numDrivers; i++) {
+	
+		switch (drvManager.drivers[i]->driverType) {
+		
+			case 1:
+				//network
+				eth0 = (amd_am79c973*)(drvManager.drivers[i]);
+				break;
+			case 2:
+				//sound
+				ac97 = (AC97*)(drvManager.drivers[i]);
+				break;
+			default:
+				break;
+		}
+	}
+
+
+	//AC97* ac97 = (AC97*)(drvManager.drivers[4]);
+	//eth0->verbose = true;
+	//amd_am79c973 eth0(PCIController.PCIdev, &interrupts);
+	//drvManager.drivers[3] = &eth0;
+	
 	
 	//network init
-	//IP Address
+	//IP Address of local machine
+	//uint8_t ip1 = 192, ip2 = 168, ip3 = 86, ip4 = 210;
 	uint8_t ip1 = 10, ip2 = 0, ip3 = 2, ip4 = 15;
 	uint32_t ip_be = ((uint32_t)ip4 << 24) | ((uint32_t)ip3 << 16) 
 			| ((uint32_t)ip2 << 8) | (uint32_t)ip1;
 	
-	eth0->SetIPAddress(ip_be);
-	EtherFrameProvider etherframe(eth0);
-	AddressResolutionProtocol arp(&etherframe);    
-
-
 	// IP Address of the default gateway
+	//uint8_t gip1 = 192, gip2 = 168, gip3 = 86, gip4 = 28;
 	uint8_t gip1 = 10, gip2 = 0, gip3 = 2, gip4 = 2;
 	uint32_t gip_be = ((uint32_t)gip4 << 24) | ((uint32_t)gip3 << 16) 
 			| ((uint32_t)gip2 << 8) | (uint32_t)gip1;
@@ -1026,47 +1019,57 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 	uint8_t subnet1 = 255, subnet2 = 255, subnet3 = 255, subnet4 = 0;
 	uint32_t subnet_be = ((uint32_t)subnet4 << 24) | ((uint32_t)subnet3 << 16) 
 			| ((uint32_t)subnet2 << 8) | (uint32_t)subnet1;
-		           
+
+	//eth0->verbose = true;
+	eth0->SetIPAddress(ip_be);
+	EtherFrameProvider etherframe(eth0, &memoryManager);
+	AddressResolutionProtocol arp(&etherframe);
 	InternetProtocolProvider ipv4(&etherframe, &arp, gip_be, subnet_be);
 	InternetControlMessageProtocol icmp(&ipv4);
+	UserDatagramProtocolProvider udp(&ipv4);
+	TransmissionControlProtocolProvider tcp(&ipv4);
 	
-	
-	Network network(eth0, &arp, &ipv4, &icmp, gip_be, subnet_be);
+	//NetworkHandler handler;
+	Network network(eth0, &arp, &ipv4, &icmp, &udp, &tcp, &osakaFileSystem, gip_be, subnet_be);
 	kbhandler->network = &network;
-
+	desktop.network = &network;
+	osaka.net = &network;
 
 	printf("Initializing Hardware, Stage 3\n");
 	interrupts.Activate();
-	
-	printf("\n\nEverything seems fine.\n");
 
+	
+	arp.BroadcastMACAddress(gip_be);
+
+	//request ping
+	//icmp.RequestEchoReply(gip_be, nullptr, 0);
+
+	/*
+	UserDatagramProtocolSocket* udpsocket = udp.Connect(str2ip("8.8.8.8"), 53);
+	udp.Bind(udpsocket, &network);
+	uint8_t dns_msg[] = { 0x12, 0x34, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+				'p','o','r','t','q','u','i','z', 8, 'n','e','t', 3, 0x00, 0x00, 0x01, 0x00, 0x01 };
+	udpsocket->Send(dns_msg, 30);
+	*/
+
+	/*
+	TransmissionControlProtocolSocket* tcpsocket = network.tcp->Connect(str2ip("35.180.139.74"), 80);
+	network.tcp->Bind(tcpsocket, &network);
+	sleep(1000);
+	char* request = "GET / HTTP/1.1\r\nHost: portquiz.net\r\n\r\n";
+	tcpsocket->Send((uint8_t*)request, strlen(request));
+	network.tcp->Disconnect(tcpsocket);
+	*/
+
+	printf("\n\nEverything seems fine.\n");
 	interrupts.boot = true;
-	makeBeep(600);
+	
+	//makeBeep(600);
+	
+	
 
 	//while (1) {}
 	//everything beyond this point is no longer testing/initialization
-
-
-	//the boot screen and very important cube
-	/*
-	kbhandler->pressed = false;
-	Cube cubeData;
-	cubeData.cubeWidth = 20;
-	cubeData.width = 45;
-	cubeData.height = 20;
-	cubeData.distanceFromCam = 50;
-	cubeData.K1 = 10;
-	int backgroundASCIICode = ' ';
-	float incrementSpeed = 3.0;
-
-	while (kbhandler->pressed == false) {
-
-		cubeScreen(backgroundASCIICode, incrementSpeed, &cubeData);
-		printf("The Osaka Operating System");
-		sleep(10);
-	}
-	*/
-
 
 	//initialize command line hash table
 	kbhandler->gui = false;
@@ -1074,18 +1077,39 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 	//kbhandler->OnKeyDown('\b');
 	//printf("\v");
 
+	//printf("vbe mode info: ");
+	//printf(int2str(mbi->vbeModeInfo));
+	//printf("\n");
 
-	//this is the command line :D		
-	while (keyboard.handler->keyValue != 0x5b) { //0x5b = command/windows key	
+	//if booted in vesa mode, skip to gui
+	if (graphicsAddress == nullptr) {
+		
+		//this is the text-mode command line
+		while (keyboard.handler->keyValue != 0x5b) { //0x5b = command/windows key	
 
-		kbhandler->cli = true;
+			kbhandler->cli = true;
 
-		while (kbhandler->cliMode) {
+			while (kbhandler->cliMode) {
 
-			kbhandler->cli = false;
-			kbhandler->modeSelect(kbhandler->cliMode, kbhandler->pressed, 
-					kbhandler->keyChar, kbhandler->ctrl, 0, 
-					&osakaFileSystem);
+				kbhandler->cli = false;
+				kbhandler->modeSelect(kbhandler->cliMode, kbhandler->pressed, 
+						kbhandler->keyChar, kbhandler->ctrl, 0, 
+						&osakaFileSystem);
+			}
+		}
+	} else {
+		//set vbe palette
+		//uint32_t vbePMI = ((uint32_t)mbi->vbeInterfaceSeg*16) + ((uint32_t)mbi->vbeInterfaceOff);
+		//uint16_t paletteOffset = (&vbePMI)+4;
+
+		vga.colorPaletteMask.Write(0xff);
+		vga.colorRegisterWrite.Write(0);
+
+		for (uint16_t i = 0; i < 256; i++) {
+		
+			vga.colorDataPort.Write(((defaultPalette[i] >> 16) & 0xff) >> 2);
+			vga.colorDataPort.Write(((defaultPalette[i] >> 8) & 0xff) >> 2);
+			vga.colorDataPort.Write((defaultPalette[i] & 0xff) >> 2);
 		}
 	}
 	kbhandler->cli = true;
@@ -1096,8 +1120,14 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 	KeyboardDriver keyboardDesktop(&interrupts, &desktop);
 	drvManager.Replace(&keyboardDesktop, 0);
 
+	desktop.CreateButton("CLI", APP_TYPE_TERMINAL, cliButton);
+	desktop.CreateButton("PNT", APP_TYPE_KASUGAPAINT, paintButton);
+	desktop.CreateButton("JNL", APP_TYPE_JOURNAL, journalButton);
+	desktop.CreateButton("WEB", APP_TYPE_SHINOSAKA, browserButton);
 	desktop.CreateChild(1, "Osaka's Terminal", kbhandler);
-	
+		
+
+	desktop.gc->SetMode(graphicsWidth, graphicsHeight, 8);
 	
 	//add task for drawing desktop
 	LoadDesktopForTask(true, &desktop);

@@ -9,54 +9,6 @@ void putcharTUI(unsigned char, unsigned char, unsigned char, uint8_t, uint8_t);
 void printfLine(const char* str, uint8_t line);
 
 
-void os::cubeScreen(int backgroundASCIICode, float incrementSpeed, Cube* data) {
-
-
-	//memset(data->buffer, backgroundASCIICode, data.width*data.height);
-	for (int i = 0; i < data->width*data->height; i++) {
-		data->buffer[i] = backgroundASCIICode;
-	}
-		
-	//memset(data->zBuffer, 0, data.width*data.height*4);
-	for (int i = 0; i < data->width*data->height*4; i++) {
-		data->zBuffer[i] = 0;
-	}
-		
-	data->cubeWidth = 20;
-	data->horizontalOffset = -2 * data->cubeWidth;
-
-	//first cube
-	calculateCube(incrementSpeed, data);
-
-	data->cubeWidth = 10;
-	data->horizontalOffset = 1 * data->cubeWidth;
-		
-	//second cube
-	calculateCube(incrementSpeed, data);
-		
-		
-	data->cubeWidth = 5;
-	data->horizontalOffset = 8 * data->cubeWidth;
-		
-	//third cube
-	calculateCube(incrementSpeed, data);
-
-	//clear screen from previous frame
-	printf("\v");
-
-	for (int k = 0; k < data->width*data->height; k++) {
-	
-		char* str = " ";
-		str[0] = (k % data->width ? data->buffer[k] : 10);
-		printf(str);
-	}
-
-	data->A += 0.5;
-	data->B += 0.5;
-	data->C += 0.1;
-}
-
-
 void os::osakaAscii() {
 		
        	printfLine("                  __   ", 12);
