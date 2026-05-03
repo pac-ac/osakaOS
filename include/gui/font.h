@@ -3,16 +3,13 @@
 
 #include <common/types.h>
 
+#define FONT_WIDTH 6
+#define FONT_HEIGHT 9
 
 namespace os {
 	
 	namespace gui {
 		
-		//Font is 8x5 but 9x6 is easier to read.
-		constexpr common::uint8_t font_width = 6;
-		constexpr common::uint8_t font_height = 9;
-
-
 		//font_system
 		static common::uint8_t font_full[5] {
 			0xff, 0xff, 0xff, 0xff, 0xff
@@ -54,7 +51,7 @@ namespace os {
 			0b01011110,
 			0b00001100
 		};
-		static common::uint8_t font_dot[5] {
+		static common::uint8_t font_circle[5] {
 			0b00111000,
 			0b01111100,
 			0b01111100,
@@ -86,25 +83,53 @@ namespace os {
 			0b00111000
 		};
 		static common::uint8_t font_uparrow[5] {
-			0b01100000,
-			0b00011000,
-			0b00000110,
-			0b00011000,
-			0b01100000
+			0b00000100,
+			0b00000010,
+			0b01111111,
+			0b00000010,
+			0b00000100
 		};
 		static common::uint8_t font_downarrow[5] {
-			0b00000110,
-			0b00011000,
-			0b01100000,
-			0b00011000,
-			0b00000110
+			0b00010000,
+			0b00100000,
+			0b01111111,
+			0b00100000,
+			0b00010000
 		};
-		static common::uint8_t font_xor[5] {
-			0b00111000,
-			0b01010100,
-			0b01111100,
-			0b01010100,
-			0b00111000
+		static common::uint8_t font_rightarrow[5] {
+			0b00001000,
+			0b01001001,
+			0b00101010,
+			0b00011100,
+			0b00001000
+		};
+		static common::uint8_t font_leftarrow[5] {
+			0b00001000,
+			0b00011100,
+			0b00101010,
+			0b01001001,
+			0b00001000
+		};
+		static common::uint8_t font_iff[5] {
+			0b00111110,
+			0b01010101,
+			0b00010100,
+			0b01010101,
+			0b00111110
+		};
+		static common::uint8_t font_cplus[5] {
+			0b00111110,
+			0b01001001,
+			0b01111111,
+			0b01001001,
+			0b00111110
+		};
+		static common::uint8_t font_ctimes[5] {
+			0b00111110,
+			0b01010101,
+			0b01001001,
+			0b01010101,
+			0b00111110
 		};
 		static common::uint8_t font_therefore[5] {
 			0b00000000,
@@ -120,12 +145,26 @@ namespace os {
 			0b01001001,
 			0b01001001
 		};
+		static common::uint8_t font_notbelongsto[5] {
+			0b00000000,
+			0b01011100,
+			0b00101010,
+			0b01011101,
+			0b01001011
+		};
 		static common::uint8_t font_subset[5] {
 			0b00000000,
+			0b00011100,
+			0b00100010,
+			0b01000001,
+			0b01000001
+		};
+		static common::uint8_t font_notsubset[5] {
+			0b00000000,
 			0b10011100,
-			0b10100010,
-			0b11000001,
-			0b11000001
+			0b01100010,
+			0b01011001,
+			0b01000111
 		};
 		static common::uint8_t font_union[5] {
 			0b00111111,
@@ -141,19 +180,12 @@ namespace os {
 			0b00000001,
 			0b01111110
 		};
-		static common::uint8_t font_pi[5] {
-			0b00000100,
-			0b01111100,
-			0b00000100,
-			0b01111100,
-			0b00000100
-		};
 		static common::uint8_t font_infinity[5] {
-			0b00010000,
-			0b00101000,
-			0b00010000,
-			0b00101000,
-			0b00010000
+			0b00111000,
+			0b01000100,
+			0b00111000,
+			0b01000100,
+			0b00111000
 		};
 		static common::uint8_t font_approx[5] {
 			0b00100100,
@@ -162,12 +194,33 @@ namespace os {
 			0b01001000,
 			0b00100100
 		};
-		static common::uint8_t font_sigma[5] {
+		static common::uint8_t font_notequal[5] {
 			0b00000000,
-			0b01100011,
-			0b01010101,
-			0b01001001,
-			0b01000001
+			0b01101000,
+			0b00111000,
+			0b00101100,
+			0b00000000
+		};
+		static common::uint8_t font_triplebar[5] {
+			0b00000000,
+			0b01010100,
+			0b01010100,
+			0b01010100,
+			0b00000000
+		};
+		static common::uint8_t font_root[5] {
+			0b00100000,
+			0b01000000,
+			0b00110000,
+			0b00001100,
+			0b00000010
+		};
+		static common::uint8_t font_doublebar[5] {
+			0b00000000,
+			0b01111110,
+			0b00000000,
+			0b01111110,
+			0b00000000
 		};
 		static common::uint8_t font_sub0[5] {
 			0b00000000,
@@ -804,7 +857,7 @@ namespace os {
 			0b00011100,
 			0b10100000,
 			0b10100000,
-			0b11111100
+			0b01111100
 		};
 
 		static common::uint8_t font_z[5] {
@@ -1059,6 +1112,343 @@ namespace os {
 		};
 	
 	
+		//ex. ascii
+		static common::uint8_t font_exC[5] {
+			0b00000000,
+			0b10111110,
+			0b11000001,
+			0b01000001,
+			0b01000001
+		};
+		static common::uint8_t font_exu1[5] {
+			0b00000000,
+			0b00111101,
+			0b01000000,
+			0b01000000,
+			0b01111101
+		};
+		static common::uint8_t font_exe1[5] {
+			0b00000000,
+			0b00111000,
+			0b01010100,
+			0b01010110,
+			0b00101101
+		};
+		static common::uint8_t font_exa1[5] {
+			0b00000000,
+			0b01001010,
+			0b10101001,
+			0b10101010,
+			0b11110000
+		};
+		static common::uint8_t font_exa2[5] {
+			0b00000000,
+			0b00100101,
+			0b01010100,
+			0b01010101,
+			0b01111000
+		};
+		static common::uint8_t font_exa3[5] {
+			0b00000000,
+			0b00100101,
+			0b01010110,
+			0b01010100,
+			0b01111000
+		};
+		static common::uint8_t font_exa4[5] {
+			0b00000000,
+			0b01001010,
+			0b10101101,
+			0b10101010,
+			0b11110000
+		};
+		static common::uint8_t font_exc[5] {
+			0b00000000,
+			0b10111000,
+			0b11000100,
+			0b01000100,
+			0b01000100
+		};
+		static common::uint8_t font_exe2[5] {
+			0b00000000,
+			0b01110000,
+			0b10101010,
+			0b10101001,
+			0b01011010
+		};
+		static common::uint8_t font_exe3[5] {
+			0b00000000,
+			0b00111000,
+			0b01010101,
+			0b01010100,
+			0b00101101
+		};
+		static common::uint8_t font_exe4[5] {
+			0b00000000,
+			0b00111000,
+			0b01010101,
+			0b01010110,
+			0b00101100
+		};
+		static common::uint8_t font_exi1[5] {
+			0b00000000,
+			0b00000001,
+			0b00111100,
+			0b01000001,
+			0b00000000
+		};
+		static common::uint8_t font_exi2[5] {
+			0b00000000,
+			0b00000010,
+			0b00111001,
+			0b01000010,
+			0b00000000
+		};
+		static common::uint8_t font_exi3[5] {
+			0b00000000,
+			0b00000001,
+			0b00111010,
+			0b01000000,
+			0b00000000
+		};
+		static common::uint8_t font_exA1[5] {
+			0b00000000,
+			0b11111001,
+			0b00100100,
+			0b00100100,
+			0b11111001
+		};
+		static common::uint8_t font_exA2[5] {
+			0b00000000,
+			0b11111010,
+			0b00100101,
+			0b00100101,
+			0b11111010
+		};
+		static common::uint8_t font_exE[5] {
+			0b00000000,
+			0b11111100,
+			0b10010110,
+			0b10010101,
+			0b10010100
+		};
+		static common::uint8_t font_ae[5] {
+			0b00110010,
+			0b01001001,
+			0b01000110,
+			0b00111001,
+			0b01000111
+		};
+		static common::uint8_t font_exA3[5] {
+			0b01111100,
+			0b00010010,
+			0b00010010,
+			0b01111110,
+			0b00000010
+		};
+		static common::uint8_t font_exo1[5] {
+			0b00000000,
+			0b01110010,
+			0b10001001,
+			0b10001010,
+			0b01110000
+		};
+		static common::uint8_t font_exo2[5] {
+			0b00000000,
+			0b00111001,
+			0b01000100,
+			0b01000100,
+			0b00111001
+		};
+		static common::uint8_t font_exo3[5] {
+			0b00000000,
+			0b00111000,
+			0b01000101,
+			0b01000110,
+			0b00111000
+		};
+		static common::uint8_t font_exu2[5] {
+			0b00000000,
+			0b01111010,
+			0b10000001,
+			0b10000010,
+			0b11111000
+		};
+		static common::uint8_t font_exu3[5] {
+			0b00000000,
+			0b00111100,
+			0b01000001,
+			0b01000010,
+			0b01111100
+		};
+		static common::uint8_t font_exy[5] {
+			0b00000000,
+			0b00011101,
+			0b10100000,
+			0b10100000,
+			0b01111101
+		};
+		static common::uint8_t font_exO[5] {
+			0b00000000,
+			0b01111101,
+			0b10000010,
+			0b10000010,
+			0b01111101
+		};
+		static common::uint8_t font_exU[5] {
+			0b00000000,
+			0b01111101,
+			0b10000000,
+			0b10000000,
+			0b01111101
+		};
+		static common::uint8_t font_cent[5] {
+			0b00000000,
+			0b00111000,
+			0b01000100,
+			0b11000110,
+			0b01000100
+		};
+		static common::uint8_t font_brpound[5] {
+			0b00001000,
+			0b01111110,
+			0b01001001,
+			0b01000010,
+			0b00100000
+		};
+		static common::uint8_t font_yen[5] {
+			0b00000000,
+			0b00101011,
+			0b01111100,
+			0b00101011,
+			0b00000000
+		};
+		static common::uint8_t font_Pt[5] {
+			0b11111111,
+			0b00001001,
+			0b00101001,
+			0b11110110,
+			0b00100000
+		};
+		static common::uint8_t font_fancyf[5] {
+			0b00000000,
+			0b01001000,
+			0b00111110,
+			0b00001001,
+			0b00000010
+		};
+		static common::uint8_t font_exa5[5] {
+			0b00000000,
+			0b00100100,
+			0b01010110,
+			0b01010101,
+			0b01111000
+		};
+		static common::uint8_t font_exi4[5] {
+			0b00000000,
+			0b00000000,
+			0b00111010,
+			0b01000001,
+			0b00000000
+		};
+		static common::uint8_t font_exo4[5] {
+			0b00000000,
+			0b00111000,
+			0b01000110,
+			0b01000101,
+			0b00111000
+		};
+		static common::uint8_t font_exu4[5] {
+			0b00000000,
+			0b00111100,
+			0b01000010,
+			0b01000001,
+			0b01111100
+		};
+		static common::uint8_t font_exn[5] {
+			0b00000000,
+			0b01111010,
+			0b00001001,
+			0b00001010,
+			0b01110001
+		};
+		static common::uint8_t font_exN[5] {
+			0b00000000,
+			0b11111110,
+			0b00001001,
+			0b00010010,
+			0b11111101
+		};
+		static common::uint8_t font_udquestion[5] {
+			0b00000000,
+			0b01000000,
+			0b10001010,
+			0b10010000,
+			0b01100000
+		};
+		static common::uint8_t font_udexclamation[5] {
+			0b00000000,
+			0b00000000,
+			0b11111010,
+			0b00000000,
+			0b00000000
+		};
+		static common::uint8_t font_corner1[5] {
+			0b00000000,
+			0b00000000,
+			0b00011111,
+			0b00010000,
+			0b00010000
+		};
+		static common::uint8_t font_corner2[5] {
+			0b00010000,
+			0b00010000,
+			0b00011111,
+			0b00000000,
+			0b00000000
+		};
+		static common::uint8_t font_corner3[5] {
+			0b00010000,
+			0b00010000,
+			0b11110000,
+			0b00000000,
+			0b00000000
+		};
+		static common::uint8_t font_corner4[5] {
+			0b00000000,
+			0b00000000,
+			0b11110000,
+			0b00010000,
+			0b00010000
+		};
+		static common::uint8_t font_iffleft[5] {
+			0b00001000,
+			0b00010100,
+			0b00110110,
+			0b01010101,
+			0b00010100
+		};
+		static common::uint8_t font_iffright[5] {
+			0b00010100,
+			0b01010101,
+			0b00110110,
+			0b00010100,
+			0b00001000
+		};
+		static common::uint8_t font_line1[5] {
+			0b00010000,
+			0b00010000,
+			0b00010000,
+			0b00010000,
+			0b00010000
+		};
+		static common::uint8_t font_line2[5] {
+			0b00000000,
+			0b00000000,
+			0b11111111,
+			0b00000000,
+			0b00000000
+		};
 
 
 
@@ -1080,10 +1470,292 @@ namespace os {
 			0b11111001
 		};
 		
+		
+		//greek
+		static common::uint8_t font_alpha[5] {
+			0b00000000,
+			0b01111000,
+			0b01000100,
+			0b01111100,
+			0b11000010
+		};
+		static common::uint8_t font_beta[5] {
+			0b00000000,
+			0b11111110,
+			0b01001001,
+			0b01001001,
+			0b00110110
+		};
+		static common::uint8_t font_gammaupper[5] {
+			0b01000001,
+			0b01111111,
+			0b01000001,
+			0b00000001,
+			0b00000011
+		};
+		static common::uint8_t font_gammalower[5] {
+			0b00000000,
+			0b00001100,
+			0b00010000,
+			0b11100000,
+			0b00011100
+		};
+		static common::uint8_t font_deltaupper[5] {
+			0b01100000,
+			0b01011000,
+			0b01000110,
+			0b01011000,
+			0b01100000
+		};
+		static common::uint8_t font_deltalower[5] {
+			0b00000000,
+			0b00110110,
+			0b01001001,
+			0b01001010,
+			0b00110000
+		};
+		static common::uint8_t font_epsilon[5] {
+			0b00000000,
+			0b00101000,
+			0b01010100,
+			0b01000100,
+			0b00000000
+		};
+		static common::uint8_t font_zeta[5] {
+			0b00000000,
+			0b00010010,
+			0b00101100,
+			0b01000110,
+			0b11000010
+		};
+		static common::uint8_t font_eta[5] {
+			0b00000000,
+			0b01111100,
+			0b00001000,
+			0b00001000,
+			0b11111000
+		};
+		static common::uint8_t font_thetaupper[5] {
+			0b00111110,
+			0b01001001,
+			0b01001001,
+			0b01001001,
+			0b00111110
+		};
+		static common::uint8_t font_thetalower[5] {
+			0b00000000,
+			0b00111110,
+			0b01001001,
+			0b01001001,
+			0b00111110
+		};
+		static common::uint8_t font_iota[5] {
+			0b00000000,
+			0b00000000,
+			0b01111000,
+			0b01000000,
+			0b00000000
+		};
+		static common::uint8_t font_kappa[5] {
+			0b00000000,
+			0b01111100,
+			0b00010000,
+			0b00101000,
+			0b01000100
+		};
+		static common::uint8_t font_lambdaupper[5] {
+			0b01100000,
+			0b00011000,
+			0b00000110,
+			0b00011000,
+			0b01100000
+		};
+		static common::uint8_t font_lambdalower[5] {
+			0b01100000,
+			0b00010011,
+			0b00001100,
+			0b00010000,
+			0b01100000
+		};
+		static common::uint8_t font_mu[5] {
+			0b00000000,
+			0b11111100,
+			0b00100000,
+			0b00100000,
+			0b00111100
+		};
+		static common::uint8_t font_xiupper[5] {
+			0b00000000,
+			0b01010011,
+			0b01001001,
+			0b01001001,
+			0b01010011
+		};
+		static common::uint8_t font_xilower[5] {
+			0b00000000,
+			0b00000001,
+			0b01110110,
+			0b01001010,
+			0b10001001
+		};
+		static common::uint8_t font_piupper[5] {
+			0b00000001,
+			0b01111111,
+			0b00000001,
+			0b01111111,
+			0b00000001
+		};
+		static common::uint8_t font_pilower[5] {
+			0b00000100,
+			0b01111100,
+			0b00000100,
+			0b01111100,
+			0b00000100
+		};
+		static common::uint8_t font_sigmaupper[5] {
+			0b00000000,
+			0b01100011,
+			0b01010101,
+			0b01001001,
+			0b01000001
+		};
+		static common::uint8_t font_sigmalower[5] {
+			0b00110000,
+			0b01001000,
+			0b01001000,
+			0b00111000,
+			0b00001000
+		};
+		static common::uint8_t font_tau[5] {
+			0b00000000,
+			0b00000100,
+			0b01111100,
+			0b01000100,
+			0b00000100
+		};
+		static common::uint8_t font_upsilonupper[5] {
+			0b00000010,
+			0b01001100,
+			0b01110000,
+			0b01001100,
+			0b00000010
+		};
+		static common::uint8_t font_upsilonlower[5] {
+			0b00001000,
+			0b00111000,
+			0b01000000,
+			0b01001000,
+			0b00110000
+		};
+		static common::uint8_t font_phiupper[5] {
+			0b00111000,
+			0b01000100,
+			0b11111110,
+			0b01000100,
+			0b00111000
+		};
+		static common::uint8_t font_philower[5] {
+			0b00111000,
+			0b01000000,
+			0b11111000,
+			0b01001000,
+			0b00110000
+		};
+		static common::uint8_t font_chi[5] {
+			0b10001000,
+			0b01010000,
+			0b00100000,
+			0b01010000,
+			0b10001000
+		};
+		static common::uint8_t font_psiupper[5] {
+			0b00000110,
+			0b01001000,
+			0b01111110,
+			0b01001000,
+			0b00000110
+		};
+		static common::uint8_t font_psilower[5] {
+			0b00011100,
+			0b00100000,
+			0b11111100,
+			0b00100000,
+			0b00011100
+		};
+		static common::uint8_t font_omegaupper[5] {
+			0b01011110,
+			0b01100001,
+			0b00000001,
+			0b01100001,
+			0b01011110
+		};
+		static common::uint8_t font_omegalower[5] {
+			0b00011000,
+			0b00100000,
+			0b01110000,
+			0b00100000,
+			0b00011000
+		};
+		
+		
+		static common::uint8_t font_integrallower[5] {
+			0b00100000,
+			0b01000000,
+			0b00100000,
+			0b00011111,
+			0b00000000
+		};
+		static common::uint8_t font_integralupper[5] {
+			0b00000000,
+			0b11111000,
+			0b00000100,
+			0b00000010,
+			0b00000100
+		};
+		static common::uint8_t font_dot[5] {
+			0b00000000,
+			0b00000000,
+			0b00010000,
+			0b00000000,
+			0b00000000
+		};
+		static common::uint8_t font_partial[5] {
+			0b00000000,
+			0b00110001,
+			0b01001010,
+			0b01000100,
+			0b00111000
+		};
+		static common::uint8_t font_degree[5] {
+			0b00000110,
+			0b00001001,
+			0b00001001,
+			0b00000110,
+			0b00000000
+		};
+		static common::uint8_t font_del[5] {
+			0b00000110,
+			0b00011010,
+			0b01100010,
+			0b00011010,
+			0b00000110
+		};
+		
+		
 
 		
 		//font_array *******************************************************
 		static common::uint8_t* charset[] = {
+							//pre-ascii
+							font_space,
+							font_smile, font_heart, font_diamond, font_club, font_spade, font_circle,
+							font_forany, font_suchthat, font_negation, font_space, font_space,
+							font_cplus, font_ctimes, font_therefore, font_belongsto, font_space, 
+							font_notbelongsto, font_subset, font_notsubset, font_union, font_intersection, 
+							font_approx, font_notequal, font_triplebar,
+							font_uparrow, font_downarrow, font_rightarrow, font_leftarrow, font_iff,
+							font_root, font_doublebar,
+							
 							//ascii
 							//special 1
 							font_space, font_exclamation, font_quote, font_pound, 
@@ -1120,19 +1792,46 @@ namespace os {
 							//other special chars
 							font_leftcurly, font_bar, font_rightcurly,
 							font_tilde,
-							font_rect, font_unknown,
+							font_rect, 
+
+							//ext. ascii
+							font_exC, font_exu1, font_exe1, font_exa1, font_exa2, font_exa3, font_exa4,
+							font_exc, font_exe2, font_exe3, font_exe4, font_exi1, font_exi2, font_exi3, 
+							font_exA1, font_exA2, font_exE, font_ae, font_exA3, font_exo1, font_exo2,
+							font_exo3, font_exu2, font_exu3, font_exy, font_exO, font_exU, font_cent,
+							font_brpound, font_yen, font_Pt, font_fancyf, font_exa5, font_exi4, font_exo4,
+							font_exu4, font_exn, font_exN, font_udquestion, font_udexclamation, font_line1,
+							font_line2, font_corner1, font_corner2, font_corner3, font_corner4, font_iffleft, 
+							font_iffright,
+							
+							
+							//greek
+							font_alpha, font_beta, font_gammaupper, font_gammalower, font_deltaupper, font_deltalower,
+							font_epsilon, font_zeta, font_eta, font_thetaupper, font_thetalower, font_iota, font_kappa,
+							font_lambdaupper, font_lambdalower, font_mu, font_xiupper, font_xilower, font_piupper, font_pilower,
+							font_sigmaupper, font_sigmalower, font_tau, font_upsilonupper, font_upsilonlower, font_phiupper, 
+							font_philower, font_chi, font_psiupper, font_psilower, font_omegaupper, font_omegalower,
+							
+							
+							//sub nums
+							font_integrallower, font_integralupper, font_dot, font_partial, font_degree, font_del,	
+							font_sub0, font_sub1, font_sub2, font_sub3, font_sub4, font_sub5,
+							font_sub6, font_sub7, font_sub8, font_sub9,
 							
 							//beyond ascii
 							font_full,
-							font_smile, font_heart, font_diamond, font_club, font_spade, font_dot,
-							font_forany, font_suchthat, font_negation, font_uparrow, font_downarrow,
-							font_xor, font_therefore, font_belongsto, font_subset, font_union, 
-							font_intersection, font_pi, font_infinity, font_approx, font_sigma,
-							font_sub0, font_sub1, font_sub2, font_sub3, font_sub4, font_sub5,
-							font_sub6, font_sub7, font_sub8, font_sub9,
-
+							
 							//paint icons
-							font_dither, font_bucket
+							font_dither, font_bucket,
+
+							font_infinity,
+							
+							font_unknown, font_unknown, font_unknown, font_unknown, font_unknown, font_unknown, font_unknown, font_unknown,
+							
+							font_unknown, font_unknown, font_unknown, font_unknown, font_unknown, font_unknown, font_unknown, font_unknown,
+							font_unknown, font_unknown, font_unknown, font_unknown, font_unknown, font_unknown, font_unknown, font_unknown,
+							font_unknown, font_unknown, font_unknown, font_unknown, font_unknown, font_unknown, font_unknown, font_unknown,
+							font_unknown, font_unknown, font_unknown, font_unknown, font_unknown, font_unknown, font_unknown, font_unknown
 		};
 	
 	}

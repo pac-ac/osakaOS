@@ -4,12 +4,19 @@
 #include <common/types.h>
 #include <common/graphicscontext.h>
 #include <drivers/keyboard.h>
+#include <drivers/vga.h>
 #include <gui/pixelart.h>
+#include <string.h>
 #include <list.h>
+
 
 
 #define TEXT_MAX_WIDTH 53
 #define TEXT_MAX_HEIGHT 22
+
+#define TEXT_BUF_SIZE 2048
+
+#define LEFT_CLICK 1
 
 
 namespace os {
@@ -21,12 +28,14 @@ namespace os {
 		class Widget : public os::drivers::KeyboardEventHandler {
 
 			public:
+				static common::GraphicsContext* gc;
+
 				common::int32_t x;
 				common::int32_t y;
 				common::int32_t w;
 				common::int32_t h;
 				
-				common::uint8_t* buf;
+				common::uint8_t* buf = nullptr;
 			public:
 				Widget(common::int32_t x, common::int32_t y, 
 					common::int32_t w, common::int32_t h);
@@ -34,7 +43,7 @@ namespace os {
 				
 				virtual bool ContainsCoordinate(common::int32_t x, common::int32_t y);
 				virtual void PutPixel(common::int32_t x, common::int32_t y, common::uint8_t color);
-				void PutText(char* str, common::int32_t x, common::int32_t y, common::uint8_t color);
+				void PutText(char* str, common::int32_t x, common::int32_t y, common::uint8_t color, common::uint8_t flags = 0x00);
 		};
 	
 		
@@ -48,12 +57,14 @@ namespace os {
 				CompositeWidget* parent;
 				CompositeWidget* children[30];
 				CompositeWidget* focussedChild;
-				int numChildren;
+				common::int8_t ID;
+				common::int8_t numChildren;
 
 				List* buttons;
 				
 				//graphical buffer for windows and shit
-				common::uint8_t windowBuffer[64000];
+				common::uint8_t* windowBuffer;
+				//common::uint8_t windowBuffer[BUFFER_SIZE_13H];
 
 				//data for storing position
 				//of window and text etc.
@@ -64,10 +75,14 @@ namespace os {
 			
 				//text coords	
 				common::uint16_t outx;
-				common::uint8_t outy;
+				common::uint16_t outy;
 				
 				//check if scrolling
 				bool textScroll = false;
+
+				//text max x and y
+				common::uint16_t currentTextWidth;
+				common::uint16_t currentTextHeight;
 
 				//other stuff we need
 				char* name;
@@ -83,8 +98,17 @@ namespace os {
 				bool Buttons;
 				bool Resizable;
 				bool Dragging;
-				bool Menu;
+				bool MenuOpen;
 				bool Min;
+				
+				bool actionDetected = false;	
+				
+				//draw options
+				bool Wave;
+				bool Blur;
+				bool Fire;
+				bool Rainbow;
+				bool Pixelize;
 
 				//input
 				bool keypress = false;
@@ -117,13 +141,16 @@ namespace os {
 						common::int32_t newx, common::int32_t newy);
 				virtual bool MenuButton();
 				virtual void ButtonAction(common::uint8_t button);
-				
+				virtual void UpdateName(char* name);
+			
+				virtual void LoadCursor(common::uint8_t* buf, common::uint16_t w, common::uint16_t h);	
 				
 				//draw actual window	
 				virtual void Draw(common::GraphicsContext* gc);
-				virtual void MenuDraw(common::GraphicsContext* gc);
+				virtual void WindowMenuDraw(common::GraphicsContext* gc);
 				
 				virtual common::uint8_t ReturnAppType();
+				
 				
 				//drawing shapes n shit
 				virtual void WritePixel(common::int32_t x, common::int32_t y, common::uint8_t color);
@@ -142,8 +169,10 @@ namespace os {
 							common::uint8_t* buf);
 
 				//words and shit
-				void PutChar(char ch);
-				void Print(char* str);
+				void RenderChar(common::uint8_t* charArr, common::uint8_t pixelColor, common::uint8_t flags);
+				void PutChar(char ch, common::uint8_t flags = 0x00);
+				void Print(char* str, common::uint8_t flags = 0x00);
+				void PrintTextBuffer();
 			
 				//input
 				virtual void OnMouseDown(common::int32_t x, common::int32_t y, common::uint8_t button);

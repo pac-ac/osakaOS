@@ -5,10 +5,15 @@
 #include <drivers/mouse.h>
 #include <filesys/ofs.h>
 #include <gui/font.h>
+#include <string.h>
 #include <list.h>
 #include <app.h>
 
-		
+
+#define MIN_WINDOW_WIDTH 70
+#define MIN_WINDOW_HEIGHT 35
+
+
 namespace os {
 
 	namespace gui {
@@ -18,8 +23,7 @@ namespace os {
 			friend class Desktop;
 
 			public:
-				char* name;
-				bool Resize;
+				char* altName = nullptr;
 
 				bool FileWindow;
 				bool Save;
@@ -37,14 +41,18 @@ namespace os {
 					char* name,
 					common::uint8_t color,
 					App* app,
+					common::int8_t ID,
 					filesystem::FileSystem* filesystem);
 				~Window();
 
 				void FullScreen();
 
 				void Draw(common::GraphicsContext* gc);
-				void MenuDraw(common::GraphicsContext* gc);
+				void WindowMenuDraw(common::GraphicsContext* gc);
 				void FileDraw(common::GraphicsContext* gc);
+				void WindowResize(common::int32_t oldx, common::int32_t oldy,
+						  common::int32_t newx, common::int32_t newy);
+				void UpdateName(char* name);
 
 				common::uint8_t ReturnAppType();
 
