@@ -71,8 +71,6 @@ namespace os {
 				PeripheralComponentInterconnectController(MemoryManager* memoryManager);
 				~PeripheralComponentInterconnectController();
 
-				//holy shit thats ugly
-
 				os::common::uint32_t Read(os::common::uint16_t bus, os::common::uint16_t device, 		
 				os::common::uint16_t function, os::common::uint32_t registeroffset);
 			
@@ -83,10 +81,11 @@ namespace os {
 			
 				void SelectDrivers(os::drivers::DriverManager* driverManager, os::hardwarecommunication::InterruptManager* interrupts);
 			
-				os::drivers::Driver* GetDriver(PeripheralComponentInterconnectDeviceDescriptor dev, 
-						os::hardwarecommunication::InterruptManager* interrupts);
+				os::drivers::Driver* GetDriver(PeripheralComponentInterconnectDeviceDescriptor* dev, 
+						os::hardwarecommunication::InterruptManager* interrupts,
+						os::common::uint16_t bus, os::common::uint16_t device, os::common::uint16_t function);
 
-				PeripheralComponentInterconnectDeviceDescriptor GetDeviceDescriptor(os::common::uint16_t bus, 
+				PeripheralComponentInterconnectDeviceDescriptor* GetDeviceDescriptor(os::common::uint16_t bus, 
 					os::common::uint16_t device, os::common::uint16_t function);
 				
 				BaseAddressRegister GetBaseAddressRegister(os::common::uint16_t bus, os::common::uint16_t device,

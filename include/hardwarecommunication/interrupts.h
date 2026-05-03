@@ -3,8 +3,9 @@
 
 #include <common/types.h>
 #include <hardwarecommunication/port.h>
-#include <gdt.h>
 #include <multitasking.h>
+#include <string.h>
+#include <gdt.h>
 
 
 namespace os {
@@ -91,8 +92,8 @@ namespace os {
 				static void HandleInterruptRequest0x0D();
 				static void HandleInterruptRequest0x0E();
 				static void HandleInterruptRequest0x0F();
-
 				static void HandleInterruptRequest0x31();
+				
 				static void HandleInterruptRequest0x80();
 
 
@@ -119,8 +120,7 @@ namespace os {
 				static void HandleException0x13();
 
 
-				static os::common::uint32_t handleInterrupt(os::common::uint8_t interruptNumber, os::common::uint32_t esp);
-	
+				static os::common::uint32_t HandleInterrupt(os::common::uint8_t interruptNumber, os::common::uint32_t esp);
 				os::common::uint32_t DoHandleInterrupt(os::common::uint8_t interruptNumber, os::common::uint32_t esp);
 
 
