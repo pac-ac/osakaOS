@@ -2,8 +2,11 @@
 #define __OS__FILESYS__OFS_H
 
 #include <common/types.h>
+#include <common/graphicscontext.h>
 #include <drivers/ata.h>
 #include <memorymanagement.h>
+#include <drivers/vga.h>
+#include <string.h>
 #include <list.h>
 #include <math.h>
 
@@ -53,9 +56,12 @@ namespace os {
 				drivers::AdvancedTechnologyAttachment* ata0m;
 				OFS_Table* table;
 				MemoryManager* memoryManager;
+				common::GraphicsContext* gc;
 			public:
 				FileSystem(drivers::AdvancedTechnologyAttachment* ata0m, 
-						MemoryManager* memoryManager, OFS_Table* table);
+						MemoryManager* memoryManager, 
+						common::GraphicsContext* gc, 
+						OFS_Table* table);
 				~FileSystem();
 
 
@@ -106,7 +112,7 @@ namespace os {
 				common::uint32_t GetImageResolution(char* name);
 
 				bool Read13H(char* name, common::uint8_t* buffer, 
-						common::uint16_t* retWidth, common::uint8_t* retHeight, 
+						common::uint16_t* retWidth, common::uint16_t* retHeight, 
 						bool compress);
 				bool Write13H(char* name, common::uint8_t* buffer, 
 						common::uint16_t width, common::uint16_t height, 
