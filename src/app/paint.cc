@@ -2,18 +2,18 @@
 
 using namespace os;
 using namespace os::common;
+using namespace os::drivers;
 using namespace os::filesystem;
 using namespace os::gui;
 
 
-char* int2str(uint32_t);
-void BufferSwap(uint8_t* buf1, uint8_t* buf2, uint32_t size = (320*200));
-
+void BufferSwap(uint8_t* buf1, uint8_t* buf2, uint32_t size = BUFFER_SIZE_13H);
 
 
 KasugaPaint::KasugaPaint() {
 
-	this->appType = 2;
+	this->appType = APP_TYPE_KASUGAPAINT;
+	for (int i = 0; i < 64; i++) { textDrawStr[i] = '\0';}
 }
 
 
@@ -21,89 +21,115 @@ KasugaPaint::~KasugaPaint() {}
 
 void KasugaPaint::ComputeAppState(GraphicsContext* gc, CompositeWidget* widget) {
 
-	if (widget->Menu) {
+	App::ComputeAppState(gc, widget);
 
-		this->menuX = widget->x+widget->w-51;
-		this->menuY = widget->y+19-(10 * widget->Fullscreen);
-		int8_t offsetFullscreen = 0;
-		
-		gc->FillRectangle(menuX, menuY, 50, widget->h-20+(10*widget->Fullscreen), 0x07);
+	if (!initBuffer) {
+
+		this->backup = (uint8_t*)gc->mm->malloc(sizeof(uint8_t)*gc->gfxBufferSize);	
+		this->width = gc->gfxWidth;
+		this->height = gc->gfxHeight;
+		initBuffer = true;
+	}
 	
-		
-		//size of brush
-		gc->FillRectangle(menuX+2, menuY+2, 46, 9, 0x38);
-		gc->PutText("Size:", menuX+3, menuY+3, 0x07);
-		gc->PutText(int2str(this->size+1), menuX+33, menuY+3, 0x07);
-		
-		//width of image
-		gc->FillRectangle(menuX+2, menuY+13, 46, 9, 0x38);
-		gc->PutText("wid:", menuX+3, menuY+14, 0x07);
-		gc->PutText(int2str(this->width), menuX+27, menuY+14, 0x07);
-		
-		//height of image
-		gc->FillRectangle(menuX+2, menuY+24, 46, 9, 0x38);
-		gc->PutText("hgt:", menuX+3, menuY+25, 0x07);
-		gc->PutText(int2str(this->height), menuX+27, menuY+25, 0x07);
-
-		//clickables
-		
-		//increase or decrease brush size/width/height
-		gc->PutText(" + | -", menuX+3, menuY+35, 0x38);
-
-		//different brushes/draw options
-		gc->PutText(" \x81 | \x87", menuX+3, menuY+43, 0x38);
-		gc->PutText(" \xa1 | \xa2", menuX+3, menuY+51, 0x38);
-			
-		if (this->compress) { gc->PutText("RLE on", menuX+3, menuY+165, 0x38); }
-		
-		switch (menuTarget) {
-			
-			case 0:gc->DrawRectangle(menuX+2,  menuY+2,  46, 9, 0x40);break;
-			case 1:gc->DrawRectangle(menuX+2,  menuY+13, 46, 9, 0x40);break;
-			case 2:gc->DrawRectangle(menuX+2,  menuY+24, 46, 9, 0x40);break;
-			default:break;
-		}
-		
-		switch (drawOption) {
-			
-			case 0:gc->DrawRectangle(menuX+8,  menuY+43, 7, 9, 0x40);break;
-			case 1:gc->DrawRectangle(menuX+32, menuY+43, 7, 9, 0x40);break;
-			case 2:gc->DrawRectangle(menuX+8,  menuY+51, 7, 9, 0x40);break;
-			case 3:gc->DrawRectangle(menuX+32, menuY+51, 7, 9, 0x40);break;
-			default:break;
-		}
+	switch (drawOption) {
 	
-		//color
-		for (int i = 0; i < 16; i++) {
-			for (int j = 0; j < 4; j++) {
-			
-				gc->FillRectangle(menuX+5+(j*10), menuY+61+(i*6), 10, 6, (4*i+j));
-			
-				if ((4*i+j) == this->paintColor) {
-				
-					gc->DrawRectangle(menuX+5+(j*10), menuY+61+(i*6), 10, 6, 0x38);
-				}
-			}
-			if (menuY+73+(i*6) > widget->h) { break; }
-		}
+		//draw paint text before its set
+		case DRAW_OPTION_TEXT:	
+			gc->PutText(textDrawStr, 
+					widget->x+textDrawX, 
+					widget->y+textDrawY, 
+					paintColor, this->textDrawFlags);
+					//light2dark[paintColor], this->textDrawFlags);
+			break;
+		default:
+			break;
 	}
 }
 
 
 void KasugaPaint::DrawAppMenu(GraphicsContext* gc, CompositeWidget* widget) {
+
+	this->menuX = widget->x+widget->w-51;
+	this->menuY = widget->y+19-(10 * widget->Fullscreen);
+	int8_t offsetFullscreen = 0;
+		
+	gc->FillRectangle(menuX, menuY, 50, widget->h-20+(10*widget->Fullscreen), WAAAAAA);
+	
+		
+	//size of brush
+	gc->FillRectangle(menuX+2, menuY+2, 46, 9, W555555);
+	gc->PutText("Size:", menuX+3, menuY+3, WAAAAAA);
+	gc->PutText(int2str(this->size+1), menuX+33, menuY+3, WAAAAAA);
+		
+	//width of image
+	gc->FillRectangle(menuX+2, menuY+13, 46, 9, W555555);
+	gc->PutText("wid:", menuX+3, menuY+14, WAAAAAA);
+	gc->PutText(int2str(this->width), menuX+27, menuY+14, WAAAAAA);
+		
+	//height of image
+	gc->FillRectangle(menuX+2, menuY+24, 46, 9, W555555);
+	gc->PutText("hgt:", menuX+3, menuY+25, WAAAAAA);
+	gc->PutText(int2str(this->height), menuX+27, menuY+25, WAAAAAA);
+
+	//clickables
+		
+	//increase or decrease brush size/width/height
+	gc->PutText(" + | -", menuX+3, menuY+35, W555555);
+
+	//different brushes/draw options
+	gc->PutText(" \xe0 | \x05", menuX+3, menuY+43, W555555);
+	gc->PutText(" \xe1 | \xe2", menuX+3, menuY+51, W555555);
+	
+	//text options
+	gc->PutText(" T | 0", menuX+3, menuY+60, W555555);
+		
+
+	if (this->compress) { gc->PutText("RLE on", menuX+3, menuY+165, W555555); }
+		
+	switch (menuTarget) {
+			
+		case 0:gc->DrawRectangle(menuX+2,  menuY+2,  46, 9, W000000);break;
+		case 1:gc->DrawRectangle(menuX+2,  menuY+13, 46, 9, W000000);break;
+		case 2:gc->DrawRectangle(menuX+2,  menuY+24, 46, 9, W000000);break;
+		default:break;
+	}
+	
+	//draw button select
+	gc->DrawRectangle(menuX+8+(24*(drawOption % 2 == 1)),  
+			  menuY+43 + (8*(drawOption/2)), 7, 9, W000000);
+
+	//color
+	for (int i = 0; i < 16; i++) {
+		for (int j = 0; j < 8; j++) {
+			
+			gc->FillRectangle(menuX+5+(j*5), menuY+70+(i*5), 5, 5, (8*i+j));
+			
+			if ((8*i+j) == this->paintColor) {
+				
+				gc->DrawRectangle(menuX+5+(j*5), menuY+70+(i*5), 5, 5, W555555);
+			}
+		}
+		if (menuY+82+((i-1)*5) > widget->h) { break; }
+	}
+
+	/*
+	gc->FillRectangle(menuX+5, menuY+70, 5, 5, 0x);
+			case 0: tmp[i] = 0x14; break;
+			case 1: tmp[i] = 0x18; break;
+			case 2: tmp[i] = 0x1c; break;
+	*/
 }
 
 
 
 void KasugaPaint::SaveOutput(char* file, CompositeWidget* widget, FileSystem* filesystem) {
 	
-	uint8_t tmp[64000];
+	uint8_t tmp[widget->gc->gfxBufferSize];
 
-	for (uint8_t y = 0; y < this->height; y++) {
-		for (uint16_t x = 0; x < this->width; x++) {
+	for (uint16_t y = 0; y < widget->gc->gfxHeight; y++) {
+		for (uint16_t x = 0; x < widget->gc->gfxWidth; x++) {
 		
-			uint32_t index = this->width*y+x;
-			tmp[index] = widget->ReadPixel(index);
+			tmp[widget->gc->gfxWidth*y+x] = widget->ReadPixel(widget->gc->gfxWidth*y+x);
 		}
 	}
 	filesystem->Write13H(file, tmp, this->width, this->height, this->compress);
@@ -113,31 +139,64 @@ void KasugaPaint::SaveOutput(char* file, CompositeWidget* widget, FileSystem* fi
 
 void KasugaPaint::ReadInput(char* file, CompositeWidget* widget, FileSystem* filesystem) {
 
-	if (filesystem->FileIf(filesystem->GetFileSector(file)) == false) { return; }
-
-	uint8_t tmp[64000];
-
-	uint16_t inputw = 320;
-	uint8_t inputh = 200;
-
-	//filesystem->Read13H(file, tmp, &inputw, &inputh, false);
-	uint8_t* ptr = nullptr;
-
-	if (filesystem->GetTagFile("compressed", filesystem->GetFileSector(file), ptr)) {
-	
-		filesystem->Read13H(file, tmp, &inputw, &inputh, true);
+	if (filesystem->FileIf(filesystem->GetFileSector(file)) == false) { 
+		
+		//read special system graphics into editor
+		if (strcmp(file, "OSAKA_SIM_WINTER") || strcmp(file, "OSAKA_SIM_SUMMER")) {
+		
+			widget->FillBuffer(0, 0, 16, 49, osakaFrontRight);
+			widget->FillBuffer(16, 0, 15, 49, osakaBackRight);
+			widget->FillBuffer(31, 0, 16, 49, osakaFrontRightWalk1);
+			widget->FillBuffer(47, 0, 25, 49, osakaFrontRightWalk2);
+			widget->FillBuffer(72, 0, 21, 49, osakaBackRightWalk1);
+			widget->FillBuffer(93, 0, 21, 49, osakaBackRightWalk2);	
+		
+			if (strcmp(file, "OSAKA_SIM_SUMMER")) {
+			
+				widget->FillBuffer(0, 0, 16, 19, osakaSummerFrontRight);
+				widget->FillBuffer(16, 0, 15, 19, osakaSummerBackRight);
+				widget->FillBuffer(31, 0, 16, 19, osakaSummerFrontRightWalk1);
+				widget->FillBuffer(47, 0, 25, 19, osakaSummerFrontRightWalk2);
+				widget->FillBuffer(72, 0, 21, 19, osakaSummerBackRightWalk1);
+				widget->FillBuffer(93, 0, 21, 19, osakaSummerBackRightWalk2);
+			}
+		}
+		this->width = 114;
+		this->height = 49;
 	} else {
-		filesystem->Read13H(file, tmp, &inputw, &inputh, false);
-	}
+		//read image files in
+		uint8_t tmp[widget->gc->gfxBufferSize];
+		for (int i = 0; i < widget->gc->gfxBufferSize; i++) {
+	
+			switch (i % 3) {
 
-	this->width = inputw;
-	this->height = inputh;
+				case 0: tmp[i] = 0x14; break;
+				case 1: tmp[i] = 0x18; break;
+				case 2: tmp[i] = 0x1c; break;
+			}
+		}
 
+		uint16_t inputw = widget->gc->gfxWidth;
+		uint16_t inputh = widget->gc->gfxHeight;
 
-	for (uint32_t y = 0; y < this->height; y++) {
-		for (uint32_t x = 0; x < this->width; x++) {
+		//filesystem->Read13H(file, tmp, &inputw, &inputh, false);
+		uint8_t* ptr = nullptr;
 
-			widget->WritePixel(x, y, tmp[this->width*y+x]);
+		if (filesystem->GetTagFile("compressed", filesystem->GetFileSector(file), ptr)) {
+	
+			filesystem->Read13H(file, tmp, &inputw, &inputh, true);
+		} else {
+			filesystem->Read13H(file, tmp, &inputw, &inputh, false);
+		}
+
+		this->width = inputw;
+		this->height = inputh;
+
+		for (uint32_t y = 0; y < widget->gc->gfxHeight; y++) {
+			for (uint32_t x = 0; x < widget->gc->gfxWidth; x++) {
+				
+				widget->WritePixel(x, y, tmp[widget->gc->gfxWidth*y+x]);
+			}
 		}
 	}
 }
@@ -146,44 +205,56 @@ void KasugaPaint::ReadInput(char* file, CompositeWidget* widget, FileSystem* fil
 
 void KasugaPaint::OnKeyDown(char ch, CompositeWidget* widget) {
 
-	//f# keys deciding color offset	
-	if (ch < 4) { colorOffset = ch * 16; }
+	//draw text in image
+	if (drawOption == DRAW_OPTION_TEXT) {
+	
+		switch (ch) {
+
+			case '\xfd':
+				this->textDrawFlags++;
+				this->textDrawFlags %= 5;
+				break;
+			case '\b':	
+				if (textDrawIndex > 0) {
+					textDrawIndex--;
+					textDrawStr[textDrawIndex] = '\0';
+				}
+				break;
+			case '\n':
+				{
+					widget->PutText(textDrawStr, 
+							textDrawX, textDrawY-(10*(widget->Fullscreen == false)), 
+							paintColor, this->textDrawFlags);
+					for (int i = 0; i < 64; i++) { textDrawStr[i] = '\0'; }
+					for (int i = 0; i < 64; i++) { textDrawStr[i] = '\0'; }
+					this->textDrawX = 0;
+					this->textDrawY = 0;
+					this->textDrawFlags = TEXT_BASIC;
+				}
+				break;
+			default:
+				if (textDrawIndex < 64) {
+					textDrawStr[textDrawIndex] = ch;
+					textDrawIndex++;
+					textDrawStr[textDrawIndex] = '\0';
+				}
+				break;
+		}
+		return;
+	}
+
+
 
 	switch (ch) {
 	
-		case '\v':
-			widget->Menu ^= 1;
-			this->paintMenu ^= 1;
-			break;
-		
-		//keyboard shortcuts
-		//color
-		case '0': paintColor = 0x0 + colorOffset; break;
-		case '1': paintColor = 0x1 + colorOffset; break;
-		case '2': paintColor = 0x2 + colorOffset; break;
-		case '3': paintColor = 0x3 + colorOffset; break;
-		case '4': paintColor = 0x4 + colorOffset; break;
-		case '5': paintColor = 0x5 + colorOffset; break;
-		case '6': paintColor = 0x6 + colorOffset; break;
-		case '7': paintColor = 0x7 + colorOffset; break;
-		case '8': paintColor = 0x8 + colorOffset; break;
-		case '9': paintColor = 0x9 + colorOffset; break;	
-		case 'a': paintColor = 0xa + colorOffset; break;
-		case 'b': paintColor = 0xb + colorOffset; break;
-		case 'c': paintColor = 0xc + colorOffset; break;
-		case 'd': paintColor = 0xd + colorOffset; break;
-		case 'e': paintColor = 0xe + colorOffset; break;
-		case 'f': paintColor = 0xf + colorOffset; break;	  
-
 		//adjust drawing
-		case '!': drawOption = 0; break;
-		case '@': drawOption = 1; break;
-		case '#': drawOption = 2; break;
-		case '$': drawOption = 3; break;
+		case '!': drawOption = DRAW_OPTION_DEFAULT; break;
+		case '@': drawOption = DRAW_OPTION_CIRCLE; break;
+		case '#': drawOption = DRAW_OPTION_BRUSH; break;
+		case '$': drawOption = DRAW_OPTION_BUCKET; break;
+		case '%': drawOption = DRAW_OPTION_TEXT; break;
+		case '^': drawOption = DRAW_OPTION_TEXT_STYLE; break;
 
-		//case '=': this->DrawSize(true); break;
-		//case '-': this->DrawSize(false); break;
-		
 		//adjust zoom
 		case '+': this->Zoom(widget, true); break;
 		case '_': this->Zoom(widget, false); break;
@@ -198,14 +269,26 @@ void KasugaPaint::OnKeyDown(char ch, CompositeWidget* widget) {
 			break;
 	}
 
+	//change size/dimensions
+	if (ch >= '0' && ch < '9') {
+		
+		switch (this->menuTarget) {
+			
+			case 0: this->size = (ch-'0')*10; break;
+			case 1: this->width = (ch-'0')*10; break;
+			case 2: this->height = (ch-'0')*10; break;
+			default:break;
+		}
+	}
+
 	//increase or decrease dimensions or brush size	
 	if (ch == '-' || ch == '=') {
 	
 		switch (this->menuTarget) {
 			
-			case 0:this->DrawSize(ch == '=');break;
-			case 1:this->Dimensions(true,  ch == '=');break;
-			case 2:this->Dimensions(false, ch == '=');break;
+			case 0:this->DrawSize(ch == '='); break;
+			case 1:this->Dimensions(true,  ch == '=', widget); break;
+			case 2:this->Dimensions(false, ch == '=', widget); break;
 			default:break;
 		}
 	}
@@ -217,7 +300,7 @@ void KasugaPaint::Zoom(CompositeWidget* widget, bool increase) {
 	if (increase && zoomSize == 1) {
 	
 		//save full image
-		for (uint32_t i = 0; i < 64000; i++) {
+		for (uint32_t i = 0; i < widget->gc->gfxBufferSize; i++) {
 	
 			this->backup[i] = widget->ReadPixel(i);
 		}
@@ -231,11 +314,11 @@ void KasugaPaint::Zoom(CompositeWidget* widget, bool increase) {
 	uint8_t menuX = 0;
 	uint8_t menuY = 0;
 
-	for (uint32_t y = 0; y < 200; y += zoomSize) {
-		for (uint32_t x = 0; x < 320; x += zoomSize) {
+	for (uint32_t y = 0; y < widget->gc->gfxHeight; y += zoomSize) {
+		for (uint32_t x = 0; x < widget->gc->gfxWidth; x += zoomSize) {
 			for (uint8_t i = 0; i < zoomSize*zoomSize; i++) {
 				
-				widget->PutPixel(x+(i%zoomSize), y+(i/zoomSize), this->backup[(320*(y+menuY)+(x+menuX))/zoomSize]);
+				widget->PutPixel(x+(i%zoomSize), y+(i/zoomSize), this->backup[(widget->gc->gfxWidth*(y+menuY)+(x+menuX))/zoomSize]);
 			}	
 		}
 	}
@@ -245,7 +328,7 @@ void KasugaPaint::Zoom(CompositeWidget* widget, bool increase) {
 
 void KasugaPaint::Fill(CompositeWidget* widget) {
 
-	for (uint8_t y = 0; y < this->height; y++) {
+	for (uint16_t y = 0; y < this->height; y++) {
 		for (uint16_t x = 0; x < this->width; x++) {
 			  	
 			widget->PutPixel(x, y, paintColor);
@@ -285,15 +368,22 @@ void KasugaPaint::LightBrush(int32_t oldx, int32_t oldy,
 
 void KasugaPaint::Bucket(int32_t x, int32_t y, CompositeWidget* widget) {
 
-	uint8_t color = widget->buf[320*y+x];
-	uint16_t xo = x;
-	uint8_t yo = y;
+	if (widget->buf[widget->gc->gfxWidth*y+x] != paintColor 
+		&& widget->buf[widget->gc->gfxWidth*y+x] == replaceColor
+		&& x < widget->gc->gfxWidth && x >= 0 
+		&& y < widget->gc->gfxHeight && y >= 0) {
+			
+		widget->PutPixel(x, y, paintColor);
 		
-	for (y = yo; widget->buf[320*y+xo] != color; y++) {
-		for (x = xo; widget->buf[320*y+x] != color; x++) {
-	
-			widget->PutPixel(x, y, paintColor);
-		}
+		this->Bucket(x+1, y, widget);
+		this->Bucket(x, y+1, widget);
+		this->Bucket(x-1, y, widget);
+		this->Bucket(x, y-1, widget);
+		
+		this->Bucket(x-1, y-1, widget);
+		this->Bucket(x-1, y+1, widget);
+		this->Bucket(x+1, y-1, widget);
+		this->Bucket(x+1, y+1, widget);
 	}
 }
 
@@ -308,13 +398,13 @@ void KasugaPaint::DrawSize(bool increase) {
 }
 
 
-void KasugaPaint::Dimensions(bool width, bool increase) {
+void KasugaPaint::Dimensions(bool width, bool increase, CompositeWidget* widget) {
 
 	if (width) { 
-		if (increase) { this->width += 1 * (this->width < 320); 
+		if (increase) { this->width += 1 * (this->width < widget->gc->gfxWidth); 
 		} else { 	this->width -= 1 * (this->width > 10); }
 	} else {
-		if (increase) { this->height += 1 * (this->height < 200); 
+		if (increase) { this->height += 1 * (this->height < widget->gc->gfxHeight); 
 		} else { 	this->height -= 1 * (this->height > 10); }
 	}
 }
@@ -333,12 +423,12 @@ void KasugaPaint::OnMouseDown(int32_t x, int32_t y, uint8_t button, CompositeWid
 		
 		widget->Dragging = (button == 1);
 
-	} else if (widget->Menu && y < this->menuY) {
+	} else if (widget->MenuOpen && y < this->menuY) {
 			
 		menuTarget = 0;
 	
 	//paint menu
-	} else if (widget->Menu && x >= this->menuX && y >= this->menuY) {
+	} else if (widget->MenuOpen && x >= this->menuX && y >= this->menuY) {
 
 		y -= (10 * widget->Fullscreen);
 
@@ -357,24 +447,28 @@ void KasugaPaint::OnMouseDown(int32_t x, int32_t y, uint8_t button, CompositeWid
 			switch (this->menuTarget) {
 			
 				case 0:this->DrawSize(leftOrIncrease);break;
-				case 1:this->Dimensions(true,  leftOrIncrease);break;
-				case 2:this->Dimensions(false, leftOrIncrease);break;
+				case 1:this->Dimensions(true,  leftOrIncrease, widget);break;
+				case 2:this->Dimensions(false, leftOrIncrease, widget);break;
 				default:break;
 			}
 
 		//choose brushes
-		} else if (y < menuY+43) { drawOption = 1 - (1 * leftOrIncrease);
-		} else if (y < menuY+51) { drawOption = 3 - (1 * leftOrIncrease);
+		} else if (y < menuY+43) { drawOption = DRAW_OPTION_CIRCLE - (1 * leftOrIncrease);
+		} else if (y < menuY+51) { drawOption = DRAW_OPTION_BUCKET - (1 * leftOrIncrease);
+		} else if (y < menuY+59) { drawOption = DRAW_OPTION_TEXT_STYLE - (1 * leftOrIncrease);
 		
 		//choose color
 		} else if (y < menuY+167) {
+		
+			uint8_t colorx = (x-(menuX+5))/5;
+			uint8_t colory = (y-(menuY+60))/5;
 			
-			uint8_t colorx = (x-(menuX+5))/10;
-			uint8_t colory = (y-(menuY+51))/6;
-			
-			this->paintColor = (4*colory+colorx);
+			this->paintColor = (8*colory+colorx);
 
-			if (!paintColor) { this->paintColor = 0x40; }
+			//if (!paintColor) { this->paintColor = W000000; }
+
+			//paint color picker window
+			//widget->parent->CreateChild(1, "test", nullptr);
 		}
 	} else {
 		//drawing
@@ -385,22 +479,26 @@ void KasugaPaint::OnMouseDown(int32_t x, int32_t y, uint8_t button, CompositeWid
 
 void KasugaPaint::OnMouseUp(int32_t x, int32_t y, uint8_t button, CompositeWidget* widget) {
 	
-	if (drawing) {
+	if (drawing && x < this->width && y < this->height && x >= 0 && y >= 0) {
 		
-		if (size == 0) {
+		if (size == 0 && drawOption != DRAW_OPTION_TEXT) {
+			
 			widget->PutPixel(x, y, paintColor);
 		} else {
-			
 			switch (drawOption) {
 				
-				case 1:
+				case DRAW_OPTION_CIRCLE:
 					this->Circle(x, y, size, widget);
 					break;
-				case 2:
+				case DRAW_OPTION_BRUSH:
 					this->LightBrush(x, y, x, y, widget);
 					break;
-				case 3:
+				case DRAW_OPTION_BUCKET:
 					this->Bucket(x, y, widget);
+					break;
+				case DRAW_OPTION_TEXT:
+					this->textDrawX = x;
+					this->textDrawY = y;
 					break;
 				default:
 					for (int16_t h = -size; h < size; h++) {
@@ -423,20 +521,28 @@ void KasugaPaint::OnMouseMove(int32_t oldx, int32_t oldy, int32_t newx, int32_t 
 			&& newx >= 0 && newy >= 0) {
 		
 		//brush mode
-		if (size == 0) {
+		if (size == 0 && drawOption != DRAW_OPTION_TEXT) {
 					
 			widget->DrawLine(oldx, oldy, newx, newy, paintColor);
 		} else {
 			switch (drawOption) {
 			
-				case 1:
+				case DRAW_OPTION_CIRCLE:
 					this->Circle(newx, newy, size, widget);
 					break;
-				case 2:
+				case DRAW_OPTION_BRUSH:
 					this->LightBrush(oldx, oldy, newx, newy, widget);
 					break;
-				case 3:
-					this->Bucket(newx, newy, widget);
+				case DRAW_OPTION_BUCKET:
+					this->replaceColor = widget->buf[widget->gc->gfxWidth*newy+newx];
+					if (this->paintColor != this->replaceColor) {
+					
+						this->Bucket(newx, newy, widget);
+					}
+					break;
+				case DRAW_OPTION_TEXT:
+					this->textDrawX = newx;
+					this->textDrawY = newy;
 					break;
 				default:
 					for (int16_t h = -size; h < size; h++) {
