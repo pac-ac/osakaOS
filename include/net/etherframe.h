@@ -4,6 +4,7 @@
 #include <common/types.h>
 #include <drivers/amd_am79c973.h>
 #include <memorymanagement.h>
+#include <string.h>
 
 
 namespace os {
@@ -41,7 +42,7 @@ namespace os {
 				virtual bool OnEtherFrameReceived(common::uint8_t* etherframePayload, common::uint32_t size);	
 				void Send(common::uint64_t dstMAC_BE, common::uint8_t* etherframePayload, common::uint32_t size);	
 				
-				//common::uint32_t GetIPAddress();	
+				common::uint32_t GetIPAddress();	
 		};
 
 		class EtherFrameProvider : public os::drivers::RawDataHandler {
@@ -51,9 +52,9 @@ namespace os {
 			//protected:
 			public:
 				EtherFrameHandler* handlers[65535];
-
+				MemoryManager* memoryManager = nullptr;
 			public:
-				EtherFrameProvider(drivers::amd_am79c973* backend);	
+				EtherFrameProvider(drivers::amd_am79c973* backend, MemoryManager* mm);	
 				~EtherFrameProvider();	
 			
 				bool OnRawDataReceived(common::uint8_t* buffer, common::uint32_t size);

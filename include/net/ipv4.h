@@ -41,7 +41,6 @@ namespace os {
 			public:
 				InternetProtocolProvider* backend;
 				common::uint8_t ip_protocol;
-
 			public:
 				InternetProtocolHandler(InternetProtocolProvider* backend, common::uint8_t protocol);
 				~InternetProtocolHandler();

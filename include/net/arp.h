@@ -18,12 +18,12 @@ namespace os {
 			common::uint8_t protocolAddressSize; // 4
 			common::uint16_t command;
 		
-			common::uint64_t srcMAC:48;
+			common::uint64_t srcMAC : 48;
 			common::uint32_t srcIP;
-			common::uint64_t dstMAC:48;
+			common::uint64_t dstMAC : 48;
 			common::uint32_t dstIP;
 		
-		} __attribute((packed));
+		} __attribute__((packed));
 
 		class AddressResolutionProtocol : public EtherFrameHandler {
 		
@@ -37,7 +37,7 @@ namespace os {
 				AddressResolutionProtocol(EtherFrameProvider* backend);
 				~AddressResolutionProtocol();
 
-				virtual bool OnEtherFrameReceived(common::uint8_t* etherframePayload, common::uint32_t size);
+				bool OnEtherFrameReceived(common::uint8_t* etherframePayload, common::uint32_t size);
 
 				void BroadcastMACAddress(common::uint32_t IP_BE);
 				void RequestMACAddress(common::uint32_t IP_BE);
