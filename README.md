@@ -1,13 +1,13 @@
-# osakaOS v2.1
+# osakaOS v3.0
 ![](cube.gif)
 
-<h2>The Osaka Operating System v2.1.</h2>
+<h2>The Osaka Operating System v3.0.</h2>
 
 osakaOS is a 32 bit, (optionally) multitasking, megalithic operating system that is made with a focus on unconventional/ridiculous design choices. It is meant to emulate the experience of a videogame or demo software rather than a traditional desktop operating system. It uses different text modes and graphical programs to edit files using the <b>Osaka FileSystem</b> and create programs using the <b>AyumuScript</b> scripting language.
 
-Multitasking kernel programs, file allocation, graphical window manipulation, a paint GUI program, and much more :)
+Multitasking kernel programs, file allocation, networking utilities, a paint GUI program, and much more :)
 
-![](desktop.png)
+![](desktop13H.png)
 <i>The desktop of osakaOS, you can enter the GUI by pressing the windows/command key.</i>
 
 <h2>How to run/compile</h2>
@@ -17,7 +17,7 @@ To compile from source do 'sudo make run' and pray for the best. The binary will
 
 You will probably need the following software packages: g++, binutils, libc6-dev-i386, qemu-system-x86_64 grub-legacy, grub2, xorriso.
 
-If you plan on using other emulators then make sure it has piix4 ide support for storage, at least 8MB of memory, standard VGA emulation, and pc speaker support for basic audio. Emulation is the preferred way to run the OS as running it on real hardware requires a very old machine for the drivers to work, as well as a lack of concern for the data on the machine since the OS doesn't care to ask if you want to write over a pre-existing system partition, it will just do it. There is also a lack of error catching that can cause crashes, which would be annoying to deal with on real machines.
+If you plan on using other emulators then make sure it has piix4 ide support for storage, at least 16MB of memory, standard VGA emulation, and pc speaker support for basic audio. Emulation is the preferred way to run the OS as running it on real hardware requires a very old machine for the drivers to work, as well as a lack of concern for the data on the machine since the OS doesn't care to ask if you want to write over a pre-existing system partition, it will just do it. There is also a lack of error catching that can cause crashes, which would be annoying to deal with on real machines.
 
 <h2>How to get audio using PulseAudio</h2>
 
@@ -61,18 +61,15 @@ No, I just thought it would be funny.
 <br>"delete (file)"        - deletes and removes (file) from filesystem.</br>
 
 <br>AYUMUSCRIPT</br>
-<br>"int (string) (int)"               - define variable with name (string) and value (int).</br>
-<br>"+ (string) (int)"                 - add value (int) to variable (string).</br>
-<br>"- (string) (int)"                 - subtract value (int) from variable (string).</br>
-<br>"* (string) (int)"                 - multiply value (int) by variable (string).</br>
-<br>"/ (string) (int)"                 - divide variable (string) by value (int).</br>
-<br>"if/loop (var/int) (op) (var/int)" - determine if expression is true, if so nothing changes, if not, commands won't be processed.</br>
-<br>"fi/pool"                          - allow command to be processed again.</br>
-<br>"putpixel (int) (int) (int)"       - draw pixel at x and y coordinates with given color value.</br>
-<br>"window (string)"                  - create user window for graphical programming.</br>
-<br>"drawpic (file)"                   - fill buffer of image onto graphical target.</br>
-<br>"// (string)"                      - does nothing, meant for comments in AyumuScript files.</br>
-<br>"ex (file)"                        - executes files as a script (singletasking).</br>
-<br>"ext (file)"                       - executes files as a script (multitasking).</br>
+<br>"var (string) (type)"                  - define variable with name (string) and value (type).</br>
+<br>"= (variable) (arithmetic expression)" - compute an arithmetic expression and store in variable.</br>
+<br>"if/loop (var/int) (op) (var/int)"     - determine if expression is true, if so nothing changes, if not, commands won't be processed.</br>
+<br>"fi/pool"                              - allow command to be processed again.</br>
+<br>"putpixel (int) (int) (int)"           - draw pixel at x and y coordinates with given color value.</br>
+<br>"window (string)"                      - create user window for graphical programming.</br>
+<br>"drawpic (file)"                       - fill buffer of image onto graphical target.</br>
+<br>"// (string)"                          - does nothing, meant for comments in AyumuScript files.</br>
+<br>"ex (file)"                            - executes files as a script (singletasking).</br>
+<br>"ext (file)"                           - executes files as a script (multitasking).</br>
 
 
