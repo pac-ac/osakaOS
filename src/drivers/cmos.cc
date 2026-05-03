@@ -6,7 +6,6 @@ using namespace os::common;
 using namespace os::hardwarecommunication;
 
 void sleep(uint32_t);
-char* int2str(uint32_t);
 void printf(char*);
 
 CMOS::CMOS()
@@ -21,7 +20,7 @@ void CMOS::CMOS_OUT(uint8_t val, uint8_t reg) {
 	
 	asm volatile ("cli");
 	WriteCMOS.Write(reg);
-	sleep(10);
+	this->pit->sleep(10);
 	ReadCMOS.Write(val);
 	asm volatile ("sti");
 }
@@ -32,13 +31,12 @@ uint8_t CMOS::CMOS_IN(uint8_t reg) {
 
 	asm volatile ("cli");
 	WriteCMOS.Write(reg);
-	sleep(10);
+	this->pit->sleep(10);
 	val = ReadCMOS.Read();
 	asm volatile ("sti");
 
 	return val;
 }
-
 
 
 int32_t CMOS::GetUpdate() {
@@ -53,7 +51,6 @@ int32_t CMOS::GetUpdate() {
 	val = (ReadCMOS.Read() & 0x80);
 	//asm volatile ("sti");
 	return val;
-	
 
 	//val = (CMOS_IN(0x0a) & 0x80);
 	//return val;
@@ -134,8 +131,7 @@ void CMOS::ReadRTC() {
 			timeData.day = GetRegisterRTC(0x07);
 			timeData.month = GetRegisterRTC(0x08);
 			timeData.year = GetRegisterRTC(0x09);
-	
-				//century = GetRegisterRTC(0x00);
+			century = GetRegisterRTC(0x00);
 		}
 	
 	} while((last_second != timeData.second) || (last_minute != timeData.minute) || 

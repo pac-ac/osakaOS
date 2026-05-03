@@ -65,7 +65,6 @@ void PIT::setCount(uint32_t count) {
 uint32_t PIT::HandleInterrupt(uint32_t esp) {
 
 
-
 	//send EOI to the PIC
 	PIC.Write(0x20);
 

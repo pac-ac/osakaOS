@@ -8,11 +8,11 @@ using namespace os::drivers;
 using namespace os::math;
 
 
-uint16_t strlen(char*);
-uint8_t Web2EGA(uint32_t webColor);
+uint8_t Web2VGA(uint32_t webColor);
+void sleep(uint32_t);
 
 
-VideoGraphicsArray::VideoGraphicsArray() :
+VideoGraphicsArray::VideoGraphicsArray(MemoryManager* mm, uint8_t* vbeAddr, uint32_t width, uint32_t height) :
 	
 	miscPort(0x3c2),
 	crtcIndexPort(0x3d4),
@@ -32,7 +32,17 @@ VideoGraphicsArray::VideoGraphicsArray() :
 	attributeControllerWritePort(0x3c0),
 	attributeControllerResetPort(0x3da) {
 
+	this->gfxWidth = width;
+	this->gfxHeight = height;
+	this->gfxBufferSize = width*height;
+	this->pixels = (uint8_t*)mm->malloc(sizeof(uint8_t)*(this->gfxBufferSize));
+	this->mm = mm;
 
+	if (vbeAddr != nullptr) {
+	
+		this->FrameBufferSegment = vbeAddr;
+		this->vesa = 1;
+	}
 }
 
 
@@ -79,7 +89,6 @@ void VideoGraphicsArray::WriteRegisters(uint8_t* registers) {
 		
 	}
 
-
 	//attribute controller
 	for (uint8_t i = 0; i < 21; i++) {
 	
@@ -87,7 +96,6 @@ void VideoGraphicsArray::WriteRegisters(uint8_t* registers) {
 		attributeControllerIndexPort.Write(i);
 		attributeControllerWritePort.Write(*(registers++));
 	}
-		
 
 	attributeControllerResetPort.Read();
 	attributeControllerIndexPort.Write(0x20);
@@ -102,12 +110,13 @@ bool VideoGraphicsArray::SupportsMode(uint32_t width, uint32_t height, uint32_t 
 
 bool VideoGraphicsArray::SetMode(uint32_t width, uint32_t height, uint32_t colordepth) {
 
-	if (!SupportsMode(width, height, colordepth)) {
+	if (SupportsMode(width, height, colordepth) == false) {
 	
 		return false;
 	}
+	
 
-	unsigned char g_WIDTH_13HxHEIGHT_13Hx256[] = {
+	unsigned char g_gfxWidthxgfxHeightx256[] = {
 	
 	/* misc */
 		0x63,
@@ -127,44 +136,19 @@ bool VideoGraphicsArray::SetMode(uint32_t width, uint32_t height, uint32_t color
 		0x41, 0x00, 0x0f, 0x00, 0x00
 	};
 
-
-	WriteRegisters(g_WIDTH_13HxHEIGHT_13Hx256);
-
+	WriteRegisters(g_gfxWidthxgfxHeightx256);
 	this->FrameBufferSegment = GetFrameBufferSegment();
 
 	//pallete init
 	this->colorPaletteMask.Write(0xff);
+	this->colorRegisterWrite.Write(0);
 	
 	for (uint16_t color = 0; color < 256; color++) {
 	
-		this->colorRegisterWrite.Write(color);
-	
-		switch (color / 64) {	
-			
-			case 0:
-				this->colorDataPort.Write((color & 0x20 ? 0x15 : 0) | (color & 0x04 ? 0x2a : 0));
-				this->colorDataPort.Write((color & 0x10 ? 0x15 : 0) | (color & 0x02 ? 0x2a : 0));
-				this->colorDataPort.Write((color & 0x08 ? 0x15 : 0) | (color & 0x01 ? 0x2a : 0));
-				break;
-			case 1:
-				this->colorDataPort.Write((color & 0x20 ? 0x15 : 0) | (color & 0x04 ? 0x2a : 0) >> 3);
-				this->colorDataPort.Write((color & 0x10 ? 0x15 : 0) | (color & 0x02 ? 0x2a : 0) >> 3);
-				this->colorDataPort.Write((color & 0x08 ? 0x15 : 0) | (color & 0x01 ? 0x2a : 0) >> 3);
-				break;
-			case 2:
-				this->colorDataPort.Write((color & 0x20 ? 0x15 : 0) | (color & 0x04 ? 0x2a : 0) << 3);
-				this->colorDataPort.Write((color & 0x10 ? 0x15 : 0) | (color & 0x02 ? 0x2a : 0) << 3);
-				this->colorDataPort.Write((color & 0x08 ? 0x15 : 0) | (color & 0x01 ? 0x2a : 0) << 3);
-				break;
-			default:
-				this->colorDataPort.Write(0);
-				this->colorDataPort.Write(0);
-				this->colorDataPort.Write(0);
-				break;
-		}
+		this->colorDataPort.Write(((defaultPalette[color] >> 16) & 0xff) >> 2);
+		this->colorDataPort.Write(((defaultPalette[color] >> 8) & 0xff) >> 2);
+		this->colorDataPort.Write((defaultPalette[color] & 0xff) >> 2);
 	}
-
-
 	return true;
 }
 
@@ -196,12 +180,26 @@ uint8_t* VideoGraphicsArray::GetFrameBufferSegment() {
 
 
 
-
 //place in backbuffer
 void VideoGraphicsArray::PutPixel(int32_t x, int32_t y, uint8_t color) {
 
-	if (x >= 0 && WIDTH_13H > x && y >= 0 && HEIGHT_13H > y) {
-		pixels[(y<<8)+(y<<6)+x] = color;
+	if (x >= 0 && gfxWidth > x && y >= 0 && gfxHeight > y && color != 0x00) {
+		
+		pixels[(y<<(8+vesa))+(y<<(6+vesa))+x] = color;
+		return;
+	}
+
+	if (color == 0x00) {
+		
+		uint32_t index = (y<<(8+vesa))+(y<<(6+vesa))+x;
+
+		switch (index%3) {
+		
+			case 0: pixels[index] = 0x14; break;
+			case 1: pixels[index] = 0x18; break;
+			case 2: pixels[index] = 0x1c; break;
+		}
+		
 	}
 }
 
@@ -210,20 +208,31 @@ void VideoGraphicsArray::PutPixel(int32_t x, int32_t y, uint8_t color) {
 //draw directly to vmem
 void VideoGraphicsArray::PutPixelRaw(int32_t x, int32_t y, uint8_t colorIndex) {
 
-	if (x >= 0 && WIDTH_13H > x && y >= 0 && HEIGHT_13H > y) {
+	if (x >= 0 && gfxWidth > x && y >= 0 && gfxHeight > y) {
 
-		uint8_t* pixelAddress = this->FrameBufferSegment+((y<<8) + (y<<6) + x);
+		uint8_t* pixelAddress = this->FrameBufferSegment+((y<<(8+vesa)) + (y<<(6+vesa)) + x);
 		*pixelAddress = colorIndex;
 	}
+}
+
+
+
+//write transparent pixels
+void VideoGraphicsArray::AlphaWrite(int32_t x, int32_t y, uint8_t color, float alpha) {
+
+	uint32_t finalColor = ((uint32_t)((double)defaultPalette[color]*(double)alpha)) 
+				+ (uint32_t)((double)defaultPalette[this->pixels[(y<<(8+vesa))+(y<<(6+vesa))+x]] * (double)(1.0 - alpha));
+	
+	this->pixels[(y<<(8+vesa))+(y<<(6+vesa))+x] = Web2VGA(finalColor);
 }
 
 
 //darken pixel in buffer
 void VideoGraphicsArray::DarkenPixel(int32_t x, int32_t y) {
 
-	if (x >= 0 && WIDTH_13H > x && y >= 0 && HEIGHT_13H > y) {
+	if (x >= 0 && gfxWidth > x && y >= 0 && gfxHeight > y) {
 	
-		pixels[(y<<8)+(y<<6)+x] = light2dark[pixels[(y<<8)+(y<<6)+x]];
+		pixels[(y<<(8+vesa))+(y<<(6+vesa))+x] = light2dark[pixels[(y<<(8+vesa))+(y<<(6+vesa))+x]];
 	}
 }
 
@@ -231,37 +240,119 @@ void VideoGraphicsArray::DarkenPixel(int32_t x, int32_t y) {
 //read from backbuffer
 uint8_t VideoGraphicsArray::ReadPixel(int32_t x, int32_t y) {
 
-	if (x < 0 || WIDTH_13H <= x || y < 0 || HEIGHT_13H <= y) { return 0; }
-	return pixels[WIDTH_13H*y+x];
+	if (x < 0 || gfxWidth <= x || y < 0 || gfxHeight <= y) { return 0; }
+	return pixels[gfxWidth*y+x];
 }
 
 
-
-void VideoGraphicsArray::PutText(char* str, int32_t x, int32_t y, uint8_t color) {
+void VideoGraphicsArray::PutText(char* str, int32_t x, int32_t y, uint8_t color, uint8_t flags) {
 
 	uint16_t length = strlen(str);
 
-	if ((WIDTH_13H - x) < (length * 5)) { return; }
+	if ((gfxWidth - x) < (length * 5)) { return; }
 
 	uint8_t* charArr = charset[0];
 
 	for (int i = 0; str[i] != '\0'; i++) {
 	
-		charArr = charset[(uint8_t)(str[i])-32];
+		charArr = charset[(uint8_t)(str[i])];
 
-		for (uint8_t w = 0; w < font_width; w++) {
-			for (uint8_t h = 0; h < font_height; h++) {
+		switch (flags) {
+
+			case TEXT_ITALIC:
+				for (uint16_t w = 0; w < FONT_WIDTH; w++) {
+					for (uint16_t h = 0; h < FONT_HEIGHT; h++) {
+			
+						if (charArr[w] && ((charArr[w] >> h) & 1)) {
+				
+							this->PutPixel(x+w+((FONT_HEIGHT-h)/2), y+h, color);
+						}
+					}
+				}
+				x += FONT_WIDTH;
+				break;
+		
+			case TEXT_HEADER:
+				for (uint16_t w = 0; w < FONT_WIDTH; w++) {
+					for (uint16_t h = 0; h < FONT_HEIGHT; h++) {
+			
+						if (charArr[w] && ((charArr[w] >> h) & 1)) {
+				
+							this->PutPixel(x+(w*2), y+(h*2), color);
+							this->PutPixel(x+(w*2)+1, y+(h*2), color);
+							this->PutPixel(x+(w*2), y+(h*2)+1, color);
+							this->PutPixel(x+(w*2)+1, y+(h*2)+1, color);
+						}
+					}
+				}
+				x += (FONT_WIDTH*2);
+				break;
+			default:
+				for (uint16_t w = 0; w < FONT_WIDTH; w++) {
+					for (uint16_t h = 0; h < FONT_HEIGHT; h++) {
+			
+						if (charArr[w] && ((charArr[w] >> h) & 1)) {
+				
+							this->PutPixel(x+w, y+h, color);
+						}
+					}
+				}
+				
+				if (flags == TEXT_BOLD) {
+				
+					for (uint16_t w = 0; w < FONT_WIDTH; w++) {
+						for (uint16_t h = 0; h < FONT_HEIGHT; h++) {
+			
+							if (charArr[w] && ((charArr[w] >> h) & 1)) {
+				
+								this->PutPixel(x+w+1, y+h, color);
+							}
+						}
+					}
+				}
+				
+				if (flags == TEXT_UNDERLINE) {
+				
+					for (uint16_t w = 0; w < FONT_WIDTH; w++) {
+					
+						this->PutPixel(x+w, y+FONT_HEIGHT+1, color);
+					}
+				}
+
+
+				x += FONT_WIDTH;
+				break;
+		}
+	}
+}
+
+void VideoGraphicsArray::PrintData(char* str, uint16_t length, int32_t x, int32_t y, uint8_t color) {
+
+	uint8_t* charArr = charset[0];
+	
+	for (int i = 0; i < length; i++) {
+			
+		if (str[i] == '\n' || x+FONT_WIDTH > gfxWidth) {
+		
+			x = 0;
+			y += FONT_HEIGHT;
+		}
+		if ((gfxHeight - y) < FONT_HEIGHT) { return; }
+
+		charArr = charset[(uint8_t)str[i]];
+		
+		for (uint16_t w = 0; w < FONT_WIDTH; w++) {
+			for (uint16_t h = 0; h < FONT_HEIGHT; h++) {
 			
 				if (charArr[w] && ((charArr[w] >> h) & 1)) {
-				
+					
 					this->PutPixel(x+w, y+h, color);
 				}
 			}
 		}
-		x += font_width;
+		x += FONT_WIDTH;
 	}
 }
-
 
 
 //draw from buffer
@@ -271,7 +362,7 @@ void VideoGraphicsArray::FillBufferFull(int32_t x, int32_t y,
 	for (int32_t Y = y; Y < y+h; Y++) {
 		for (int32_t X = x; X < x+w; X++) {
 		
-			this->PutPixel(X, Y, buf[WIDTH_13H*(Y-y)+(X-x)]);
+			this->PutPixel(X, Y, buf[gfxWidth*(Y-y)+(X-x)]);
 		}
 	}
 }
@@ -281,7 +372,7 @@ void VideoGraphicsArray::FillBuffer(int16_t x, int16_t y,
 				int16_t w, int16_t h, uint8_t* buf, bool mirror) {
 
 	uint8_t pixelColor = 0;
-	uint8_t scrollVert = 0;
+	uint16_t scrollVert = 0;
 	bool scroll = false;
 
 	if (y < 0) {
@@ -308,6 +399,37 @@ void VideoGraphicsArray::FillBuffer(int16_t x, int16_t y,
 }
 
 
+void VideoGraphicsArray::FillBufferCoordinate(int16_t x, int16_t y, 
+						int16_t w, int16_t h, 
+						uint8_t* buf, bool mirror,
+						uint8_t* positionBuf, uint8_t positionVal) {
+	uint8_t pixelColor = 0;
+	uint16_t scrollVert = 0;
+	bool scroll = false;
+
+	if (y < 0) {
+
+		if (y+h < 0) { return; }
+		scrollVert = (y * -1);
+		h -= (y * -1);
+		y = 0;
+		scroll = true;
+	}
+
+	for (int16_t Y = y; Y < y+h; Y++) {
+		for (int16_t X = x; X < x+w; X++) {
+	
+			if (mirror) { pixelColor = buf[w*(Y-y+scrollVert)+(x+w-X-1)];
+			} else {      pixelColor = buf[w*(Y-y+scrollVert)+(X-x)]; }
+			
+			if (pixelColor) {
+			
+				positionBuf[(Y<<(8+vesa))+(Y<<(6+vesa))+X] = positionVal;
+			}
+		}
+	}
+
+}
 
 
 
@@ -360,7 +482,6 @@ void VideoGraphicsArray::DrawLineFlat(int32_t x0, int32_t y0,
 void VideoGraphicsArray::DrawLineLow(int32_t x0, int32_t y0, 
 				int32_t x1, int32_t y1,
 				uint8_t color) {
-
 	int16_t dx = x1 - x0;
 	int16_t dy = y1 - y0;
 	int16_t yi = 1;
@@ -373,13 +494,11 @@ void VideoGraphicsArray::DrawLineLow(int32_t x0, int32_t y0,
 	int16_t D = (2*dy) - dx;
 	int16_t y = y0;
 
-
 	for (int x = x0; x < x1; x++) {
 	
 		this->PutPixel(x, y, color);
 	
 		if (D > 0) {
-		
 			y += yi;
 			D += (2*(dy-dx));
 		} else {
@@ -392,7 +511,6 @@ void VideoGraphicsArray::DrawLineLow(int32_t x0, int32_t y0,
 void VideoGraphicsArray::DrawLineHigh(int32_t x0, int32_t y0, 
 				int32_t x1, int32_t y1,
 				uint8_t color) {
-
 	int16_t dx = x1 - x0;
 	int16_t dy = y1 - y0;
 	int16_t xi = 1;
@@ -405,13 +523,11 @@ void VideoGraphicsArray::DrawLineHigh(int32_t x0, int32_t y0,
 	int16_t D = (2*dx) - dy;
 	int16_t x = x0;
 
-
 	for (int y = y0; y < y1; y++) {
 	
 		this->PutPixel(x, y, color);
 	
 		if (D > 0) {
-		
 			x += xi;
 			D += (2*(dx-dy));
 		} else {
@@ -437,21 +553,67 @@ void VideoGraphicsArray::DrawLine(int32_t x0, int32_t y0,
 }
 
 
+void VideoGraphicsArray::FillTriangle(int16_t x0, int16_t y0, 
+				     int16_t x1, int16_t y1, 
+				     int16_t x2, int16_t y2,
+				     uint8_t color) {
+	int16_t tmpx = 0;
+	int16_t tmpy = 0;
+	
+	if (y1 < y0) { tmpx = x0; tmpy = y0; x0 = x1;   y0 = y1; x1 = tmpx; y1 = tmpy; }
+	if (y2 < y0) { tmpx = x0; tmpy = y0; x0 = x2;   y0 = y2; x2 = tmpx; y2 = tmpy; }
+	if (y2 < y1) { tmpx = x1; tmpy = y1; x1 = x2;   y1 = y2; x2 = tmpx; y2 = tmpy; }
+
+	if (y0 == y2) { return; }
+
+	int16_t mx = x0 + (int16_t)(((float)((x2 - x0) * (y1 - y0))) / ((float)(y2 - y0)));
+	int16_t my = y1;
+
+	if (y0 != y1) {	
+
+		float invSlopeb0 = ((float)(x1 - x0)) / ((float)(y1 - y0));
+		float invSlopeb1 = ((float)(mx - x0)) / ((float)(my - y0));
+		float startxb = x0;
+		float endxb = x0;
+
+		for (int y = y0; y <= my; y++) {
+			
+			this->DrawLine((int)startxb, y, (int)endxb, y, color);
+			//this->DrawLineFlat((int)startxb, y, (int)endxb, y, color, true);
+			startxb += invSlopeb0;
+			endxb += invSlopeb1;
+		}
+	}
+
+
+	if (y1 != y2) {	
+	
+		float invSlopet0 = ((float)(x2 - x1)) / ((float)(y2 - y1));
+		float invSlopet1 = ((float)(x2 - mx)) / ((float)(y2 - my));
+		float startxt = x2;
+		float endxt = x2;
+
+		for (int y = y2; y >= my; y--) {
+			
+			this->DrawLine((int)startxt, y, (int)endxt, y, color);
+			//this->DrawLineFlat((int)startxt, y, (int)endxt, y, color, true);
+			startxt -= invSlopet0;
+			endxt -= invSlopet1;
+		}
+	}
+}
+
 void VideoGraphicsArray::FillPolygon(uint16_t x[], uint16_t y[], 
 				     uint8_t edgeNum, 
 				     uint8_t color) {
 	int16_t i, j, temp = 0;
-	uint16_t xmin = WIDTH_13H; 
+	uint16_t xmin = gfxWidth; 
 	uint16_t xmax = 0;
 
 	for (i = 0; i < edgeNum; i++) {
 	
-		if (x[i] < xmin) {
-			xmin = x[i];
-		}
-		if (x[i] > xmax) {
-			xmax = x[i];
-		}
+		if (x[i] < xmin) { xmin = x[i]; }
+		if (x[i] > xmax) { xmax = x[i]; }
 	}
 
 	for (i = xmin; i <= xmax; i++) {
@@ -484,60 +646,249 @@ void VideoGraphicsArray::FillPolygon(uint16_t x[], uint16_t y[],
 
 		//draw line
 		for (j = 0; j < count; j += 2) {
-		
+
 			this->DrawLine(interPoints[j], i, interPoints[j+1], i, color);
 		}
 	}
 }
 
 
-void VideoGraphicsArray::MakeDark(uint8_t darkness) {
+
+common::int16_t VideoGraphicsArray::ProjectVertexX(float v[3]) {
+
+	//viewport w and h (FOV)
+	float Vw = 1.0;
+
+	//camera distance
+	float d = 2.0;
+	float px = ((v[0] * d) / v[2]);
+	//return px + (gfxWidth / 2);
+	return (px + 1) * 0.5 * gfxWidth;
+	//return (px * gfxWidth / (uint16_t)Vw);
+}
+
+
+common::int16_t VideoGraphicsArray::ProjectVertexY(float v[3]) {
+	
+	//viewport w and h (FOV)
+	float Vh = 1.0;
+
+	//camera distance
+	float d = 2.0;
+	float py = ((v[1] * d) / v[2]);
+	//return -py + (gfxHeight / 2);
+	return (1 - (py + 1)) * 0.5 * gfxHeight;
+	//return (py * gfxHeight / (uint16_t)Vh);
+}
+
+
+
+void VideoGraphicsArray::RotateVertex(float v[3], float degrees, uint8_t varConst) {
+
+	float newx, newy, newz;
+
+	switch (varConst) {
+		
+		case 0:
+			newy = cos(degrees)*v[1] - sin(degrees)*v[2];
+			newz = sin(degrees)*v[1] + cos(degrees)*v[2];
+			v[1] = newy;
+			v[2] = newz;
+			break;
+		case 1:
+			newx = cos(degrees)*v[0] + sin(degrees)*v[2];
+			newz = -sin(degrees)*v[0] + cos(degrees)*v[2];
+			v[0] = newx;
+			v[2] = newz;
+			break;
+		case 2:
+			newx = cos(degrees)*v[0] - sin(degrees)*v[1];
+			newy = sin(degrees)*v[0] + cos(degrees)*v[1];
+			v[0] = newx;
+			v[1] = newy;
+			break;
+	}
+}
+
+
+
+void VideoGraphicsArray::RenderObject(float** vertices, uint16_t numOfVertices, 
+					uint8_t** triangles, uint16_t numOfTriangles) {
+
+	//float translate[3] = { -1.5, 0, 7 };
+	float translate[3] = { 0, -2.0, 6 };
+	int16_t projected[numOfVertices][2];
+
+	for (int i = 0; i < numOfVertices; i++) {
+
+		vertices[i][0] += translate[0];
+		vertices[i][1] += translate[1];
+		vertices[i][2] += translate[2];
+		
+		projected[i][0] = ProjectVertexX(vertices[i]);
+		projected[i][1] = ProjectVertexY(vertices[i]);
+	}
+	for (int i = 0; i < numOfTriangles; i++) {
+	
+		uint8_t* triangle = triangles[i];
+
+		int16_t x0 = projected[(triangle[0])][0];
+		int16_t y0 = projected[(triangle[0])][1];
+		int16_t x1 = projected[(triangle[1])][0];
+		int16_t y1 = projected[(triangle[1])][1];
+		int16_t x2 = projected[(triangle[2])][0];
+		int16_t y2 = projected[(triangle[2])][1];
+		uint8_t color = triangle[3];
+
+		this->FillTriangle(x0, y0, x1, y1, x2, y2, color);
+		this->PutText(int2str(x0), 0, 20*i, WFFFFFF);
+	}
+}
+
+
+
+void VideoGraphicsArray::MakeDark(uint8_t darkness, uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
 
 	if (darkness > 0) {
 
-		for (uint8_t y = 0; y < HEIGHT_13H; y++) {
-			for (uint16_t x = 0; x < WIDTH_13H; x++) {
+		for (int Y = y; Y < y+h; Y++) {
+			for (int X = x; X < x+w; X++) {
 
 				//make pixel darker	
 				for (uint8_t i = 0; i < darkness; i++) {
-				
-					pixels[(y<<8)+(y<<6)+x] = light2dark[pixels[(y<<8)+(y<<6)+x]];
+			
+					uint32_t pixelIndex = (Y<<(8+vesa))+(Y<<(6+vesa))+X;	
+					if (pixelIndex >= 0 && pixelIndex < this->gfxBufferSize) {
+					
+						pixels[pixelIndex] = light2dark[pixels[pixelIndex]];
+					}
 				}
 			}
 		}
 	}
 }
 
-void VideoGraphicsArray::MakeWave(uint8_t waveLength) {
 
-	if (!waveLength) { return; }
+void VideoGraphicsArray::MakeWave(int32_t x, int32_t y, 
+				  int32_t w, int32_t h, 
+				  uint8_t amp, uint8_t freq, uint8_t waveInc,
+				  uint8_t* background) {
 
-	uint16_t offset = waveLength;
-	bool incOrDec = true;
+	for (int i = 0; i < w; i++) {
+	
+		uint8_t bufStrip[h];
+		int16_t indexAmp = (int16_t)(((float)amp)*sin(((float)((float)i/((float)freq) + 2.0*pi*((float)waveInc/256.0)))));
 
-	for (uint8_t y = 0; y < HEIGHT_13H; y++) {
-		for (uint16_t x = offset; x < WIDTH_13H; x++) {
+		if (indexAmp != 0) {
 		
-			pixels[(y<<8)+(y<<6)+(x-offset)] = pixels[(y<<8)+(y<<6)+x];
+			for (int j = 0; j < h; j++) { 
+			
+				uint32_t pixelsIndex = ((y+j)<<(8+vesa))+((y+j)<<(6+vesa))+(x+i);
+
+				if (pixelsIndex >= 0 && pixelsIndex < this->gfxBufferSize) {
+			
+					bufStrip[j] = this->pixels[pixelsIndex]; 
+					this->pixels[pixelsIndex] = W_EMPTY;
+				}
+			}
+			
+			for (int j = 0; j < h; j++) {
+				
+				uint32_t pixelsIndex = ((y+j+indexAmp)<<(8+vesa))+((y+j+indexAmp)<<(6+vesa))+(x+i);
+			
+				if (pixelsIndex >= 0 && pixelsIndex < this->gfxBufferSize) {
+				
+					this->pixels[pixelsIndex] = bufStrip[j];
+				}
+			}
 		}
+	}
+
+	if (background != nullptr) {
+	
+		for (int i = y; i < y+h; i++) { 
+			for (int j = x; j < x+w; j++) {
+			
+				uint32_t pixelsIndex = (i<<(8+vesa))+(i<<(6+vesa))+j;
+				
+				if (pixelsIndex >= 0 && pixelsIndex < this->gfxBufferSize 
+					&& this->pixels[pixelsIndex] == W_EMPTY) {
+				
+					this->pixels[pixelsIndex] = background[w*(i-y)+(j-x)];
+				}
+			}
+		}
+	}
+}
+
+
+void VideoGraphicsArray::Pixelize(int32_t x, int32_t y, 
+				  int32_t w, int32_t h, 
+				  uint8_t verticalSize, uint8_t horizontalSize) {
+
+	uint16_t pixelSize = verticalSize*horizontalSize;
+
+	for (int i = y; i < y+h; i += verticalSize) {
+		for (int j = x; j < x+w; j += horizontalSize) {
 		
-		if (offset > waveLength) { incOrDec = false; }
-		if (offset == 0) { incOrDec = true; }
+			uint16_t meanR = 0;
+			uint16_t meanG = 0;
+			uint16_t meanB = 0;
+
+			for (int k = 0; k < verticalSize; k++) {
+				for (int l = 0; l < horizontalSize; l++) {
+					
+					uint32_t pixelsIndex = gfxWidth*(i+k)+(j+l);
+
+					if (pixelsIndex >= 0 && pixelsIndex < this->gfxBufferSize) {
+				
+						meanR += ((defaultPalette[this->pixels[pixelsIndex]]) >> 16);
+						meanG += ((defaultPalette[this->pixels[pixelsIndex]]) >> 8) & 0xff;
+						meanB += ((defaultPalette[this->pixels[pixelsIndex]]) & 0xff);
+					}
+				}
+			}
+
+			meanR /= pixelSize;
+			meanG /= pixelSize;
+			meanB /= pixelSize;
+			this->FillRectangle(j, i, horizontalSize, verticalSize, Web2VGA((meanR << 16) | (meanG << 8) | (meanB)));
+		}
+	}
+}
+
+
+void VideoGraphicsArray::Rainbowize(int32_t x, int32_t y, 
+				  int32_t w, int32_t h) {
+
+	for (int i = y; i < y+h; i++) {
+		for (int j = x; j < x+w; j++) {
 		
-		if (incOrDec) { offset++;
-		} else { offset--; }
+			this->pixels[gfxWidth*y+x]++;
+		}
+	}
+	sleep(1);
+}
+
+
+void VideoGraphicsArray::Burn(int32_t x, int32_t y, 
+				  int32_t w, int32_t h, bool mirror) {
+
+	for (int i = 0; i < w/16; i++) {
+
+		this->FillBuffer(x+(i*16), y+h-14, 16, 14, fireEffect1, mirror);
 	}
 }
 
 
 //actually draw to the screen
 void VideoGraphicsArray::DrawToScreen() {
+	
+	for (uint16_t y = 0; y < gfxHeight; y++) {
+		for (uint16_t x = 0; x < gfxWidth; x++) {
 
-	for (uint8_t y = 0; y < HEIGHT_13H; y++) {
-		for (uint16_t x = 0; x < WIDTH_13H; x++) {
-
-			uint8_t* pixelAddress = this->FrameBufferSegment+((y<<8) + (y<<6) + x);
-			*pixelAddress = pixels[(y<<8)+(y<<6)+x];
+			uint8_t* pixelAddress = this->FrameBufferSegment+((y<<(8+vesa)) + (y<<(6+vesa)) + x);
+			*pixelAddress = pixels[(y<<(8+vesa))+(y<<(6+vesa))+x];
 		}
 	}
 }
@@ -554,7 +905,7 @@ void VideoGraphicsArray::FSdither(uint32_t* buf, uint16_t w, uint16_t h) {
 		for (uint16_t x = 0; x < w; x++) {
 
 			oldPixel = buf[w*y+x];
-			newPixel = Web2EGA(oldPixel);
+			newPixel = Web2VGA(oldPixel);
 			buf[w*y+x] = newPixel;
 			quantError = oldPixel - newPixel;
 			buf[w*(y)+(x+1)]   += quantError*7 / 16;
@@ -565,9 +916,10 @@ void VideoGraphicsArray::FSdither(uint32_t* buf, uint16_t w, uint16_t h) {
 	}
 }
 
+
 void VideoGraphicsArray::ErrorScreen() {
 
-	this->FillRectangle(0, 0, WIDTH_13H, HEIGHT_13H, 0x09);
+	this->FillRectangle(0, 0, gfxWidth, gfxHeight, 0x09);
 	this->FillRectangle(0, 29, 300, 101, 0x3f);
 	
 	this->PutText("Sorry, osakaOS experienced a critical error. :(", 1, 11, 0x40);

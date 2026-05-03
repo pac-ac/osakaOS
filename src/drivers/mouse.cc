@@ -5,6 +5,8 @@ using namespace os::drivers;
 using namespace os::hardwarecommunication;
 
 
+void printf(char*);
+
 
 MouseEventHandler::MouseEventHandler() {
 }
@@ -58,22 +60,14 @@ void MouseDriver::Activate() {
 
 
 
-
-
 uint32_t MouseDriver::HandleInterrupt(uint32_t esp) {
 
 	uint8_t status = commandport.Read();
 	
-	
 	if (!(status & 0x20)) { return esp; }
-
-
 	buffer[offset] = dataport.Read();
 	
-	
 	if (handler == 0) { return esp; }
-	
-	
 	offset = (offset + 1) % 3;
 
 	
@@ -90,13 +84,11 @@ uint32_t MouseDriver::HandleInterrupt(uint32_t esp) {
 					handler->OnMouseUp(i+1);
 					this->pressed = false;
 				} else {
-
 					handler->OnMouseDown(i+1);
 					this->pressed = true;
 				}
 			}
 		}
-
 		buttons = buffer[0];
 	}
 
