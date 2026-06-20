@@ -581,7 +581,9 @@ void sleep(uint32_t ms) {
 		asm("sti");
 		
 		uint32_t start = readCount();
-		while ((start - readCount() < 1000)) {}
+		while ((start - readCount() < 1000)) {
+			asm("hlt");
+		}
 	}
 
 }
@@ -1137,7 +1139,7 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicnumber) {
 	
 	//this is the gui :)
 	while (1) {
-	
+		asm("hlt");
 		//this is the loop where the kernel
 		//exists in, the rest is handed off
 		//to the taskmanager, godspeed o7
